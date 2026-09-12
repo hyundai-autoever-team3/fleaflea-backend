@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.token.domain;
+package com.anabada.fleaflea.domain.refreshtoken.domain;
 
 import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "tokens")
+@Table(name = "refresh_tokens")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Token extends BaseCreatedTimeEntity {
+public class RefreshToken extends BaseCreatedTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tokenId;
