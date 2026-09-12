@@ -1,10 +1,7 @@
 package com.anabada.fleaflea.domain.trade.domain;
 
 import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +15,7 @@ import java.time.LocalDateTime;
 public class Trade extends BaseCreatedTimeEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tradeId;
 
     @Column(nullable = false)
