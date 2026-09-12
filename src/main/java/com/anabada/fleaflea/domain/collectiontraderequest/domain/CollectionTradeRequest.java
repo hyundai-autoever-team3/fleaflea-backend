@@ -21,17 +21,18 @@ public class CollectionTradeRequest extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "collection_trade_request_id")
     private Long collectionTradeRequestId;
 
-    @Column(nullable = false)
+    @Column(name = "collection_item_id", nullable = false)
     private Long collectionItemId;
-
-    @Column(nullable = false)
+    @Column(name = "requester_id", nullable = false)
     private Long requesterId;
 
+    @Column(name = "offer_collection_item_id")
     private Long offerCollectionItemId;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private CollectionTradeType status;
+    @Column(name = "trade_type", length = 20)
+    private CollectionTradeType tradeType;
 }

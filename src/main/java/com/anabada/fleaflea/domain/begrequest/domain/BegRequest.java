@@ -21,7 +21,8 @@ public class BegRequest extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long begId;
+    @Column(name = "beg_id")
+    private Long begRequestId;
 
     @Column(nullable = false)
     private Long collectionItemId;
