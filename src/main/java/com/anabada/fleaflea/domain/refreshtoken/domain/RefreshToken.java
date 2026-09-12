@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 public class RefreshToken extends BaseCreatedTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long tokenId;
+    private Long refreshTokenId;
 
     @Column(nullable = false)
     private Long memberId;
 
     @Column(nullable = false, length = 500)
-    private String token;
+    private String refreshToken;
 
     private LocalDateTime expiresAt;
 
