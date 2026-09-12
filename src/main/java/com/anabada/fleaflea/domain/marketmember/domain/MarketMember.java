@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(name = "market_members")
+@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MarketMember {
     @Id
@@ -24,6 +25,7 @@ public class MarketMember {
     @Column(nullable = false)
     private Long memberId;
 
+    @CreatedDate
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt;
 }
