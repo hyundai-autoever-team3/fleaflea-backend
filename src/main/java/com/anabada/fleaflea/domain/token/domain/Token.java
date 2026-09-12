@@ -1,0 +1,28 @@
+package com.anabada.fleaflea.domain.token.domain;
+
+import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Entity
+@Table(name = "tokens")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Token extends BaseCreatedTimeEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long tokenId;
+
+    @Column(nullable = false)
+    private Long memberId;
+
+    @Column(nullable = false, length = 500)
+    private String token;
+
+    private LocalDateTime expiresAt;
+
+}
