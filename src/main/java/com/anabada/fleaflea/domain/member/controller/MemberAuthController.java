@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.member.controller;
 
+import com.anabada.fleaflea.domain.member.dto.LoginRequest;
+import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
 import com.anabada.fleaflea.domain.member.service.MemberAuthService;
 import jakarta.validation.Valid;
@@ -21,5 +23,10 @@ public class MemberAuthController {
     public ResponseEntity<Void> signUp(@Valid @RequestBody SignUpRequest request) {
         memberAuthService.signUp(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(memberAuthService.login(request));
     }
 }
