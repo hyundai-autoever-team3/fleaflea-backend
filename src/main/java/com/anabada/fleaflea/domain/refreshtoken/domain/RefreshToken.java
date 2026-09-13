@@ -3,9 +3,11 @@ package com.anabada.fleaflea.domain.refreshtoken.domain;
 import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.sql.Ref;
 import java.time.LocalDateTime;
 
 @Getter
@@ -24,5 +26,28 @@ public class RefreshToken extends BaseCreatedTimeEntity {
     private String refreshToken;
 
     private LocalDateTime expiresAt;
+
+    @Builder
+    private RefreshToken(
+            Long memberId,
+            String refreshToken,
+            LocalDateTime expiresAt
+    ) {
+        this.memberId = memberId;
+        this.refreshToken = refreshToken;
+        this.expiresAt = expiresAt;
+    }
+
+    public static RefreshToken of(
+            Long memberId,
+            String refreshToken,
+            LocalDateTime expiresAt
+    ){
+        return RefreshToken.builder()
+                .memberId(memberId)
+                .refreshToken(refreshToken)
+                .expiresAt(expiresAt)
+                .build();
+    }
 
 }
