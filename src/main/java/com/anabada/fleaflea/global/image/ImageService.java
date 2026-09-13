@@ -20,6 +20,11 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+@Slf4j
 @Service
 public class ImageService {
 
@@ -153,5 +158,84 @@ public class ImageService {
         } catch (IOException e) {
             throw new ImageException(ErrorCode.INVALID_IMAGE, e);
         }
+    }
+
+    /**
+     * 새 이미지를 업로드하고 교체 전후 키를 반환함.
+     * 기존 이미지는 삭제하지 않는다!
+     */
+    public ImageReplacement prepareReplacement(
+            String previousKey,
+            MultipartFile file,
+            ImageCategory category
+    ) {
+        if (category == null) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_CATEGORY);
+        }
+
+        if (previousKey == null
+                || !IMAGE_KEY_PATTERN.matcher(previousKey).matches()
+                || !previousKey.startsWith(category.getPrefix() + "/")) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
+        }
+
+        String newKey = upload(file, category);
+
+        return new ImageReplacement(previousKey, newKey);
+    }
+
+    /**
+     * 호출한 서비스의 DB 트랜잭션 결과에 따라 이미지를 정리!
+     * 반환된 새 이미지 키를 같은 트랜잭션에서 DB에 저장해야 함!!
+     */
+    public String replace(
+            String previousKey,
+            MultipartFile file,
+            ImageCategory category
+    ) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw new IllegalStateException(
+                    "이미지 교체는 쓰기 가능한 DB 트랜잭션 안에서 호출해야 합니다."
+            );
+        }
+
+        ImageReplacement replacement =
+                prepareReplacement(previousKey, file, category);
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        String keyToDelete;
+
+                        if (status == STATUS_COMMITTED) {
+                            keyToDelete = replacement.previousKey();
+                        } else if (status == STATUS_ROLLED_BACK) {
+                            keyToDelete = replacement.newKey();
+                        } else {
+                            log.warn(
+                                    "트랜잭션 결과 불명확: 이미지 정리 보류. previousKey={}, newKey={}",
+                                    replacement.previousKey(),
+                                    replacement.newKey()
+                            );
+                            return;
+                        }
+
+                        try {
+                            delete(keyToDelete);
+                        } catch (RuntimeException e) {
+                            log.error(
+                                    "이미지 정리 실패: 재처리 필요. imageKey={}",
+                                    keyToDelete,
+                                    e
+                            );
+                        }
+                    }
+                }
+        );
+
+        return replacement.newKey();
     }
 }
