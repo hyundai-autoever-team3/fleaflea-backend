@@ -1,0 +1,26 @@
+#!/bin/sh
+
+message_file="$1"
+subject="$(sed -n '1p' "$message_file")"
+
+# Git이 자동 생성하는 병합/되돌리기 커밋은 허용합니다.
+case "$subject" in
+  "Merge "*|"Revert "*)
+    exit 0
+    ;;
+esac
+
+pattern='^(feat|fix|refactor|test|docs|chore|build|ci|perf|style)(\([a-z0-9-]+\))?!?: .+'
+
+if printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+  exit 0
+fi
+
+cat >&2 <<EOF
+잘못된 커밋 메시지입니다: $subject
+
+허용 형식: 타입: 설명
+예시: feat: 로그인 기능 추가
+허용 타입: feat, fix, refactor, test, docs, chore, build, ci, perf, style
+EOF
+exit 1
