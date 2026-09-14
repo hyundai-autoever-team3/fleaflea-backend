@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.global.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -29,6 +30,7 @@ public class JwtTokenProvider {
         Date now = new Date();
         return Jwts.builder()
                 .subject(memberId.toString())
+                .claim("type", "ACCESS")
                 .issuedAt(new Date())
                 .expiration(
                         new Date(now.getTime() + accessExpiration)
@@ -41,6 +43,7 @@ public class JwtTokenProvider {
         Date now = new Date();
         return Jwts.builder()
                 .subject(memberId.toString())
+                .claim("type", "REFRESH")
                 .issuedAt(new Date())
                 .expiration(
                         new Date(now.getTime() + refreshExpiration)
@@ -56,6 +59,32 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+
+    public boolean isAccessToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "ACCESS".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "REFRESH".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     public boolean validateToken(String token) {
