@@ -16,10 +16,12 @@ public class MemberMyPageController {
     private final MemberMyPageService memberMypageService;
 
     @GetMapping("/me")
-    public MyProfileResponse getMyProfile(
+    public ResponseEntity<MyProfileResponse> getMyProfile(
             @AuthenticationPrincipal Long memberId
     ) {
-        return memberMypageService.getMyProfile(memberId);
+        MyProfileResponse response = memberMypageService.getMyProfile(memberId);
+
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/me")
