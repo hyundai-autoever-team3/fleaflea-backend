@@ -38,7 +38,7 @@ public class RefreshToken extends BaseCreatedTimeEntity {
         this.expiresAt = expiresAt;
     }
 
-    public static RefreshToken of(
+    public static RefreshToken create(
             Long memberId,
             String refreshToken,
             LocalDateTime expiresAt

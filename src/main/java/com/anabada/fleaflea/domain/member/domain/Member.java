@@ -41,7 +41,7 @@ public class Member extends BaseTimeEntity {
         this.profileImageUrl = profileImageUrl;
     }
 
-    public static Member of(
+    public static Member create(
             String email,
             String password,
             String nickname,

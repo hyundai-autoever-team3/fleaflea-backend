@@ -33,7 +33,7 @@ public class MemberAuthService {
             throw new MemberNicknameDuplicateException();
         }
         String encodedPassword = passwordEncoder.encode(request.password());
-        Member newMember = Member.of(
+        Member newMember = Member.create(
                 request.email(),
                 encodedPassword,
                 request.nickname(),
@@ -57,7 +57,7 @@ public class MemberAuthService {
 
         LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
         refreshTokenRepository.save(
-                RefreshToken.of(
+                RefreshToken.create(
                         member.getMemberId(),
                         refreshToken,
                         expiresAt
