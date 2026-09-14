@@ -4,6 +4,8 @@ import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
 import com.anabada.fleaflea.domain.member.service.MemberAuthService;
+import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueRequest;
+import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,5 +30,10 @@ public class MemberAuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(memberAuthService.login(request));
+    }
+
+    @PostMapping("/reissue")
+    public ResponseEntity<ReissueResponse> reissue(@RequestBody ReissueRequest request) {
+        return ResponseEntity.ok(memberAuthService.reissue(request));
     }
 }

@@ -10,6 +10,9 @@ import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateExcep
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
+import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueRequest;
+import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
+import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -79,5 +82,22 @@ public class MemberAuthService {
                 refreshToken
         );
     }
+
+    public ReissueResponse reissue(ReissueRequest request) {
+        String refreshToken = request.refreshToken();
+        if (!jwtTokenProvider.validateToken(refreshToken) && !jwtTokenProvider.isRefreshToken(refreshToken)) {
+            throw new InvalidTokenException();
+        }
+        RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(InvalidTokenException::new);
+        Long memberId = Long.valueOf(jwtTokenProvider.getMemberId(refreshToken));
+        String accessToken = jwtTokenProvider.createAccessToken(memberId);
+        return new ReissueResponse(accessToken);
+
+    }
+
+
+
+
 
 }
