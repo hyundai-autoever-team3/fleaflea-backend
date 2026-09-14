@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
+import com.anabada.fleaflea.domain.member.exception.InvalidLoginException;
 import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
@@ -13,6 +14,7 @@ import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepositor
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,12 +50,16 @@ public class MemberAuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.email(),
-                        request.password()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.email(),
+                            request.password()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            throw new InvalidLoginException();
+        }
         Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(MemberNotFoundException::new);
 
@@ -73,6 +79,5 @@ public class MemberAuthService {
                 refreshToken
         );
     }
-
 
 }
