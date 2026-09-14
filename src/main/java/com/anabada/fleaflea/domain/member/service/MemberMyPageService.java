@@ -54,5 +54,12 @@ public class MemberMyPageService {
 
     }
 
+    @Transactional
+    public void deleteMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        memberRepository.delete(member);
+    }
+
 
 }

@@ -38,8 +38,17 @@ public class MemberMyPageController {
     public ResponseEntity<Void> updatePassword(
             @AuthenticationPrincipal Long memberId,
             @RequestBody PasswordUpdateRequest request
-            ) {
+    ) {
         memberMypageService.updatePassword(memberId, request);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMember(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        memberMypageService.deleteMember(memberId);
 
         return ResponseEntity.noContent().build();
     }
