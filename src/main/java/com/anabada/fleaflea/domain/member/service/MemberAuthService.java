@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
+import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -32,6 +33,10 @@ public class MemberAuthService {
         if (memberRepository.existsByNickname(request.nickname())) {
             throw new MemberNicknameDuplicateException();
         }
+        if (memberRepository.existsByEmail(request.email())) {
+            throw new MemberEmailDuplicateException();
+        }
+
         String encodedPassword = passwordEncoder.encode(request.password());
         Member newMember = Member.create(
                 request.email(),
