@@ -43,6 +43,8 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.54.17')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:signin'
+
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
 
 tasks.named('test') {
