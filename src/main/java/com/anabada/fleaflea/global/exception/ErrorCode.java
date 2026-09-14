@@ -79,6 +79,18 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "IMAGE_DELETE_FAILED",
             "이미지 삭제에 실패했습니다."
+    ),
+
+    // Market
+    INVALID_MARKET_INVITE_CODE(
+            HttpStatus.NOT_FOUND,
+            "INVALID_MARKET_INVITE_CODE",
+            "유효하지 않은 플리마켓 초대 코드입니다."
+    ),
+    ALREADY_JOINED_MARKET(
+            HttpStatus.CONFLICT,
+            "ALREADY_JOINED_MARKET",
+            "이미 참여한 플리마켓입니다."
     );
 
     private final HttpStatus status;
