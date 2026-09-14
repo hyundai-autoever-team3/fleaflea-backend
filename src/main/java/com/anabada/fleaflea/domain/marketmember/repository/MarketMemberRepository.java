@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.market.repository.repository;
+package com.anabada.fleaflea.domain.marketmember.repository;
 
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
