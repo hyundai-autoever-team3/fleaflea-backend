@@ -36,3 +36,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+jwt:
+  secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}
+  access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
+  refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
