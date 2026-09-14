@@ -1,0 +1,17 @@
+.git
+.github
+.gradle
+.idea
+.vscode
+src
+out
+bin
+build/classes
+build/generated
+build/libs
+build/reports
+build/resources
+build/test-results
+build/tmp
+*.iml
+*.log
