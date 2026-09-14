@@ -23,11 +23,13 @@ public class MemberMyPageController {
     }
 
     @PatchMapping("/me")
-    public MyProfileResponse updateMyProfile(
+    public ResponseEntity<Void> updateMyProfile(
             @AuthenticationPrincipal Long memberId,
             @RequestBody ProfileUpdateRequest request
     ) {
-        return memberMypageService.updateMyProfile(memberId, request);
+        memberMypageService.updateMyProfile(memberId, request);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/me/password")

@@ -27,7 +27,7 @@ public class MemberMyPageService {
     }
 
     @Transactional
-    public MyProfileResponse updateMyProfile(Long memberId, ProfileUpdateRequest request) {
+    public void updateMyProfile(Long memberId, ProfileUpdateRequest request) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
@@ -36,7 +36,6 @@ public class MemberMyPageService {
                 request.profileImageUrl()
         );
 
-        return MyProfileResponse.from(member);
     }
 
     @Transactional
