@@ -1,9 +1,8 @@
 package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,7 +17,7 @@ public class CustomMemberDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(MemberNotFoundException::new);
 
         return org.springframework.security.core.userdetails.User
                 .builder()

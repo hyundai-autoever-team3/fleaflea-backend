@@ -4,11 +4,11 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
+import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepository;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,7 +30,7 @@ public class MemberAuthService {
 
     public void signUp(SignUpRequest request) {
         if (memberRepository.existsByNickname(request.nickname())) {
-            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+            throw new MemberNicknameDuplicateException();
         }
         String encodedPassword = passwordEncoder.encode(request.password());
         Member newMember = Member.of(
@@ -50,7 +50,7 @@ public class MemberAuthService {
                 )
         );
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(MemberNotFoundException::new);
 
         String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
