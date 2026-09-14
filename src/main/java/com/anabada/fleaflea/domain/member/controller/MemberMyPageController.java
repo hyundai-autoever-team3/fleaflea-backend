@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.member.controller;
 
 import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
+import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
 import com.anabada.fleaflea.domain.member.service.MemberMyPageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,13 @@ public class MemberMyPageController {
         return memberMypageService.getMyProfile(memberId);
     }
 
+    @PatchMapping("/me")
+    public MyProfileResponse updateMyProfile(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody ProfileUpdateRequest request
+    ) {
+        return memberMypageService.updateMyProfile(memberId, request);
+    }
 
 
 
