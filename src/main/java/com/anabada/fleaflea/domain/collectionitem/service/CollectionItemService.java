@@ -1,13 +1,11 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
-import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemCreateRequest;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSummaryResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemAccessDeniedException;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
-import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -21,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
+
+import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
 
 @Service
 @RequiredArgsConstructor

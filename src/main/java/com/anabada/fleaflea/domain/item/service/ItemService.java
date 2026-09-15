@@ -226,7 +226,7 @@ public class ItemService {
             CollectionItem collectionItem,
             Long memberId
     ) {
-        if (!collectionItem.getMemberId().equals(memberId)) {
+        if (!collectionItem.isOwnedBy(memberId)) {
             throw new CollectionItemNotOwnerException();
         }
     }
