@@ -51,7 +51,7 @@ public class MarketQueryService {
                         .map(marketMember -> {
                             String coverImageUrl = imageService.getUrl(
                                     marketMember.getMarket()
-                                            .getCoverImageUrl()
+                                            .getCoverImageKey()
                             );
 
                             return MarketSummaryResponse.from(
@@ -82,7 +82,7 @@ public class MarketQueryService {
         long memberCount = marketMemberRepository.countByMarket(market);
 
         String coverImageUrl = imageService.getUrl(
-                market.getCoverImageUrl()
+                market.getCoverImageKey()
         );
 
         return MarketDetailResponse.from(
