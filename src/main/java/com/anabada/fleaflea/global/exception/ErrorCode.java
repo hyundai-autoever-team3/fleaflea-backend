@@ -56,6 +56,13 @@ public enum ErrorCode {
             "현재 비밀번호가 일치하지 않습니다."
     ),
 
+    // Friendship
+    FRIEND_REQUEST_INVALID_DIRECTION(
+            HttpStatus.BAD_REQUEST,
+            "FRIEND_REQUEST_INVALID_DIRECTION",
+            "잘못된 친구 요청 방향입니다."
+    ),
+
     // Image
     INVALID_IMAGE(
             HttpStatus.BAD_REQUEST,
