@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.collectionitem.domain;
+package com.anabada.fleaflea.domain.collection.domain;
 
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
@@ -35,4 +35,5 @@ public class CollectionItem extends BaseTimeEntity {
 
     @Column(name = "is_public")
     private Boolean isPublic;
+
 }
