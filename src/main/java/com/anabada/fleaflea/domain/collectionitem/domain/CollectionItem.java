@@ -1,13 +1,10 @@
 package com.anabada.fleaflea.domain.collectionitem.domain;
 
+import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,18 +18,76 @@ public class CollectionItem extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long collectionItemId;
 
-    @Column(nullable = false)
-    private Long memberId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member owner;
 
-    @Column(length = 150)
+    @Column(nullable = false, length = 150)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
-    private String imageUrl;
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageKey;
 
-    @Column(name = "is_public")
+    @Column(name = "is_public", nullable = false)
     private Boolean isPublic;
+
+    @Builder
+    private CollectionItem(
+            Member owner,
+            String title,
+            String description,
+            String imageKey,
+            Boolean isPublic
+    ) {
+        this.owner = owner;
+        this.title = title;
+        this.description = description;
+        this.imageKey = imageKey;
+        this.isPublic = isPublic;
+    }
+
+    public static CollectionItem create(
+            Member owner,
+            String title,
+            String description,
+            String imageKey,
+            Boolean isPublic
+    ) {
+        return CollectionItem.builder()
+                .owner(owner)
+                .title(title)
+                .description(description)
+                .imageKey(imageKey)
+                .isPublic(isPublic)
+                .build();
+    }
+
+    public void update(
+            String title,
+            String description,
+            Boolean isPublic
+    ) {
+        if (title != null) {
+            this.title = title;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
+
+        if (isPublic != null) {
+            this.isPublic = isPublic;
+        }
+    }
+
+    public void updateImageKey(String imageKey) {
+        this.imageKey = imageKey;
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return owner.getMemberId().equals(memberId);
+    }
 }
