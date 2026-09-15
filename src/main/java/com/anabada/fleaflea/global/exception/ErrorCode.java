@@ -88,7 +88,56 @@ public enum ErrorCode {
             "이미지 삭제에 실패했습니다."
     ),
 
+    // Item
+    ITEM_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "ITEM_NOT_FOUND",
+            "존재하지 않는 상품입니다."
+    ),
+    ITEM_NOT_OWNER(
+            HttpStatus.FORBIDDEN,
+            "ITEM_NOT_OWNER",
+            "상품 등록자만 변경할 수 있습니다."
+    ),
+    ITEM_ALREADY_COMPLETED(
+            HttpStatus.CONFLICT,
+            "ITEM_ALREADY_COMPLETED",
+            "거래 완료된 상품은 수정할 수 없습니다."
+    ),
+    ITEM_TRADE_IN_PROGRESS(
+            HttpStatus.CONFLICT,
+            "ITEM_TRADE_IN_PROGRESS",
+            "거래 진행 중인 상품은 삭제할 수 없습니다."
+    ),
+
+    // Collection Item
+    COLLECTION_ITEM_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "COLLECTION_ITEM_NOT_FOUND",
+            "존재하지 않는 도감 아이템입니다."
+    ),
+    COLLECTION_ITEM_NOT_OWNER(
+            HttpStatus.FORBIDDEN,
+            "COLLECTION_ITEM_NOT_OWNER",
+            "자신의 도감 아이템만 상품으로 등록할 수 있습니다."
+    ),
+    COLLECTION_ITEM_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "COLLECTION_ITEM_ACCESS_DENIED",
+            "도감 아이템에 접근할 권한이 없습니다."
+    ),
+
     // Market
+    MARKET_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "MARKET_NOT_FOUND",
+            "존재하지 않는 플리마켓입니다."
+    ),
+    MARKET_NOT_PARTICIPANT(
+            HttpStatus.FORBIDDEN,
+            "MARKET_NOT_PARTICIPANT",
+            "플리마켓 참여자만 상품을 등록할 수 있습니다."
+    ),
     INVALID_MARKET_INVITE_CODE(
             HttpStatus.NOT_FOUND,
             "INVALID_MARKET_INVITE_CODE",
@@ -99,18 +148,11 @@ public enum ErrorCode {
             "ALREADY_JOINED_MARKET",
             "이미 참여한 플리마켓입니다."
     ),
-
-    MARKET_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "MARKET_NOT_FOUND",
-            "존재하지 않는 플리마켓입니다."
-    ),
     MARKET_ACCESS_DENIED(
             HttpStatus.FORBIDDEN,
             "MARKET_ACCESS_DENIED",
             "참여 중인 플리마켓만 조회할 수 있습니다."
     ),
-
     MARKET_HOST_ONLY(
             HttpStatus.FORBIDDEN,
             "MARKET_HOST_ONLY",
@@ -125,18 +167,6 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "MARKET_MEMBERSHIP_NOT_FOUND",
             "플리마켓 참여 정보를 찾을 수 없습니다."
-    ),
-
-    // Collection Item
-    COLLECTION_ITEM_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "COLLECTION_ITEM_NOT_FOUND",
-            "존재하지 않는 도감 아이템입니다."
-    ),
-    COLLECTION_ITEM_ACCESS_DENIED(
-            HttpStatus.FORBIDDEN,
-            "COLLECTION_ITEM_ACCESS_DENIED",
-            "도감 아이템에 접근할 권한이 없습니다."
     );
 
     private final HttpStatus status;

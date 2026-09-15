@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.collectionitem.domain;
+package com.anabada.fleaflea.domain.collection.domain;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
@@ -33,6 +33,7 @@ public class CollectionItem extends BaseTimeEntity {
 
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic;
+
 
     @Builder
     private CollectionItem(
