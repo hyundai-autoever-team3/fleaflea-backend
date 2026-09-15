@@ -9,7 +9,8 @@ public enum ImageCategory {
 
     PROFILE("profiles"),
     COLLECTION_ITEM("collection-items"),
-    ITEM("items");
+    ITEM("items"),
+    MARKET("markets");
 
     private final String prefix;
 }
