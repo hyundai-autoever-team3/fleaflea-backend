@@ -20,6 +20,7 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final MemberRepository memberRepository;
 
+    @Transactional(readOnly = true)
     public List<FriendshipResponse> getReceivedRequests(Long memberId) {
         List<Friendship> friendships = friendshipRepository.findByAddressee_MemberIdAndStatus(
                 memberId,
@@ -30,6 +31,7 @@ public class FriendshipService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<FriendshipResponse> getSentRequests(Long memberId) {
         List<Friendship> friendships = friendshipRepository.findByRequester_MemberIdAndStatus(
                 memberId,
@@ -41,6 +43,7 @@ public class FriendshipService {
 
     }
 
+    @Transactional(readOnly = true)
     public List<FriendshipResponse> getMyFriends(Long memberId) {
         List<Friendship> friendships = friendshipRepository.findByFriendships(
                 memberId,
@@ -55,6 +58,7 @@ public class FriendshipService {
                 .toList();
     }
 
+    @Transactional
     public void requestFollow(Long memberId, Long targetMemberId) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
