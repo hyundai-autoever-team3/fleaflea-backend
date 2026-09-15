@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
 import com.anabada.fleaflea.domain.member.dto.PasswordUpdateRequest;
 import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
 import com.anabada.fleaflea.domain.member.service.MemberService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,7 +28,7 @@ public class MemberController {
     @PatchMapping("/me")
     public ResponseEntity<Void> updateMyProfile(
             @AuthenticationPrincipal Long memberId,
-            @RequestBody ProfileUpdateRequest request
+           @Valid @RequestBody ProfileUpdateRequest request
     ) {
         memberService.updateMyProfile(memberId, request);
 
@@ -37,7 +38,7 @@ public class MemberController {
     @PatchMapping("/me/password")
     public ResponseEntity<Void> updatePassword(
             @AuthenticationPrincipal Long memberId,
-            @RequestBody PasswordUpdateRequest request
+            @Valid @RequestBody PasswordUpdateRequest request
     ) {
         memberService.updatePassword(memberId, request);
 
