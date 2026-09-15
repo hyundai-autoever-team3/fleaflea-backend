@@ -62,6 +62,11 @@ public enum ErrorCode {
             "FRIEND_REQUEST_INVALID_DIRECTION",
             "잘못된 친구 요청 방향입니다."
     ),
+    FRIENDSHIP_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "FRIENDSHIP_NOT_FOUND",
+            "존재하지 않는 친구 관계입니다."
+    ),
 
     // Image
     INVALID_IMAGE(
