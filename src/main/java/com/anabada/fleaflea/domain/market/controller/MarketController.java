@@ -42,11 +42,11 @@ public class MarketController {
     })
     public ResponseEntity<MarketCreateResponse> createMarket(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal String memberId,
+            @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody MarketCreateRequest request
     ) {
         MarketCreateResponse response = marketService.createMarket(
-                Long.valueOf(memberId),
+                memberId,
                 request
         );
 
