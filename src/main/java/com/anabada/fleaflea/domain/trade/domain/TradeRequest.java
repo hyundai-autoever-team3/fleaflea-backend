@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.traderequest.domain;
+package com.anabada.fleaflea.domain.trade.domain;
 
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
 import jakarta.persistence.Column;

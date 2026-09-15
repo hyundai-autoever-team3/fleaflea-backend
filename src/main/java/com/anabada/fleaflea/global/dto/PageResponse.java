@@ -11,7 +11,9 @@ public record PageResponse<T>(
         long totalElements,
         int totalPages,
         boolean first,
-        boolean last
+        boolean last,
+        boolean hasNext,
+        boolean hasPrevious
 ) {
 
     public static <T> PageResponse<T> from(Page<T> page) {
@@ -22,7 +24,9 @@ public record PageResponse<T>(
                 page.getTotalElements(),
                 page.getTotalPages(),
                 page.isFirst(),
-                page.isLast()
+                page.isLast(),
+                page.hasNext(),
+                page.hasPrevious()
         );
     }
 }

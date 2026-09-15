@@ -19,6 +19,8 @@ public interface MarketMemberRepository extends JpaRepository<MarketMember, Long
 
     long countByMarket(Market market);
 
+    boolean existsByMarket_MarketIdAndMember_MemberId(Long marketId, Long memberId);
+  
     @EntityGraph(attributePaths = {"member"})
     Page<MarketMember> findAllByMarket(Market market, Pageable pageable);
 
