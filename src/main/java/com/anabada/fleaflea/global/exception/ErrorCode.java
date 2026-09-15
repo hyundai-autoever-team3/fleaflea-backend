@@ -98,6 +98,17 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "ALREADY_JOINED_MARKET",
             "이미 참여한 플리마켓입니다."
+    ),
+
+    MARKET_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "MARKET_NOT_FOUND",
+            "존재하지 않는 플리마켓입니다."
+    ),
+    MARKET_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "MARKET_ACCESS_DENIED",
+            "참여 중인 플리마켓만 조회할 수 있습니다."
     );
 
     private final HttpStatus status;
