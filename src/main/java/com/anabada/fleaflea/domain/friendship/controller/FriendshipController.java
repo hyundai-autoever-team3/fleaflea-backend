@@ -34,4 +34,11 @@ public class FriendshipController {
         }
         throw new InvalidFriendRequestDirectionException();
     }
+
+    @GetMapping("/members/me/friendship")
+    public ResponseEntity<List<FriendshipResponse>> getMyFriends(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        return ResponseEntity.ok(friendshipService.getMyFriends(memberId));
+    }
 }
