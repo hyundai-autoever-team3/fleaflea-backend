@@ -2,7 +2,16 @@ package com.anabada.fleaflea.domain.market.controller;
 
 import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 import com.anabada.fleaflea.domain.market.service.MarketService;
+import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,17 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
-import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
-import com.anabada.fleaflea.domain.market.service.MarketQueryService;
-
 import java.util.List;
-import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 
 @Tag(
         name = "플리마켓",
@@ -107,6 +106,32 @@ public class MarketController {
     ) {
         MarketDetailResponse response =
                 marketQueryService.getMarket(memberId, marketId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{marketId}/members")
+    @Operation(
+            summary = "플리마켓 참여자 목록 조회",
+            description = "플리마켓 참여자가 해당 플리마켓의 참여자 목록을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "참여자 목록 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "미참여 사용자의 조회 요청"),
+            @ApiResponse(responseCode = "404", description = "회원 또는 플리마켓 정보 없음")
+    })
+    public ResponseEntity<List<MarketMemberResponse>> getMarketMembers(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @Parameter(description = "플리마켓 ID", example = "1")
+            @PathVariable Long marketId
+    ) {
+        List<MarketMemberResponse> response =
+                marketQueryService.getMarketMembers(
+                        memberId,
+                        marketId
+                );
 
         return ResponseEntity.ok(response);
     }
