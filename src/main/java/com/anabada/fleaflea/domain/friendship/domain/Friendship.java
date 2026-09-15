@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.friendship.domain;
 
+import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -15,11 +16,13 @@ public class Friendship extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long friendshipId;
 
-    @Column(nullable = false)
-    private Long requesterId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "requester_id", nullable = false)
+    private Member requester;
 
-    @Column(nullable = false)
-    private Long addresseeId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "addressee_id", nullable = false)
+    private Member addressee;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
