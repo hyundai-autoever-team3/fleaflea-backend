@@ -83,4 +83,17 @@ public class FriendshipService {
         friendship.accept();
     }
 
+    @Transactional
+    public void rejectFollow(Long memberId, Long requesterId) {
+        Friendship friendship =
+                friendshipRepository
+                        .findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                                requesterId,
+                                memberId,
+                                FriendshipStatus.PENDING
+                        )
+                        .orElseThrow(FriendshipNotFoundException::new);
+        friendship.reject();
+    }
+
 }
