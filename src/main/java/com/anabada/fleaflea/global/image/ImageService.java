@@ -32,7 +32,7 @@ public class ImageService {
     private static final long MAX_PIXELS = 20_000_000L;
 
     private static final Pattern IMAGE_KEY_PATTERN = Pattern.compile(
-            "^(profiles|collection-items|items)/"
+            "^(profiles|collection-items|items|markets)/"
                     + "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
                     + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png)$"
     );
