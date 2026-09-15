@@ -41,11 +41,11 @@ public class MarketJoinController {
     })
     public ResponseEntity<MarketJoinResponse> joinMarket(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal String memberId,
+            @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody MarketJoinRequest request
     ) {
         MarketJoinResponse response = marketJoinService.joinMarket(
-                Long.valueOf(memberId),
+                memberId,
                 request
         );
 
