@@ -26,33 +26,43 @@ public class Member extends BaseTimeEntity {
     private String nickname;
 
     @Column(columnDefinition = "TEXT")
-    private String profileImageUrl;
+    private String profileImageKey;
 
     @Builder
     private Member(
             String email,
             String password,
-            String nickname,
-            String profileImageUrl
+            String nickname
     ) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.profileImageUrl = profileImageUrl;
     }
 
     public static Member create(
             String email,
             String password,
-            String nickname,
-            String profileImageUrl
+            String nickname
     ) {
         return Member.builder()
                 .email(email)
                 .password(password)
                 .nickname(nickname)
-                .profileImageUrl(profileImageUrl)
                 .build();
+    }
+
+    public void updateProfile(
+            String nickname,
+            String profileImageKey
+    ) {
+        this.nickname = nickname;
+        this.profileImageKey = profileImageKey;
+    }
+
+    public void updatePassword(
+            String password
+    ) {
+        this.password = password;
     }
 
 

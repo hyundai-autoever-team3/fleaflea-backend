@@ -49,6 +49,13 @@ public enum ErrorCode {
             "유효하지 않은 토큰입니다."
     ),
 
+    // MyPage
+    PASSWORD_MISMATCH(
+            HttpStatus.BAD_REQUEST,
+            "PASSWORD_MISMATCH",
+            "현재 비밀번호가 일치하지 않습니다."
+    ),
+
     // Image
     INVALID_IMAGE(
             HttpStatus.BAD_REQUEST,
