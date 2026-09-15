@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     // 받은 요청
@@ -25,14 +26,18 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
             FROM Friendship f
             WHERE f.status = :status
             AND (f.requester.memberId = :memberId
-            OR f.addressee.memberId = : memberId)
+            OR f.addressee.memberId = :memberId)
            """)
     List<Friendship> findByFriendships(
             @Param("memberId") Long memberId,
             @Param("status") FriendshipStatus status
     );
 
-
+    Optional<Friendship> findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+            Long requesterId,
+            Long addresseeId,
+            FriendshipStatus status
+    );
 
 
 }

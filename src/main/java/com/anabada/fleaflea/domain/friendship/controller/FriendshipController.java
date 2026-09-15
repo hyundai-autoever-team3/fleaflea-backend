@@ -47,4 +47,13 @@ public class FriendshipController {
         friendshipService.requestFollow(memberId, targetMemberId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/friend-requests/{requesterId}/accept")
+    public ResponseEntity<Void> acceptFollow(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long requesterId
+    ) {
+        friendshipService.acceptFollow(memberId,requesterId);
+        return ResponseEntity.noContent().build();
+    }
 }

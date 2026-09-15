@@ -51,4 +51,16 @@ public class Friendship extends BaseTimeEntity {
                 .status(status)
                 .build();
     }
+
+    public void accept() {
+        this.status = FriendshipStatus.ACCEPTED;
+    }
+
+    public void reject() {
+        this.status = FriendshipStatus.REJECTED;
+    }
+
+    public void cancel() {
+        this.status = FriendshipStatus.PENDING;
+    }
 }

@@ -3,12 +3,14 @@ package com.anabada.fleaflea.domain.friendship.service;
 import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.dto.FriendshipResponse;
+import com.anabada.fleaflea.domain.friendship.exception.FriendshipNotFoundException;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -66,6 +68,19 @@ public class FriendshipService {
         );
 
         friendshipRepository.save(friendship);
+    }
+
+    @Transactional
+    public void acceptFollow(Long memberId, Long requesterId) {
+        Friendship friendship =
+                friendshipRepository
+                        .findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                                requesterId,
+                                memberId,
+                                FriendshipStatus.PENDING
+                        )
+                        .orElseThrow(FriendshipNotFoundException::new);
+        friendship.accept();
     }
 
 }
