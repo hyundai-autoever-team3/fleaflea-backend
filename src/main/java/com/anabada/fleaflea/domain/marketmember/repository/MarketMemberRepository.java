@@ -16,4 +16,6 @@ public interface MarketMemberRepository extends JpaRepository<MarketMember, Long
     List<MarketMember> findAllByMarket(Market market);
 
     long countByMarket(Market market);
+
+    boolean existsByMarket_MarketIdAndMember_MemberId(Long marketId, Long memberId);
 }
