@@ -1,4 +1,4 @@
-가package com.anabada.fleaflea.domain.collection.repository;
+package com.anabada.fleaflea.domain.collection.repository;
 
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import org.springframework.data.jpa.repository.JpaRepository;
