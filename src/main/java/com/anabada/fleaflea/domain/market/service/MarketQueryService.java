@@ -48,7 +48,17 @@ public class MarketQueryService {
         return PageResponse.from(
                 marketMemberRepository
                         .findAllByMember(member, pageable)
-                        .map(MarketSummaryResponse::from)
+                        .map(marketMember -> {
+                            String coverImageUrl = imageService.getUrl(
+                                    marketMember.getMarket()
+                                            .getCoverImageUrl()
+                            );
+
+                            return MarketSummaryResponse.from(
+                                    marketMember,
+                                    coverImageUrl
+                            );
+                        })
         );
     }
 
@@ -71,9 +81,14 @@ public class MarketQueryService {
 
         long memberCount = marketMemberRepository.countByMarket(market);
 
+        String coverImageUrl = imageService.getUrl(
+                market.getCoverImageUrl()
+        );
+
         return MarketDetailResponse.from(
                 market,
-                memberCount
+                memberCount,
+                coverImageUrl
         );
     }
 

@@ -17,20 +17,23 @@ public record MarketCreateResponse(
         @Schema(description = "플리마켓 설명")
         String description,
 
-        @Schema(description = "플리마켓 커버 이미지 경로")
+        @Schema(description = "플리마켓 커버 이미지 URL")
         String coverImageUrl,
 
         @Schema(description = "플리마켓 초대 코드", example = "A7F233913E")
         String inviteCode
 ) {
 
-    public static MarketCreateResponse from(Market market) {
+    public static MarketCreateResponse from(
+            Market market,
+            String coverImageUrl
+    ) {
         return new MarketCreateResponse(
                 market.getMarketId(),
                 market.getHost().getMemberId(),
                 market.getTitle(),
                 market.getDescription(),
-                market.getCoverImageUrl(),
+                coverImageUrl,
                 market.getInviteCode()
         );
     }
