@@ -7,7 +7,9 @@ import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
+import com.anabada.fleaflea.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,8 +18,6 @@ import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
 import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
-
-import java.util.List;
 
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
 import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
@@ -33,9 +33,10 @@ public class MarketQueryService {
     private final MarketRepository marketRepository;
     private final ImageService imageService;
 
-    public List<MarketSummaryResponse> getMarkets(
+    public PageResponse<MarketSummaryResponse> getMarkets(
             Long memberId,
-            String scope
+            String scope,
+            Pageable pageable
     ) {
         if (!"joined".equals(scope)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
@@ -44,11 +45,11 @@ public class MarketQueryService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        return marketMemberRepository
-                .findAllByMemberOrderByJoinedAtDesc(member)
-                .stream()
-                .map(MarketSummaryResponse::from)
-                .toList();
+        return PageResponse.from(
+                marketMemberRepository
+                        .findAllByMember(member, pageable)
+                        .map(MarketSummaryResponse::from)
+        );
     }
 
     public MarketDetailResponse getMarket(
@@ -76,9 +77,10 @@ public class MarketQueryService {
         );
     }
 
-    public List<MarketMemberResponse> getMarketMembers(
+    public PageResponse<MarketMemberResponse> getMarketMembers(
             Long memberId,
-            Long marketId
+            Long marketId,
+            Pageable pageable
     ) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -95,14 +97,14 @@ public class MarketQueryService {
 
         Long hostId = market.getHost().getMemberId();
 
-        return marketMemberRepository
-                .findAllByMarketOrderByJoinedAtAsc(market)
-                .stream()
-                .map(marketMember -> toMarketMemberResponse(
-                        marketMember,
-                        hostId
-                ))
-                .toList();
+        return PageResponse.from(
+                marketMemberRepository
+                        .findAllByMarket(market, pageable)
+                        .map(marketMember -> toMarketMemberResponse(
+                                marketMember,
+                                hostId
+                        ))
+        );
     }
 
     private MarketMemberResponse toMarketMemberResponse(

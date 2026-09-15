@@ -7,6 +7,7 @@ import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
 import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 import com.anabada.fleaflea.domain.market.service.MarketService;
 import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
+import com.anabada.fleaflea.global.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,13 +15,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(
         name = "플리마켓",
@@ -69,7 +72,7 @@ public class MarketController {
             @ApiResponse(responseCode = "403", description = "인증되지 않은 사용자"),
             @ApiResponse(responseCode = "404", description = "회원 정보 없음")
     })
-    public ResponseEntity<List<MarketSummaryResponse>> getMarkets(
+    public ResponseEntity<PageResponse<MarketSummaryResponse>> getMarkets(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
@@ -78,10 +81,21 @@ public class MarketController {
                     example = "joined",
                     required = true
             )
-            @RequestParam(defaultValue = "joined") String scope
+            @RequestParam(defaultValue = "joined") String scope,
+
+            @ParameterObject
+            @PageableDefault(
+                    size = 20,
+                    sort = "joinedAt",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
     ) {
-        List<MarketSummaryResponse> response =
-                marketQueryService.getMarkets(memberId, scope);
+        PageResponse<MarketSummaryResponse> response =
+                marketQueryService.getMarkets(
+                        memberId,
+                        scope,
+                        pageable
+                );
 
         return ResponseEntity.ok(response);
     }
@@ -119,17 +133,25 @@ public class MarketController {
             @ApiResponse(responseCode = "403", description = "미참여 사용자의 조회 요청"),
             @ApiResponse(responseCode = "404", description = "회원 또는 플리마켓 정보 없음")
     })
-    public ResponseEntity<List<MarketMemberResponse>> getMarketMembers(
+    public ResponseEntity<PageResponse<MarketMemberResponse>> getMarketMembers(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable Long marketId
+            @PathVariable Long marketId,
+
+            @ParameterObject
+            @PageableDefault(
+                    size = 20,
+                    sort = "joinedAt",
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
     ) {
-        List<MarketMemberResponse> response =
+        PageResponse<MarketMemberResponse> response =
                 marketQueryService.getMarketMembers(
                         memberId,
-                        marketId
+                        marketId,
+                        pageable
                 );
 
         return ResponseEntity.ok(response);
