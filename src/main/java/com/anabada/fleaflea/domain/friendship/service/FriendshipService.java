@@ -109,4 +109,15 @@ public class FriendshipService {
         friendship.cancel();
     }
 
+    @Transactional
+    public void deleteFriend(Long memberId, Long friendshipId) {
+        Friendship friendship = friendshipRepository.findById(friendshipId)
+                .orElseThrow(FriendshipNotFoundException::new);
+
+        if (!friendship.isParticipant(memberId)) {
+            throw new FriendshipNotFoundException();
+        }
+
+        friendshipRepository.delete(friendship);
+    }
 }

@@ -53,7 +53,7 @@ public class FriendshipController {
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long requesterId
     ) {
-        friendshipService.acceptFollow(memberId,requesterId);
+        friendshipService.acceptFollow(memberId, requesterId);
         return ResponseEntity.noContent().build();
     }
 
@@ -62,7 +62,7 @@ public class FriendshipController {
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long requesterId
     ) {
-        friendshipService.rejectFollow(memberId,requesterId);
+        friendshipService.rejectFollow(memberId, requesterId);
         return ResponseEntity.noContent().build();
     }
 
@@ -71,7 +71,16 @@ public class FriendshipController {
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long requesterId
     ) {
-        friendshipService.cancelFollow(memberId,requesterId);
+        friendshipService.cancelFollow(memberId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/friendships/{friendshipId}")
+    public ResponseEntity<Void> deleteFriend(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long friendshipId
+    ) {
+        friendshipService.deleteFriend(memberId, friendshipId);
         return ResponseEntity.noContent().build();
     }
 }
