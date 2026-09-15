@@ -9,6 +9,8 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.image.ImageCategory;
+import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class MarketService {
     private final MarketRepository marketRepository;
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
+    private final ImageService imageService;
 
     @Transactional
     public MarketCreateResponse createMarket(
@@ -34,11 +37,21 @@ public class MarketService {
 
         String inviteCode = generateUniqueInviteCode();
 
+        String coverImageKey = null;
+
+        if (request.coverImage() != null
+                && !request.coverImage().isEmpty()) {
+            coverImageKey = imageService.upload(
+                    request.coverImage(),
+                    ImageCategory.MARKET
+            );
+        }
+
         Market market = Market.create(
                 host,
                 request.title(),
                 request.description(),
-                request.coverImageUrl(),
+                coverImageKey,
                 inviteCode
         );
 
