@@ -19,6 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
+import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +30,7 @@ public class CollectionItemService {
     private final CollectionItemRepository collectionItemRepository;
     private final MemberRepository memberRepository;
     private final ImageService imageService;
+    private final FriendshipRepository friendshipRepository;
 
     @Transactional
     public CollectionItemResponse createCollectionItem(
@@ -77,8 +81,13 @@ public class CollectionItemService {
             Long ownerId,
             Pageable pageable
     ) {
-        getMember(requesterId);
+        Member requester = getMember(requesterId);
         Member owner = getMember(ownerId);
+
+        validateCollectionViewer(
+                requester.getMemberId(),
+                owner.getMemberId()
+        );
 
         return PageResponse.from(
                 collectionItemRepository
@@ -94,16 +103,29 @@ public class CollectionItemService {
             Long memberId,
             Long collectionItemId
     ) {
-        getMember(memberId);
+        Member requester = getMember(memberId);
 
         CollectionItem collectionItem =
                 getCollectionItem(collectionItemId);
 
-        boolean owner = collectionItem.isOwnedBy(memberId);
+        Long ownerId =
+                collectionItem.getOwner().getMemberId();
+
+        boolean owner = ownerId.equals(requester.getMemberId());
+
+        if (owner) {
+            return toResponse(collectionItem);
+        }
+
         boolean publicItem =
                 Boolean.TRUE.equals(collectionItem.getIsPublic());
 
-        if (!owner && !publicItem) {
+        boolean friend = isFriend(
+                requester.getMemberId(),
+                ownerId
+        );
+
+        if (!publicItem || !friend) {
             throw new CollectionItemAccessDeniedException();
         }
 
@@ -218,5 +240,41 @@ public class CollectionItemService {
                 collectionItem,
                 imageUrl
         );
+    }
+
+    private boolean isFriend(
+            Long firstMemberId,
+            Long secondMemberId
+    ) {
+        boolean firstToSecond =
+                friendshipRepository
+                        .existsByRequesterIdAndAddresseeIdAndStatus(
+                                firstMemberId,
+                                secondMemberId,
+                                FriendshipStatus.ACCEPTED
+                        );
+
+        boolean secondToFirst =
+                friendshipRepository
+                        .existsByRequesterIdAndAddresseeIdAndStatus(
+                                secondMemberId,
+                                firstMemberId,
+                                FriendshipStatus.ACCEPTED
+                        );
+
+        return firstToSecond || secondToFirst;
+    }
+
+    private void validateCollectionViewer(
+            Long requesterId,
+            Long ownerId
+    ) {
+        if (requesterId.equals(ownerId)) {
+            return;
+        }
+
+        if (!isFriend(requesterId, ownerId)) {
+            throw new CollectionItemAccessDeniedException();
+        }
     }
 }
