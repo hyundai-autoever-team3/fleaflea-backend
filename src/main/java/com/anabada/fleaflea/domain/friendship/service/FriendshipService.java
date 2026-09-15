@@ -24,5 +24,18 @@ public class FriendshipService {
                 .toList();
     }
 
+    public List<FriendshipResponse> getSentRequests(Long memberId) {
+        List<Friendship> friendships = friendshipRepository.findByRequester_MemberIdAndStatus(
+                memberId,
+                FriendshipStatus.PENDING
+        );
+        return friendships.stream().map(friendship ->
+                FriendshipResponse.from(friendship.getAddressee()))
+                .toList();
+
+    }
+
+
+
 
 }

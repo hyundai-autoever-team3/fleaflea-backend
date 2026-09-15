@@ -1,24 +1,37 @@
 package com.anabada.fleaflea.domain.friendship.controller;
 
+import com.anabada.fleaflea.domain.friendship.domain.FriendRequestDirection;
 import com.anabada.fleaflea.domain.friendship.dto.FriendshipResponse;
+import com.anabada.fleaflea.domain.friendship.exception.InvalidFriendRequestDirectionException;
 import com.anabada.fleaflea.domain.friendship.service.FriendshipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class FriendshipController {
     private final FriendshipService friendshipService;
 
-    @GetMapping("/members/me/friendship")
-    public ResponseEntity<List<FriendshipResponse>> getReceivedRequests(
-            @AuthenticationPrincipal Long memberId
+    @GetMapping("/friend-requests")
+    public ResponseEntity<List<FriendshipResponse>> getFriendRequest(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam FriendRequestDirection direction
     ) {
-        return ResponseEntity.ok(friendshipService.getReceivedRequests(memberId));
+        if (direction == FriendRequestDirection.SENT) {
+            return ResponseEntity.ok(friendshipService.getSentRequests(memberId));
+
+        }
+        if (direction == FriendRequestDirection.RECEIVED) {
+            return ResponseEntity.ok(friendshipService.getReceivedRequests(memberId));
+        }
+        throw new InvalidFriendRequestDirectionException();
     }
 }
