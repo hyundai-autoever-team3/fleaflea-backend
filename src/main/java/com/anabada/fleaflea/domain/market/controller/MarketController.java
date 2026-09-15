@@ -20,6 +20,7 @@ import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
 import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 
 import java.util.List;
+import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 
 @Tag(
         name = "플리마켓",
@@ -83,6 +84,29 @@ public class MarketController {
     ) {
         List<MarketSummaryResponse> response =
                 marketQueryService.getMarkets(memberId, scope);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{marketId}")
+    @Operation(
+            summary = "플리마켓 상세 조회",
+            description = "로그인한 사용자가 참여 중인 플리마켓의 상세 정보를 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "플리마켓 상세 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "미참여 사용자의 조회 요청"),
+            @ApiResponse(responseCode = "404", description = "회원 또는 플리마켓 정보 없음")
+    })
+    public ResponseEntity<MarketDetailResponse> getMarket(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @Parameter(description = "플리마켓 ID", example = "1")
+            @PathVariable Long marketId
+    ) {
+        MarketDetailResponse response =
+                marketQueryService.getMarket(memberId, marketId);
 
         return ResponseEntity.ok(response);
     }
