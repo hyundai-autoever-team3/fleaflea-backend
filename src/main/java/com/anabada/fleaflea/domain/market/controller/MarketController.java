@@ -16,6 +16,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.service.MarketQueryService;
+
+import java.util.List;
 
 @Tag(
         name = "플리마켓",
@@ -27,7 +31,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class MarketController {
 
     private final MarketService marketService;
-
+    private final MarketQueryService marketQueryService;
 
     @PostMapping
     @Operation(
@@ -53,5 +57,33 @@ public class MarketController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping
+    @Operation(
+            summary = "내 플리마켓 목록 조회",
+            description = "로그인한 사용자가 참여 중인 플리마켓 목록을 최근 참여 순으로 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "플리마켓 목록 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "지원하지 않는 조회 범위"),
+            @ApiResponse(responseCode = "403", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "404", description = "회원 정보 없음")
+    })
+    public ResponseEntity<List<MarketSummaryResponse>> getMarkets(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @Parameter(
+                    description = "조회 범위",
+                    example = "joined",
+                    required = true
+            )
+            @RequestParam(defaultValue = "joined") String scope
+    ) {
+        List<MarketSummaryResponse> response =
+                marketQueryService.getMarkets(memberId, scope);
+
+        return ResponseEntity.ok(response);
     }
 }
