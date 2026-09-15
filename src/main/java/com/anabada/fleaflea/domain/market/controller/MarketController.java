@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class MarketController {
     private final MarketService marketService;
     private final MarketQueryService marketQueryService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "플리마켓 생성",
             description = "로그인한 사용자가 플리마켓을 생성합니다. 개설자는 자동으로 참여자로 등록됩니다."
@@ -47,12 +48,10 @@ public class MarketController {
     public ResponseEntity<MarketCreateResponse> createMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
-            @Valid @RequestBody MarketCreateRequest request
+            @Valid @ModelAttribute MarketCreateRequest request
     ) {
-        MarketCreateResponse response = marketService.createMarket(
-                memberId,
-                request
-        );
+        MarketCreateResponse response =
+                marketService.createMarket(memberId, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
