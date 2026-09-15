@@ -38,6 +38,7 @@ public class MarketService {
                 host,
                 request.title(),
                 request.description(),
+                request.coverImageUrl(),
                 inviteCode
         );
 
