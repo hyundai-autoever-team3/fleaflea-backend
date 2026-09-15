@@ -14,7 +14,6 @@ public record PageResponse<T>(
         boolean last,
         boolean hasNext,
         boolean hasPrevious
-        boolean last
 ) {
 
     public static <T> PageResponse<T> from(Page<T> page) {
@@ -28,7 +27,6 @@ public record PageResponse<T>(
                 page.isLast(),
                 page.hasNext(),
                 page.hasPrevious()
-                page.isLast()
         );
     }
 }
