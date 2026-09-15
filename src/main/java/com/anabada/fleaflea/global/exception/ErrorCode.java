@@ -125,6 +125,18 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "MARKET_MEMBERSHIP_NOT_FOUND",
             "플리마켓 참여 정보를 찾을 수 없습니다."
+    ),
+
+    // Collection Item
+    COLLECTION_ITEM_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "COLLECTION_ITEM_NOT_FOUND",
+            "존재하지 않는 도감 아이템입니다."
+    ),
+    COLLECTION_ITEM_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "COLLECTION_ITEM_ACCESS_DENIED",
+            "도감 아이템에 접근할 권한이 없습니다."
     );
 
     private final HttpStatus status;
