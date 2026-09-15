@@ -31,4 +31,8 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
             @Param("memberId") Long memberId,
             @Param("status") FriendshipStatus status
     );
+
+
+
+
 }

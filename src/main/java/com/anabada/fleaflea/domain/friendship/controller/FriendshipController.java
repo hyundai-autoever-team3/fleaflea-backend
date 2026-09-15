@@ -7,10 +7,7 @@ import com.anabada.fleaflea.domain.friendship.service.FriendshipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -40,5 +37,14 @@ public class FriendshipController {
             @AuthenticationPrincipal Long memberId
     ) {
         return ResponseEntity.ok(friendshipService.getMyFriends(memberId));
+    }
+
+    @PostMapping("/members/{memberId}/friend-requests")
+    public ResponseEntity<Void> requestFollow(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable("memberId") Long targetMemberId
+    ) {
+        friendshipService.requestFollow(memberId, targetMemberId);
+        return ResponseEntity.noContent().build();
     }
 }

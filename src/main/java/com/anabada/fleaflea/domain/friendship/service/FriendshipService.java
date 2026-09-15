@@ -4,6 +4,9 @@ import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.dto.FriendshipResponse;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
+import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
+    private final MemberRepository memberRepository;
 
     public List<FriendshipResponse> getReceivedRequests(Long memberId) {
         List<Friendship> friendships = friendshipRepository.findByAddressee_MemberIdAndStatus(
@@ -49,7 +53,19 @@ public class FriendshipService {
                 .toList();
     }
 
+    public void requestFollow(Long memberId, Long targetMemberId) {
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        Member addressee = memberRepository.findById(targetMemberId)
+                .orElseThrow(MemberNotFoundException::new);
 
+        Friendship friendship = Friendship.create(
+                requester,
+                addressee,
+                FriendshipStatus.PENDING
+        );
 
+        friendshipRepository.save(friendship);
+    }
 
 }
