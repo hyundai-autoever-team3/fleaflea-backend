@@ -67,7 +67,7 @@ public class MarketService {
         marketMemberRepository.save(hostMembership);
 
         String coverImageUrl = imageService.getUrl(
-                savedMarket.getCoverImageUrl()
+                savedMarket.getCoverImageKey()
         );
 
         return MarketCreateResponse.from(
@@ -100,7 +100,7 @@ public class MarketService {
 
         validateHost(market, memberId);
 
-        String coverImageKey = market.getCoverImageUrl();
+        String coverImageKey = market.getCoverImageKey();
 
         if (request.coverImage() != null
                 && !request.coverImage().isEmpty()) {
@@ -125,7 +125,7 @@ public class MarketService {
         );
 
         String coverImageUrl =
-                imageService.getUrl(market.getCoverImageUrl());
+                imageService.getUrl(market.getCoverImageKey());
 
         return MarketUpdateResponse.from(
                 market,
@@ -199,7 +199,7 @@ public class MarketService {
 
         validateHost(market, memberId);
 
-        String coverImageKey = market.getCoverImageUrl();
+        String coverImageKey = market.getCoverImageKey();
 
         marketMemberRepository.deleteAllByMarket(market);
         marketRepository.delete(market);
