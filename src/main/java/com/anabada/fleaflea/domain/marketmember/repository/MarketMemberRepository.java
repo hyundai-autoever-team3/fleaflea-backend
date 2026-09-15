@@ -18,4 +18,7 @@ public interface MarketMemberRepository extends JpaRepository<MarketMember, Long
     List<MarketMember> findAllByMarket(Market market);
 
     long countByMarket(Market market);
+
+    @EntityGraph(attributePaths = {"member"})
+    List<MarketMember> findAllByMarketOrderByJoinedAtAsc(Market market);
 }
