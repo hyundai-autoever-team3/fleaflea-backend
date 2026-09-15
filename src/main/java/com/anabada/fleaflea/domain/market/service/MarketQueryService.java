@@ -11,6 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.anabada.fleaflea.domain.market.domain.Market;
+import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
+import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
+import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
+import com.anabada.fleaflea.domain.market.repository.MarketRepository;
+
 import java.util.List;
 
 @Service
@@ -20,6 +26,7 @@ public class MarketQueryService {
 
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
+    private final MarketRepository marketRepository;
 
     public List<MarketSummaryResponse> getMarkets(
             Long memberId,
@@ -37,5 +44,30 @@ public class MarketQueryService {
                 .stream()
                 .map(MarketSummaryResponse::from)
                 .toList();
+    }
+
+    public MarketDetailResponse getMarket(
+            Long memberId,
+            Long marketId
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        Market market = marketRepository.findById(marketId)
+                .orElseThrow(MarketNotFoundException::new);
+
+        if (!marketMemberRepository.existsByMarketAndMember(
+                market,
+                member
+        )) {
+            throw new MarketAccessDeniedException();
+        }
+
+        long memberCount = marketMemberRepository.countByMarket(market);
+
+        return MarketDetailResponse.from(
+                market,
+                memberCount
+        );
     }
 }
