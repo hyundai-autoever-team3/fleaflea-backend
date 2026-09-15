@@ -19,6 +19,10 @@ import com.anabada.fleaflea.domain.market.repository.MarketRepository;
 
 import java.util.List;
 
+import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
+import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
+import com.anabada.fleaflea.global.image.ImageService;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +31,7 @@ public class MarketQueryService {
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
     private final MarketRepository marketRepository;
+    private final ImageService imageService;
 
     public List<MarketSummaryResponse> getMarkets(
             Long memberId,
@@ -68,6 +73,50 @@ public class MarketQueryService {
         return MarketDetailResponse.from(
                 market,
                 memberCount
+        );
+    }
+
+    public List<MarketMemberResponse> getMarketMembers(
+            Long memberId,
+            Long marketId
+    ) {
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        Market market = marketRepository.findById(marketId)
+                .orElseThrow(MarketNotFoundException::new);
+
+        if (!marketMemberRepository.existsByMarketAndMember(
+                market,
+                requester
+        )) {
+            throw new MarketAccessDeniedException();
+        }
+
+        Long hostId = market.getHost().getMemberId();
+
+        return marketMemberRepository
+                .findAllByMarketOrderByJoinedAtAsc(market)
+                .stream()
+                .map(marketMember -> toMarketMemberResponse(
+                        marketMember,
+                        hostId
+                ))
+                .toList();
+    }
+
+    private MarketMemberResponse toMarketMemberResponse(
+            MarketMember marketMember,
+            Long hostId
+    ) {
+        String profileImageUrl = imageService.getUrl(
+                marketMember.getMember().getProfileImageKey()
+        );
+
+        return MarketMemberResponse.from(
+                marketMember,
+                profileImageUrl,
+                hostId
         );
     }
 }
