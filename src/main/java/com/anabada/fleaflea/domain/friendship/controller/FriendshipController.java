@@ -65,4 +65,13 @@ public class FriendshipController {
         friendshipService.rejectFollow(memberId,requesterId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/friend-requests/{requesterId}/cancel")
+    public ResponseEntity<Void> cancelFollow(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long requesterId
+    ) {
+        friendshipService.cancelFollow(memberId,requesterId);
+        return ResponseEntity.noContent().build();
+    }
 }

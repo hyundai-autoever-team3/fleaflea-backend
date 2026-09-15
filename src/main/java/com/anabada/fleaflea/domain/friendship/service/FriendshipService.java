@@ -96,4 +96,17 @@ public class FriendshipService {
         friendship.reject();
     }
 
+    @Transactional
+    public void cancelFollow(Long memberId, Long requesterId) {
+        Friendship friendship =
+                friendshipRepository
+                        .findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                                requesterId,
+                                memberId,
+                                FriendshipStatus.PENDING
+                        )
+                        .orElseThrow(FriendshipNotFoundException::new);
+        friendship.cancel();
+    }
+
 }
