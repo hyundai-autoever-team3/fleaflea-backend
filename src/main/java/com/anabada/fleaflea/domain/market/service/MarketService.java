@@ -66,7 +66,14 @@ public class MarketService {
 
         marketMemberRepository.save(hostMembership);
 
-        return MarketCreateResponse.from(savedMarket);
+        String coverImageUrl = imageService.getUrl(
+                savedMarket.getCoverImageUrl()
+        );
+
+        return MarketCreateResponse.from(
+                savedMarket,
+                coverImageUrl
+        );
     }
 
     private String generateUniqueInviteCode() {

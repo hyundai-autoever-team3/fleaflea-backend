@@ -22,7 +22,7 @@ public record MarketDetailResponse(
         @Schema(description = "플리마켓 설명")
         String description,
 
-        @Schema(description = "플리마켓 커버 이미지 경로")
+        @Schema(description = "플리마켓 커버 이미지 URL")
         String coverImageUrl,
 
         @Schema(description = "참여자 수", example = "3")
@@ -34,7 +34,8 @@ public record MarketDetailResponse(
 
     public static MarketDetailResponse from(
             Market market,
-            long memberCount
+            long memberCount,
+            String coverImageUrl
     ) {
         return new MarketDetailResponse(
                 market.getMarketId(),
@@ -42,7 +43,7 @@ public record MarketDetailResponse(
                 market.getHost().getNickname(),
                 market.getTitle(),
                 market.getDescription(),
-                market.getCoverImageUrl(),
+                coverImageUrl,
                 memberCount,
                 market.getCreatedAt()
         );

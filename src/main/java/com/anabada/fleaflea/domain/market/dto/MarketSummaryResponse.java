@@ -23,14 +23,17 @@ public record MarketSummaryResponse(
         @Schema(description = "플리마켓 설명")
         String description,
 
-        @Schema(description = "플리마켓 커버 이미지 경로")
+        @Schema(description = "플리마켓 커버 이미지 URL")
         String coverImageUrl,
 
         @Schema(description = "플리마켓 참여 시각")
         LocalDateTime joinedAt
 ) {
 
-    public static MarketSummaryResponse from(MarketMember marketMember) {
+    public static MarketSummaryResponse from(
+            MarketMember marketMember,
+            String coverImageUrl
+    ) {
         Market market = marketMember.getMarket();
 
         return new MarketSummaryResponse(
@@ -39,7 +42,7 @@ public record MarketSummaryResponse(
                 market.getHost().getNickname(),
                 market.getTitle(),
                 market.getDescription(),
-                market.getCoverImageUrl(),
+                coverImageUrl,
                 marketMember.getJoinedAt()
         );
     }
