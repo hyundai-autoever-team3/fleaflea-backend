@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.collectionitem.dto;
 
-import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 
 import java.time.LocalDateTime;
 
