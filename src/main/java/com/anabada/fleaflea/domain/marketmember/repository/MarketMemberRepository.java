@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface MarketMemberRepository extends JpaRepository<MarketMember, Long> {
 
     boolean existsByMarketAndMember(Market market, Member member);
@@ -19,4 +21,11 @@ public interface MarketMemberRepository extends JpaRepository<MarketMember, Long
 
     @EntityGraph(attributePaths = {"member"})
     Page<MarketMember> findAllByMarket(Market market, Pageable pageable);
+
+    Optional<MarketMember> findByMarketAndMember(
+            Market market,
+            Member member
+    );
+
+    void deleteAllByMarket(Market market);
 }
