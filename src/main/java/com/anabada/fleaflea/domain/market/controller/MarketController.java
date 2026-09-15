@@ -25,6 +25,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
+
 @Tag(
         name = "플리마켓",
         description = "플리마켓 생성 및 관리 API"
@@ -153,6 +157,91 @@ public class MarketController {
                         marketId,
                         pageable
                 );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping(
+            value = "/{marketId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @Operation(summary = "플리마켓 수정")
+    public ResponseEntity<MarketUpdateResponse> updateMarket(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable Long marketId,
+
+            @Valid @ModelAttribute MarketUpdateRequest request
+    ) {
+        MarketUpdateResponse response =
+                marketService.updateMarket(
+                        memberId,
+                        marketId,
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{marketId}/invitation")
+    @Operation(summary = "초대 코드 재발급")
+    public ResponseEntity<MarketInvitationResponse> reissueInvitation(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable Long marketId
+    ) {
+        return ResponseEntity.ok(
+                marketService.reissueInvitation(memberId, marketId)
+        );
+    }
+
+    @DeleteMapping("/{marketId}/members/me")
+    @Operation(summary = "플리마켓 나가기")
+    public ResponseEntity<Void> leaveMarket(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable Long marketId
+    ) {
+        marketService.leaveMarket(memberId, marketId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{marketId}")
+    @Operation(summary = "플리마켓 삭제")
+    public ResponseEntity<Void> deleteMarket(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable Long marketId
+    ) {
+        marketService.deleteMarket(memberId, marketId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{marketId}/invitation")
+    @Operation(
+            summary = "초대 코드 조회",
+            description = "플리마켓 개설자가 현재 초대 코드를 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "초대 코드 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "개설자 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "플리마켓 정보 없음")
+    })
+    public ResponseEntity<MarketInvitationResponse> getInvitation(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @Parameter(description = "플리마켓 ID", example = "1")
+            @PathVariable Long marketId
+    ) {
+        MarketInvitationResponse response =
+                marketService.getInvitation(memberId, marketId);
 
         return ResponseEntity.ok(response);
     }
