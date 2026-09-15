@@ -238,4 +238,15 @@ public class ImageService {
 
         return replacement.newKey();
     }
+
+    public String getUrl(String imageKey) {
+        if (imageKey == null) {
+            return null;
+        }
+        return s3Client.utilities()
+                .getUrl(builder -> builder
+                        .bucket(bucket)
+                        .key(imageKey))
+                .toExternalForm();
+    }
 }

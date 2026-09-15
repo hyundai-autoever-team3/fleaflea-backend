@@ -6,6 +6,7 @@ import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
 import com.anabada.fleaflea.domain.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,10 +26,10 @@ public class MemberController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/me")
+    @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateMyProfile(
             @AuthenticationPrincipal Long memberId,
-           @Valid @RequestBody ProfileUpdateRequest request
+           @Valid @ModelAttribute ProfileUpdateRequest request
     ) {
         memberService.updateMyProfile(memberId, request);
 

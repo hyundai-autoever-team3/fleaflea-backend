@@ -7,6 +7,8 @@ import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.image.ImageCategory;
+import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,13 +19,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ImageService imageService;
 
     @Transactional(readOnly = true)
     public MyProfileResponse getMyProfile(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        return MyProfileResponse.from(member);
+        String profileImageUrl = imageService.getUrl(
+                member.getProfileImageKey()
+        );
+
+        return MyProfileResponse.from(member, profileImageUrl);
     }
 
     @Transactional
@@ -31,9 +38,28 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
+        String profileImageKey = member.getProfileImageKey();
+
+        if (request.profileImage() != null
+                && !request.profileImage().isEmpty()) {
+
+            if (profileImageKey == null) {
+                profileImageKey = imageService.upload(
+                        request.profileImage(),
+                        ImageCategory.PROFILE
+                );
+            } else {
+                profileImageKey = imageService.replace(
+                        profileImageKey,
+                        request.profileImage(),
+                        ImageCategory.PROFILE
+                );
+            }
+        }
+
         member.updateProfile(
                 request.nickname(),
-                request.profileImageUrl()
+                profileImageKey
         );
 
     }
