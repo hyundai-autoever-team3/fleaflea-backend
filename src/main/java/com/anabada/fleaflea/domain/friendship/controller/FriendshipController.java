@@ -43,7 +43,7 @@ public class FriendshipController {
         return ResponseEntity.ok(friendshipService.getMyFriends(memberId));
     }
 
-    @Operation(summary = "친구 요청 보내기", description = "받은 친구 요청 또는 보낸 친구 요청을 조회합니다.")
+    @Operation(summary = "친구 요청 보내기")
     @PostMapping("/members/{memberId}/friend-requests")
     public ResponseEntity<Void> requestFollow(
             @AuthenticationPrincipal Long memberId,

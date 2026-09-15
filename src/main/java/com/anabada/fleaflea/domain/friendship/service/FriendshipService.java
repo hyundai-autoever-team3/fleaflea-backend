@@ -27,7 +27,7 @@ public class FriendshipService {
                 FriendshipStatus.PENDING
         );
         return friendships.stream().map(friendship ->
-                FriendshipResponse.from(friendship.getRequester()))
+                FriendshipResponse.from(friendship,friendship.getRequester()))
                 .toList();
     }
 
@@ -38,7 +38,7 @@ public class FriendshipService {
                 FriendshipStatus.PENDING
         );
         return friendships.stream().map(friendship ->
-                FriendshipResponse.from(friendship.getAddressee()))
+                FriendshipResponse.from(friendship,friendship.getAddressee()))
                 .toList();
 
     }
@@ -51,9 +51,9 @@ public class FriendshipService {
         );
         return friendships.stream().map(friendship -> {
                     if (friendship.getRequester().getMemberId().equals(memberId)) {
-                        return FriendshipResponse.from(friendship.getAddressee());
+                        return FriendshipResponse.from(friendship, friendship.getAddressee());
                     }
-                    return FriendshipResponse.from(friendship.getRequester());
+                    return FriendshipResponse.from(friendship, friendship.getRequester());
                 })
                 .toList();
     }
