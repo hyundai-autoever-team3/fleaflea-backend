@@ -46,8 +46,7 @@ public class MemberAuthService {
         Member newMember = Member.create(
                 request.email(),
                 encodedPassword,
-                request.nickname(),
-                request.profileImageUrl()
+                request.nickname()
         );
         memberRepository.save(newMember);
     }

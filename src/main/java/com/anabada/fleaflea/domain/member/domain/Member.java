@@ -32,26 +32,22 @@ public class Member extends BaseTimeEntity {
     private Member(
             String email,
             String password,
-            String nickname,
-            String profileImageKey
+            String nickname
     ) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.profileImageKey = profileImageKey;
     }
 
     public static Member create(
             String email,
             String password,
-            String nickname,
-            String profileImageKey
+            String nickname
     ) {
         return Member.builder()
                 .email(email)
                 .password(password)
                 .nickname(nickname)
-                .profileImageKey(profileImageKey)
                 .build();
     }
 
