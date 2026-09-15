@@ -3,7 +3,7 @@ package com.anabada.fleaflea.domain.member.controller;
 import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
 import com.anabada.fleaflea.domain.member.dto.PasswordUpdateRequest;
 import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
-import com.anabada.fleaflea.domain.member.service.MemberMyPageService;
+import com.anabada.fleaflea.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/members")
 @RequiredArgsConstructor
-public class MemberMyPageController {
-    private final MemberMyPageService memberMypageService;
+public class MemberController {
+    private final MemberService memberService;
 
     @GetMapping("/me")
     public ResponseEntity<MyProfileResponse> getMyProfile(
             @AuthenticationPrincipal Long memberId
     ) {
-        MyProfileResponse response = memberMypageService.getMyProfile(memberId);
+        MyProfileResponse response = memberService.getMyProfile(memberId);
 
         return ResponseEntity.ok(response);
     }
@@ -29,7 +29,7 @@ public class MemberMyPageController {
             @AuthenticationPrincipal Long memberId,
             @RequestBody ProfileUpdateRequest request
     ) {
-        memberMypageService.updateMyProfile(memberId, request);
+        memberService.updateMyProfile(memberId, request);
 
         return ResponseEntity.noContent().build();
     }
@@ -39,7 +39,7 @@ public class MemberMyPageController {
             @AuthenticationPrincipal Long memberId,
             @RequestBody PasswordUpdateRequest request
     ) {
-        memberMypageService.updatePassword(memberId, request);
+        memberService.updatePassword(memberId, request);
 
         return ResponseEntity.noContent().build();
     }
@@ -48,7 +48,7 @@ public class MemberMyPageController {
     public ResponseEntity<Void> deleteMember(
             @AuthenticationPrincipal Long memberId
     ) {
-        memberMypageService.deleteMember(memberId);
+        memberService.deleteMember(memberId);
 
         return ResponseEntity.noContent().build();
     }
