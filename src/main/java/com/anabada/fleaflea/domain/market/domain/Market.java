@@ -65,10 +65,22 @@ public class Market extends BaseTimeEntity {
                 .build();
     }
 
-    public void update(String title, String description, String coverImageUrl) {
-        this.title = title;
-        this.description = description;
-        this.coverImageUrl = coverImageUrl;
+    public void update(
+            String title,
+            String description,
+            String coverImageUrl
+    ) {
+        if (title != null) {
+            this.title = title;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
+
+        if (coverImageUrl != null) {
+            this.coverImageUrl = coverImageUrl;
+        }
     }
 
     public void changeInviteCode(String inviteCode) {

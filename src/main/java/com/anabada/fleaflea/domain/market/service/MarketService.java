@@ -1,14 +1,16 @@
 package com.anabada.fleaflea.domain.market.service;
 
 import com.anabada.fleaflea.domain.market.domain.Market;
-import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
-import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
+import com.anabada.fleaflea.domain.market.dto.*;
+import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
 import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.exception.BusinessException;
+import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
@@ -79,5 +81,140 @@ public class MarketService {
         } while (marketRepository.existsByInviteCode(inviteCode));
 
         return inviteCode;
+    }
+
+    @Transactional
+    public MarketUpdateResponse updateMarket(
+            Long memberId,
+            Long marketId,
+            MarketUpdateRequest request
+    ) {
+        Market market = getMarket(marketId);
+
+        validateHost(market, memberId);
+
+        String coverImageKey = market.getCoverImageUrl();
+
+        if (request.coverImage() != null
+                && !request.coverImage().isEmpty()) {
+            if (coverImageKey == null) {
+                coverImageKey = imageService.upload(
+                        request.coverImage(),
+                        ImageCategory.MARKET
+                );
+            } else {
+                coverImageKey = imageService.replace(
+                        coverImageKey,
+                        request.coverImage(),
+                        ImageCategory.MARKET
+                );
+            }
+        }
+
+        market.update(
+                request.title(),
+                request.description(),
+                coverImageKey
+        );
+
+        String coverImageUrl =
+                imageService.getUrl(market.getCoverImageUrl());
+
+        return MarketUpdateResponse.from(
+                market,
+                coverImageUrl
+        );
+    }
+
+    public MarketInvitationResponse getInvitation(
+            Long memberId,
+            Long marketId
+    ) {
+        Market market = getMarket(marketId);
+
+        validateHost(market, memberId);
+
+        return new MarketInvitationResponse(
+                market.getMarketId(),
+                market.getInviteCode()
+        );
+    }
+
+    @Transactional
+    public MarketInvitationResponse reissueInvitation(
+            Long memberId,
+            Long marketId
+    ) {
+        Market market = getMarket(marketId);
+
+        validateHost(market, memberId);
+
+        String inviteCode = generateUniqueInviteCode();
+        market.changeInviteCode(inviteCode);
+
+        return new MarketInvitationResponse(
+                market.getMarketId(),
+                inviteCode
+        );
+    }
+
+    @Transactional
+    public void leaveMarket(
+            Long memberId,
+            Long marketId
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        Market market = getMarket(marketId);
+
+        if (market.getHost().getMemberId().equals(memberId)) {
+            throw new BusinessException(
+                    ErrorCode.MARKET_HOST_CANNOT_LEAVE
+            );
+        }
+
+        MarketMember membership = marketMemberRepository
+                .findByMarketAndMember(market, member)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.MARKET_MEMBERSHIP_NOT_FOUND
+                ));
+
+        marketMemberRepository.delete(membership);
+    }
+
+    @Transactional
+    public void deleteMarket(
+            Long memberId,
+            Long marketId
+    ) {
+        Market market = getMarket(marketId);
+
+        validateHost(market, memberId);
+
+        String coverImageKey = market.getCoverImageUrl();
+
+        marketMemberRepository.deleteAllByMarket(market);
+        marketRepository.delete(market);
+
+        if (coverImageKey != null) {
+            imageService.delete(coverImageKey);
+        }
+    }
+
+    private Market getMarket(Long marketId) {
+        return marketRepository.findById(marketId)
+                .orElseThrow(MarketNotFoundException::new);
+    }
+
+    private void validateHost(
+            Market market,
+            Long memberId
+    ) {
+        if (!market.getHost().getMemberId().equals(memberId)) {
+            throw new BusinessException(
+                    ErrorCode.MARKET_HOST_ONLY
+            );
+        }
     }
 }

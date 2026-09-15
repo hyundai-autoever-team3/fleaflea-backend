@@ -109,6 +109,22 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "MARKET_ACCESS_DENIED",
             "참여 중인 플리마켓만 조회할 수 있습니다."
+    ),
+
+    MARKET_HOST_ONLY(
+            HttpStatus.FORBIDDEN,
+            "MARKET_HOST_ONLY",
+            "플리마켓 개설자만 수행할 수 있습니다."
+    ),
+    MARKET_HOST_CANNOT_LEAVE(
+            HttpStatus.CONFLICT,
+            "MARKET_HOST_CANNOT_LEAVE",
+            "플리마켓 개설자는 플리마켓을 나갈 수 없습니다."
+    ),
+    MARKET_MEMBERSHIP_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "MARKET_MEMBERSHIP_NOT_FOUND",
+            "플리마켓 참여 정보를 찾을 수 없습니다."
     );
 
     private final HttpStatus status;
