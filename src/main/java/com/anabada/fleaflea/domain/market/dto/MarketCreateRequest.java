@@ -13,6 +13,12 @@ public record MarketCreateRequest(
 
         @Size(max = 1000, message = "플리마켓 설명은 1000자 이하로 입력해주세요.")
         @Schema(description = "플리마켓 설명", example = "사용하지 않는 물건을 나누는 플리마켓입니다.")
-        String description
+        String description,
+
+        @Schema(
+                description = "플리마켓 커버 이미지 경로",
+                example = "markets/550e8400-e29b-41d4-a716-446655440000.jpg"
+        )
+        String coverImageUrl
 ) {
 }
