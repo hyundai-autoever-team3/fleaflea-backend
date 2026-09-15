@@ -37,11 +37,11 @@ public class MarketService {
 
         String inviteCode = generateUniqueInviteCode();
 
-        String coverImageUrl = null;
+        String coverImageKey = null;
 
         if (request.coverImage() != null
                 && !request.coverImage().isEmpty()) {
-            coverImageUrl = imageService.upload(
+            coverImageKey = imageService.upload(
                     request.coverImage(),
                     ImageCategory.MARKET
             );
@@ -51,7 +51,7 @@ public class MarketService {
                 host,
                 request.title(),
                 request.description(),
-                coverImageUrl,
+                coverImageKey,
                 inviteCode
         );
 
