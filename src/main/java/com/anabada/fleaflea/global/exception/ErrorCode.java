@@ -25,16 +25,8 @@ public enum ErrorCode {
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
 
     // Friendship
-    FRIEND_REQUEST_INVALID_DIRECTION(
-            HttpStatus.BAD_REQUEST,
-            "FRIEND_REQUEST_INVALID_DIRECTION",
-            "잘못된 친구 요청 방향입니다."
-    ),
-    FRIENDSHIP_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "FRIENDSHIP_NOT_FOUND",
-            "존재하지 않는 친구 관계입니다."
-    ),
+    FRIEND_REQUEST_INVALID_DIRECTION(HttpStatus.BAD_REQUEST, "FRIEND_REQUEST_INVALID_DIRECTION", "잘못된 친구 요청 방향입니다."),
+    FRIENDSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "FRIENDSHIP_NOT_FOUND", "존재하지 않는 친구 관계입니다."),
 
     // Image
     INVALID_IMAGE(HttpStatus.BAD_REQUEST, "INVALID_IMAGE", "유효하지 않은 이미지입니다."),
