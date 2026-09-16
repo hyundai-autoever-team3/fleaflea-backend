@@ -71,4 +71,32 @@ public class BegRequestController {
         begRequestService.acceptBeggingRequest(begRequestId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "구걸 요청 거절", description = "대기 중인 구걸 요청을 거절합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "구걸 요청 거절 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
+            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+    })
+    @PostMapping("/beg-requests/{begRequestId}/reject")
+    public ResponseEntity<Void> rejectBeggingRequest(
+            @PathVariable Long begRequestId) {
+        begRequestService.rejectBeggingRequest(begRequestId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "구걸 요청 취소", description = "대기 중인 구걸 요청을 취소합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "구걸 요청 취소 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
+            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+    })
+    @PostMapping("/beg-requests/{begRequestId}/cancel")
+    public ResponseEntity<Void> cancelBeggingRequest(
+            @PathVariable Long begRequestId) {
+        begRequestService.cancelBeggingRequest(begRequestId);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }

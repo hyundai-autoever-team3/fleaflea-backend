@@ -79,6 +79,30 @@ public class BegRequestService {
         begRequest.accept();
     }
 
+    @Transactional
+    public void rejectBeggingRequest(Long begRequestId) {
+        BegRequest begRequest = begRequestRepository.findById(begRequestId)
+                .orElseThrow(BegRequestNotFoundException::new);
+
+        if (begRequest.getStatus() != BegRequestStatus.PENDING) {
+            throw new BegRequestNotPendingException();
+        }
+
+        begRequest.reject();
+    }
+
+    @Transactional
+    public void cancelBeggingRequest(Long begRequestId) {
+        BegRequest begRequest = begRequestRepository.findById(begRequestId)
+                .orElseThrow(BegRequestNotFoundException::new);
+
+        if (begRequest.getStatus() != BegRequestStatus.PENDING) {
+            throw new BegRequestNotPendingException();
+        }
+
+        begRequest.cancel();
+    }
+
 
 
 }

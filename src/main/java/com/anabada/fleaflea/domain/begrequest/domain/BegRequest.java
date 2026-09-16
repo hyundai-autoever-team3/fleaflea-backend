@@ -69,4 +69,6 @@ public class BegRequest extends BaseTimeEntity {
         this.status = BegRequestStatus.REJECTED;
     }
 
+    public void cancel() { this.status = BegRequestStatus.CANCELLED; }
+
 }
