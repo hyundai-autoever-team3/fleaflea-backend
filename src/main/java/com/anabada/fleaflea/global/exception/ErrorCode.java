@@ -24,6 +24,18 @@ public enum ErrorCode {
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
 
+    // Friendship
+    FRIEND_REQUEST_INVALID_DIRECTION(
+            HttpStatus.BAD_REQUEST,
+            "FRIEND_REQUEST_INVALID_DIRECTION",
+            "잘못된 친구 요청 방향입니다."
+    ),
+    FRIENDSHIP_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "FRIENDSHIP_NOT_FOUND",
+            "존재하지 않는 친구 관계입니다."
+    ),
+
     // Image
     INVALID_IMAGE(HttpStatus.BAD_REQUEST, "INVALID_IMAGE", "유효하지 않은 이미지입니다."),
     IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "IMAGE_TOO_LARGE", "허용된 이미지 크기를 초과했습니다."),
@@ -51,7 +63,10 @@ public enum ErrorCode {
     MARKET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "MARKET_ACCESS_DENIED", "참여 중인 플리마켓만 조회할 수 있습니다."),
     MARKET_HOST_ONLY(HttpStatus.FORBIDDEN, "MARKET_HOST_ONLY", "플리마켓 개설자만 수행할 수 있습니다."),
     MARKET_HOST_CANNOT_LEAVE(HttpStatus.CONFLICT, "MARKET_HOST_CANNOT_LEAVE", "플리마켓 개설자는 플리마켓을 나갈 수 없습니다."),
-    MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다.");
+    MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다."),
+
+    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST,"SELF_FRIEND_REQUEST","자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT,"FRIENDSHIP_ALREADY_EXISTS","이미 친구이거나 처리 중인 친구 요청이 있습니다.");
 
     private final HttpStatus status;
     private final String code;

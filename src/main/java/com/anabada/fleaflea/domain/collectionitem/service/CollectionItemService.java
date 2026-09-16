@@ -249,7 +249,7 @@ public class CollectionItemService {
     ) {
         boolean firstToSecond =
                 friendshipRepository
-                        .existsByRequesterIdAndAddresseeIdAndStatus(
+                        .existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                                 firstMemberId,
                                 secondMemberId,
                                 FriendshipStatus.ACCEPTED
@@ -257,7 +257,7 @@ public class CollectionItemService {
 
         boolean secondToFirst =
                 friendshipRepository
-                        .existsByRequesterIdAndAddresseeIdAndStatus(
+                        .existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                                 secondMemberId,
                                 firstMemberId,
                                 FriendshipStatus.ACCEPTED
