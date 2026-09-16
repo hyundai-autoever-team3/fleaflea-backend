@@ -13,6 +13,9 @@ public record CollectionItemSummaryResponse(
         @Schema(description = "도감 아이템 이름")
         String title,
 
+        @Schema(description = "도감 아이템 설명")
+        String description,
+
         @Schema(description = "도감 아이템 이미지 URL")
         String imageUrl,
 
@@ -30,6 +33,7 @@ public record CollectionItemSummaryResponse(
         return new CollectionItemSummaryResponse(
                 collectionItem.getCollectionItemId(),
                 collectionItem.getTitle(),
+                collectionItem.getDescription(),
                 imageUrl,
                 collectionItem.getIsPublic(),
                 collectionItem.getCreatedAt()
