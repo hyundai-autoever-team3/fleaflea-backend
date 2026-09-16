@@ -62,7 +62,11 @@ public enum ErrorCode {
     MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다."),
 
     SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST,"SELF_FRIEND_REQUEST","자기 자신에게 친구 요청을 보낼 수 없습니다."),
-    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT,"FRIENDSHIP_ALREADY_EXISTS","이미 친구이거나 처리 중인 친구 요청이 있습니다.");
+    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT,"FRIENDSHIP_ALREADY_EXISTS","이미 친구이거나 처리 중인 친구 요청이 있습니다."),
+
+    // Beg Request
+    BEG_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "BEG_REQUEST_SELF_ITEM", "자신의 도감 아이템에는 구걸 요청을 할 수 없습니다."),
+    BEG_REQUEST_ALREADY_EXISTS(HttpStatus.CONFLICT, "BEG_REQUEST_ALREADY_EXISTS", "이미 해당 도감 아이템에 구걸 요청을 보냈습니다.");
 
     private final HttpStatus status;
     private final String code;
