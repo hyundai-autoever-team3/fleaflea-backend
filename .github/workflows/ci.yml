@@ -39,6 +39,7 @@ jobs:
       DB_URL: jdbc:postgresql://localhost:5432/fleaflea_test
       DB_USERNAME: test_user
       DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      DDL_AUTO: validate
       AWS_REGION: ap-northeast-2
       AWS_EC2_METADATA_DISABLED: "true"
       S3_BUCKET: fleaflea-ci-test
