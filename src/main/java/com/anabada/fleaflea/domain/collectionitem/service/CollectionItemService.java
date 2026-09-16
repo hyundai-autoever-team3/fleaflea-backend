@@ -23,6 +23,9 @@ import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
 
+import com.anabada.fleaflea.domain.collectionitem.dto.MemberCollectionResponse;
+import com.anabada.fleaflea.domain.member.dto.MemberSummaryResponse;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -77,7 +80,7 @@ public class CollectionItemService {
         );
     }
 
-    public PageResponse<CollectionItemSummaryResponse> getMemberCollectionItems(
+    public MemberCollectionResponse getMemberCollectionItems(
             Long requesterId,
             Long ownerId,
             Pageable pageable
@@ -90,13 +93,22 @@ public class CollectionItemService {
                 owner.getMemberId()
         );
 
-        return PageResponse.from(
-                collectionItemRepository
-                        .findAllByOwnerAndIsPublicTrue(
-                                owner,
-                                pageable
-                        )
-                        .map(this::toSummaryResponse)
+        PageResponse<CollectionItemSummaryResponse> items =
+                PageResponse.from(
+                        collectionItemRepository
+                                .findAllByOwnerAndIsPublicTrue(owner, pageable)
+                                .map(this::toSummaryResponse)
+                );
+
+        MemberSummaryResponse ownerResponse =
+                MemberSummaryResponse.from(
+                        owner,
+                        imageService.getUrl(owner.getProfileImageKey())
+                );
+
+        return new MemberCollectionResponse(
+                ownerResponse,
+                items
         );
     }
 
