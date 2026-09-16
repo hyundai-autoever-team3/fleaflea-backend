@@ -60,4 +60,13 @@ public class BegRequest extends BaseTimeEntity {
                 .status(status)
                 .build();
     }
+
+    public void accept() {
+        this.status = BegRequestStatus.ACCEPTED;
+    }
+
+    public void reject() {
+        this.status = BegRequestStatus.REJECTED;
+    }
+
 }

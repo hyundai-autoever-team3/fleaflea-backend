@@ -58,4 +58,17 @@ public class BegRequestController {
                 begRequestService.getBeggingDetails(begRequestId)
         );
     }
+
+    @Operation(summary = "구걸 요청 승인", description = "대기 중인 구걸 요청을 승인합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "구걸 요청 승인 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
+            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+    })
+    @PostMapping("/beg-requests/{begRequestId}/accept")
+    public ResponseEntity<Void> acceptBeggingRequest(
+            @PathVariable Long begRequestId) {
+        begRequestService.acceptBeggingRequest(begRequestId);
+        return ResponseEntity.noContent().build();
+    }
 }

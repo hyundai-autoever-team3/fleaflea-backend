@@ -7,6 +7,7 @@ import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestAlreadyExistsException;
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotFoundException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotPendingException;
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestSelfItemException;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
@@ -65,5 +66,19 @@ public class BegRequestService {
 
         return BeggingDetailResponse.from(begRequest);
     }
+
+    @Transactional
+    public void acceptBeggingRequest(Long begRequestId) {
+        BegRequest begRequest = begRequestRepository.findById(begRequestId)
+                .orElseThrow(BegRequestNotFoundException::new);
+
+        if (begRequest.getStatus() != BegRequestStatus.PENDING) {
+            throw new BegRequestNotPendingException();
+        }
+
+        begRequest.accept();
+    }
+
+
 
 }

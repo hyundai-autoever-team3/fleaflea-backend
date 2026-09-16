@@ -67,7 +67,8 @@ public enum ErrorCode {
     // Beg Request
     BEG_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "BEG_REQUEST_SELF_ITEM", "자신의 도감 아이템에는 구걸 요청을 할 수 없습니다."),
     BEG_REQUEST_ALREADY_EXISTS(HttpStatus.CONFLICT, "BEG_REQUEST_ALREADY_EXISTS", "이미 해당 도감 아이템에 구걸 요청을 보냈습니다."),
-    BEG_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "BEG_REQUEST_NOT_FOUND", "존재하지 않는 구걸요청입니다.");
+    BEG_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "BEG_REQUEST_NOT_FOUND", "존재하지 않는 구걸요청입니다."),
+    BEG_REQUEST_NOT_PENDING(HttpStatus.CONFLICT, "BEG_REQUEST_NOT_PENDING", "대기 중인 구걸 요청만 승인할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;
