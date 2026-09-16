@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.anabada.fleaflea.domain.member.dto.MemberSummaryResponse;
+import com.anabada.fleaflea.global.image.ImageService;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -37,6 +40,7 @@ public class CollectionTradeService {
     private final CollectionItemRepository collectionItemRepository;
     private final MemberRepository memberRepository;
     private final FriendshipRepository friendshipRepository;
+    private final ImageService imageService;
 
     @Transactional
     public CollectionTradeResponse createTradeRequest(
@@ -84,7 +88,7 @@ public class CollectionTradeService {
                         request.tradeType()
                 );
 
-        return CollectionTradeResponse.from(
+        return toResponse(
                 tradeRequestRepository.save(tradeRequest)
         );
     }
@@ -98,7 +102,7 @@ public class CollectionTradeService {
 
         validateParty(tradeRequest, memberId);
 
-        return CollectionTradeResponse.from(tradeRequest);
+        return toResponse(tradeRequest);
     }
 
     @Transactional
@@ -114,7 +118,7 @@ public class CollectionTradeService {
 
         tradeRequest.accept();
 
-        return CollectionTradeResponse.from(tradeRequest);
+        return toResponse(tradeRequest);
     }
 
     @Transactional
@@ -130,7 +134,9 @@ public class CollectionTradeService {
 
         tradeRequest.reject();
 
-        return CollectionTradeResponse.from(tradeRequest);
+        tradeRequestRepository.save(tradeRequest);
+
+        return toResponse(tradeRequest);
     }
 
     @Transactional
@@ -148,7 +154,9 @@ public class CollectionTradeService {
         validatePending(tradeRequest);
         tradeRequest.cancel();
 
-        return CollectionTradeResponse.from(tradeRequest);
+        tradeRequestRepository.save(tradeRequest);
+
+        return toResponse(tradeRequest);
     }
 
     @Transactional
@@ -182,8 +190,9 @@ public class CollectionTradeService {
 
             tradeRequest.confirmByOwner();
         }
+        tradeRequestRepository.save(tradeRequest);
 
-        return CollectionTradeResponse.from(tradeRequest);
+        return toResponse(tradeRequest);
     }
 
     private CollectionItem getOfferItem(
@@ -283,5 +292,30 @@ public class CollectionTradeService {
             ErrorCode errorCode
     ) {
         return new CollectionTradeException(errorCode);
+    }
+
+    private CollectionTradeResponse toResponse(
+            CollectionTradeRequest tradeRequest
+    ) {
+        Member owner = tradeRequest.getTargetItem().getOwner();
+        Member requester = tradeRequest.getRequester();
+
+        MemberSummaryResponse ownerResponse =
+                MemberSummaryResponse.from(
+                        owner,
+                        imageService.getUrl(owner.getProfileImageKey())
+                );
+
+        MemberSummaryResponse requesterResponse =
+                MemberSummaryResponse.from(
+                        requester,
+                        imageService.getUrl(requester.getProfileImageKey())
+                );
+
+        return CollectionTradeResponse.from(
+                tradeRequest,
+                ownerResponse,
+                requesterResponse
+        );
     }
 }
