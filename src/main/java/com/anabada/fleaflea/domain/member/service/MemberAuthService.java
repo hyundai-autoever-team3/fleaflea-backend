@@ -95,6 +95,10 @@ public class MemberAuthService {
 
     }
 
+    public void logout(Long memberId) {
+        refreshTokenRepository.deleteByMemberId(memberId);
+    }
+
 
 
 
