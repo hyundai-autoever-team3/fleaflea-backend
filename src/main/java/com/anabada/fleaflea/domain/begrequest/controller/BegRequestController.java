@@ -1,7 +1,8 @@
 package com.anabada.fleaflea.domain.begrequest.controller;
 
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingDetailResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
-import com.anabada.fleaflea.domain.begrequest.dto.CreateBeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
 import com.anabada.fleaflea.domain.begrequest.service.BegRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +35,7 @@ public class BegRequestController {
     public ResponseEntity<BeggingResponse> createBegging(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long collectionItemId,
-            @Valid @RequestBody CreateBeggingRequest request
+            @Valid @RequestBody BeggingRequest request
     ) {
         BeggingResponse response =
                 begRequestService.createBegging(memberId, collectionItemId, request);
@@ -42,5 +43,19 @@ public class BegRequestController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @Operation(summary = "구걸 요청 상세 조회", description = "구걸 요청 ID를 통해 구걸 요청의 상세 정보를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "구걸 요청 상세 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청")
+    })
+    @GetMapping("/beg-requests/{begRequestId}")
+    public ResponseEntity<BeggingDetailResponse> getBeggingDetails(
+            @PathVariable Long begRequestId
+    ) {
+        return ResponseEntity.ok(
+                begRequestService.getBeggingDetails(begRequestId)
+        );
     }
 }

@@ -2,9 +2,11 @@ package com.anabada.fleaflea.domain.begrequest.service;
 
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingDetailResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
-import com.anabada.fleaflea.domain.begrequest.dto.CreateBeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestAlreadyExistsException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotFoundException;
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestSelfItemException;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
@@ -28,7 +30,7 @@ public class BegRequestService {
     public BeggingResponse createBegging(
             Long memberId,
             Long collectionItemId,
-            CreateBeggingRequest request
+            BeggingRequest request
             ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -54,6 +56,14 @@ public class BegRequestService {
         return BeggingResponse.from(
                 begRequest
         );
+    }
+
+    @Transactional(readOnly = true)
+    public BeggingDetailResponse getBeggingDetails(Long begRequestId) {
+        BegRequest begRequest = begRequestRepository.findById(begRequestId)
+                .orElseThrow(BegRequestNotFoundException::new);
+
+        return BeggingDetailResponse.from(begRequest);
     }
 
 }
