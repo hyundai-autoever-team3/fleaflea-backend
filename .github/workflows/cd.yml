@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["Backend CI"]
     types: [completed]
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -18,17 +19,23 @@ jobs:
   deploy:
     name: Deploy to EC2
     if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main'
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           persist-credentials: false
 
       - name: Set up Java 25
@@ -72,7 +79,7 @@ jobs:
         id: image
         env:
           IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ env.DEPLOY_SHA }}
         shell: bash
         run: |
           set -euo pipefail

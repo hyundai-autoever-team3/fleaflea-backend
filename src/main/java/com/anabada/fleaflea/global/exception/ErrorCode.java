@@ -24,6 +24,18 @@ public enum ErrorCode {
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
 
+    // Friendship
+    FRIEND_REQUEST_INVALID_DIRECTION(
+            HttpStatus.BAD_REQUEST,
+            "FRIEND_REQUEST_INVALID_DIRECTION",
+            "잘못된 친구 요청 방향입니다."
+    ),
+    FRIENDSHIP_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "FRIENDSHIP_NOT_FOUND",
+            "존재하지 않는 친구 관계입니다."
+    ),
+
     // Image
     INVALID_IMAGE(HttpStatus.BAD_REQUEST, "INVALID_IMAGE", "유효하지 않은 이미지입니다."),
     IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "IMAGE_TOO_LARGE", "허용된 이미지 크기를 초과했습니다."),
@@ -61,7 +73,11 @@ public enum ErrorCode {
     COLLECTION_TRADE_SELF_REQUEST(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_SELF_REQUEST", "자신의 도감 아이템에는 거래를 요청할 수 없습니다."),
     COLLECTION_TRADE_OFFER_REQUIRED(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_OFFER_REQUIRED", "교환할 도감 아이템을 선택해주세요."),
     COLLECTION_TRADE_INVALID_OFFER(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_INVALID_OFFER", "유효하지 않은 교환 아이템입니다."),
-    COLLECTION_TRADE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "COLLECTION_TRADE_ALREADY_CONFIRMED", "이미 거래 완료를 확인했습니다.");
+    COLLECTION_TRADE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "COLLECTION_TRADE_ALREADY_CONFIRMED", "이미 거래 완료를 확인했습니다."),
+
+    // Friendship request
+    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "SELF_FRIEND_REQUEST", "자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT, "FRIENDSHIP_ALREADY_EXISTS", "이미 친구이거나 처리 중인 친구 요청이 있습니다.");
 
     private final HttpStatus status;
     private final String code;

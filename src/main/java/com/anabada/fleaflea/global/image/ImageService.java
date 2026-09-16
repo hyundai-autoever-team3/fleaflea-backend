@@ -28,7 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class ImageService {
 
-    private static final int MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final int MAX_FILE_SIZE = 100 * 1024 * 1024;
     private static final long MAX_PIXELS = 20_000_000L;
 
     private static final Pattern IMAGE_KEY_PATTERN = Pattern.compile(

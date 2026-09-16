@@ -5,6 +5,7 @@ import com.anabada.fleaflea.global.image.exception.ImageException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -96,10 +98,9 @@ class ImageServiceTest {
 
     @Test
     void uploadRejectsOversizedFile() {
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "large.png", "image/png",
-                new byte[5 * 1024 * 1024 + 1]
-        );
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getSize()).thenReturn(100L * 1024 * 1024 + 1);
 
         ImageException exception = assertThrows(
                 ImageException.class,
