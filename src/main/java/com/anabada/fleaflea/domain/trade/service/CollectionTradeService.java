@@ -266,13 +266,13 @@ public class CollectionTradeService {
             Long secondMemberId
     ) {
         return friendshipRepository
-                .existsByRequesterIdAndAddresseeIdAndStatus(
+                .existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                         firstMemberId,
                         secondMemberId,
                         FriendshipStatus.ACCEPTED
                 )
                 || friendshipRepository
-                .existsByRequesterIdAndAddresseeIdAndStatus(
+                .existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                         secondMemberId,
                         firstMemberId,
                         FriendshipStatus.ACCEPTED
