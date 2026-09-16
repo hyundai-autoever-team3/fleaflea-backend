@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.market.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
 
 public record MarketCreateRequest(
 
@@ -16,9 +17,10 @@ public record MarketCreateRequest(
         String description,
 
         @Schema(
-                description = "플리마켓 커버 이미지 경로",
-                example = "markets/550e8400-e29b-41d4-a716-446655440000.jpg"
+                description = "플리마켓 커버 이미지",
+                type = "string",
+                format = "binary"
         )
-        String coverImageUrl
+        MultipartFile coverImage
 ) {
 }

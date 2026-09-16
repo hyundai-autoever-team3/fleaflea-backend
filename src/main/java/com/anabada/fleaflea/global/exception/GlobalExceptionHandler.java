@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @Slf4j
 @RestControllerAdvice
@@ -64,6 +65,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException e) {
         log.warn("[HttpMessageNotReadableException]: code={}", ErrorCode.INVALID_REQUEST.getCode());
         return toResponse(ErrorCode.INVALID_REQUEST);
+    }
+
+    // multipart 요청이 애플리케이션의 파일 업로드 제한을 초과한 경우
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException e
+    ) {
+        log.warn(
+                "[MaxUploadSizeExceededException]: code={}",
+                ErrorCode.IMAGE_TOO_LARGE.getCode()
+        );
+        return toResponse(ErrorCode.IMAGE_TOO_LARGE);
     }
 
     // 처리되지 않은 에러

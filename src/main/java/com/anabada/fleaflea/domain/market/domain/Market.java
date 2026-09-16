@@ -32,20 +32,20 @@ public class Market extends BaseTimeEntity {
     private String inviteCode;
 
     @Column(name = "cover_image_url", columnDefinition = "TEXT")
-    private String coverImageUrl;
+    private String coverImageKey;
 
     @Builder
     private Market(
             Member host,
             String title,
             String description,
-            String coverImageUrl,
+            String coverImageKey,
             String inviteCode
     ) {
         this.host = host;
         this.title = title;
         this.description = description;
-        this.coverImageUrl = coverImageUrl;
+        this.coverImageKey = coverImageKey;
         this.inviteCode = inviteCode;
     }
 
@@ -53,22 +53,34 @@ public class Market extends BaseTimeEntity {
             Member host,
             String title,
             String description,
-            String coverImageUrl,
+            String coverImageKey,
             String inviteCode
     ) {
         return Market.builder()
                 .host(host)
                 .title(title)
                 .description(description)
-                .coverImageUrl(coverImageUrl)
+                .coverImageKey(coverImageKey)
                 .inviteCode(inviteCode)
                 .build();
     }
 
-    public void update(String title, String description, String coverImageUrl) {
-        this.title = title;
-        this.description = description;
-        this.coverImageUrl = coverImageUrl;
+    public void update(
+            String title,
+            String description,
+            String coverImageKey
+    ) {
+        if (title != null) {
+            this.title = title;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
+
+        if (coverImageKey != null) {
+            this.coverImageKey = coverImageKey;
+        }
     }
 
     public void changeInviteCode(String inviteCode) {
