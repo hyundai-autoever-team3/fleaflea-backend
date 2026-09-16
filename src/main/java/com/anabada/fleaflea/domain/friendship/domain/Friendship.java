@@ -61,7 +61,7 @@ public class Friendship extends BaseTimeEntity {
     }
 
     public void cancel() {
-        this.status = FriendshipStatus.PENDING;
+        this.status = FriendshipStatus.CANCELLED;
     }
 
     public boolean isParticipant(Long memberId) {

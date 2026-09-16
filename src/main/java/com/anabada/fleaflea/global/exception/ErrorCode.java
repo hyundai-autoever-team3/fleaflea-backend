@@ -63,7 +63,10 @@ public enum ErrorCode {
     MARKET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "MARKET_ACCESS_DENIED", "참여 중인 플리마켓만 조회할 수 있습니다."),
     MARKET_HOST_ONLY(HttpStatus.FORBIDDEN, "MARKET_HOST_ONLY", "플리마켓 개설자만 수행할 수 있습니다."),
     MARKET_HOST_CANNOT_LEAVE(HttpStatus.CONFLICT, "MARKET_HOST_CANNOT_LEAVE", "플리마켓 개설자는 플리마켓을 나갈 수 없습니다."),
-    MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다.");
+    MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다."),
+
+    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST,"SELF_FRIEND_REQUEST","자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT,"FRIENDSHIP_ALREADY_EXISTS","이미 친구이거나 처리 중인 친구 요청이 있습니다.");
 
     private final HttpStatus status;
     private final String code;

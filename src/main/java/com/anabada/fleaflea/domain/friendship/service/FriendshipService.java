@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.anabada.fleaflea.domain.friendship.exception.FriendshipAlreadyExistsException;
+import com.anabada.fleaflea.domain.friendship.exception.SelfFriendRequestException;
+
 @Service
 @RequiredArgsConstructor
 public class FriendshipService {
@@ -60,10 +63,40 @@ public class FriendshipService {
 
     @Transactional
     public void requestFollow(Long memberId, Long targetMemberId) {
+        if (memberId.equals(targetMemberId)) {
+            throw new SelfFriendRequestException();
+        }
+
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+
         Member addressee = memberRepository.findById(targetMemberId)
                 .orElseThrow(MemberNotFoundException::new);
+
+        List<FriendshipStatus> activeStatuses = List.of(
+                FriendshipStatus.PENDING,
+                FriendshipStatus.ACCEPTED
+        );
+
+        boolean forwardExists =
+                friendshipRepository
+                        .existsByRequester_MemberIdAndAddressee_MemberIdAndStatusIn(
+                                memberId,
+                                targetMemberId,
+                                activeStatuses
+                        );
+
+        boolean reverseExists =
+                friendshipRepository
+                        .existsByRequester_MemberIdAndAddressee_MemberIdAndStatusIn(
+                                targetMemberId,
+                                memberId,
+                                activeStatuses
+                        );
+
+        if (forwardExists || reverseExists) {
+            throw new FriendshipAlreadyExistsException();
+        }
 
         Friendship friendship = Friendship.create(
                 requester,
@@ -101,21 +134,26 @@ public class FriendshipService {
     }
 
     @Transactional
-    public void cancelFollow(Long memberId, Long requesterId) {
+    public void cancelFollow(Long memberId, Long addresseeId) {
         Friendship friendship =
                 friendshipRepository
                         .findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
-                                requesterId,
                                 memberId,
+                                addresseeId,
                                 FriendshipStatus.PENDING
                         )
                         .orElseThrow(FriendshipNotFoundException::new);
+
         friendship.cancel();
     }
 
     @Transactional
     public void deleteFriend(Long memberId, Long friendshipId) {
-        Friendship friendship = friendshipRepository.findById(friendshipId)
+        Friendship friendship = friendshipRepository
+                .findByFriendshipIdAndStatus(
+                        friendshipId,
+                        FriendshipStatus.ACCEPTED
+                )
                 .orElseThrow(FriendshipNotFoundException::new);
 
         if (!friendship.isParticipant(memberId)) {
