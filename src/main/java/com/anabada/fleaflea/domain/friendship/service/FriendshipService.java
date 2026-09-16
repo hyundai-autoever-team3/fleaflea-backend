@@ -2,12 +2,14 @@ package com.anabada.fleaflea.domain.friendship.service;
 
 import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
+import com.anabada.fleaflea.domain.friendship.domain.RelationshipStatus;
 import com.anabada.fleaflea.domain.friendship.dto.FriendshipResponse;
 import com.anabada.fleaflea.domain.friendship.exception.FriendshipNotFoundException;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import com.anabada.fleaflea.domain.friendship.exception.SelfFriendRequestExcepti
 public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final MemberRepository memberRepository;
+    private final ImageService imageService;
 
     @Transactional(readOnly = true)
     public List<FriendshipResponse> getReceivedRequests(Long memberId) {
@@ -30,7 +33,18 @@ public class FriendshipService {
                 FriendshipStatus.PENDING
         );
         return friendships.stream().map(friendship ->
-                FriendshipResponse.from(friendship,friendship.getRequester()))
+                {
+                    Member member = friendship.getRequester();
+                    String profileImageUrl = imageService.getUrl(
+                            member.getProfileImageKey()
+                    );
+                    return FriendshipResponse.from(
+                            friendship,
+                            member,
+                            profileImageUrl,
+                            RelationshipStatus.REQUEST_RECEIVED
+                    );
+                })
                 .toList();
     }
 
@@ -41,7 +55,18 @@ public class FriendshipService {
                 FriendshipStatus.PENDING
         );
         return friendships.stream().map(friendship ->
-                FriendshipResponse.from(friendship,friendship.getAddressee()))
+                {
+                    Member member = friendship.getAddressee();
+                    String profileImageUrl = imageService.getUrl(
+                            member.getProfileImageKey()
+                    );
+                    return FriendshipResponse.from(
+                            friendship,
+                            member,
+                            profileImageUrl,
+                            RelationshipStatus.REQUESTED
+                    );
+                })
                 .toList();
 
     }
@@ -53,10 +78,21 @@ public class FriendshipService {
                 FriendshipStatus.ACCEPTED
         );
         return friendships.stream().map(friendship -> {
+                    Member member;
                     if (friendship.getRequester().getMemberId().equals(memberId)) {
-                        return FriendshipResponse.from(friendship, friendship.getAddressee());
+                        member = friendship.getAddressee();
+                    } else {
+                        member = friendship.getRequester();
                     }
-                    return FriendshipResponse.from(friendship, friendship.getRequester());
+                    String profileImageUrl = imageService.getUrl(
+                            member.getProfileImageKey()
+                    );
+                    return FriendshipResponse.from(
+                            friendship,
+                            member,
+                            profileImageUrl,
+                            RelationshipStatus.FRIEND
+                    );
                 })
                 .toList();
     }

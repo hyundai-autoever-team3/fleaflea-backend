@@ -1,22 +1,28 @@
 package com.anabada.fleaflea.domain.friendship.dto;
 
 import com.anabada.fleaflea.domain.friendship.domain.Friendship;
+import com.anabada.fleaflea.domain.friendship.domain.RelationshipStatus;
 import com.anabada.fleaflea.domain.member.domain.Member;
 
 public record FriendshipResponse(
         Long friendshipId,
         Long memberId,
         String nickname,
-        String profileImageKey
+        String profileImageUrl,
+        RelationshipStatus relationshipStatus
 ) {
     public static FriendshipResponse from(
             Friendship friendship,
-            Member member) {
+            Member member,
+            String profileImageUrl,
+            RelationshipStatus relationshipStatus
+    ) {
         return new FriendshipResponse(
                 friendship.getFriendshipId(),
                 member.getMemberId(),
                 member.getNickname(),
-                member.getProfileImageKey()
+                profileImageUrl,
+                relationshipStatus
         );
     }
 }
