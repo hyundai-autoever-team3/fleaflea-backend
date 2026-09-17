@@ -115,6 +115,10 @@ public enum ErrorCode {
     SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "SELF_FRIEND_REQUEST", "자기 자신에게 친구 요청을 보낼 수 없습니다."),
     FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT, "FRIENDSHIP_ALREADY_EXISTS", "이미 친구이거나 처리 중인 친구 요청이 있습니다."),
 
+    // Notification
+    NOTIFICATION_NOT_RECEIVER(HttpStatus.FORBIDDEN, "NOTIFICATION_NOT_RECEIVER", "해당 알림에 접근할 권한이 없습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다."),
+
     // Trade Request
     TRADE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "TRADE_REQUEST_NOT_FOUND", "거래 요청을 찾을 수 없습니다."),
     TRADE_REQUEST_SELF_REQUEST(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_SELF_REQUEST", "자신의 상품에는 거래를 요청할 수 없습니다."),
