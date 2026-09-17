@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.trade.domain;
 import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,10 +19,10 @@ public class Trade extends BaseCreatedTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tradeId;
 
-    @Column(nullable = false)
+    @Column
     private Long collectionTradeRequestId;
 
-    @Column(nullable = false)
+    @Column
     private Long tradeRequestId;
 
     @Column(nullable = false)
@@ -34,4 +35,29 @@ public class Trade extends BaseCreatedTimeEntity {
     private Long sellerId;
 
     private LocalDateTime completedAt;
+
+    @Builder
+    private Trade(
+            Long tradeRequestId,
+            Long itemId,
+            Long buyerId,
+            Long sellerId,
+            LocalDateTime completedAt
+    ) {
+        this.tradeRequestId = tradeRequestId;
+        this.itemId = itemId;
+        this.buyerId = buyerId;
+        this.sellerId = sellerId;
+        this.completedAt = completedAt;
+    }
+
+    public static Trade create(TradeRequest tradeRequest) {
+        return Trade.builder()
+                .tradeRequestId(tradeRequest.getTradeRequestId())
+                .itemId(tradeRequest.getItem().getItemId())
+                .buyerId(tradeRequest.getRequester().getMemberId())
+                .sellerId(tradeRequest.getItem().getSeller().getMemberId())
+                .completedAt(LocalDateTime.now())
+                .build();
+    }
 }

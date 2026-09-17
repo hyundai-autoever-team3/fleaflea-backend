@@ -131,4 +131,20 @@ public class Item extends BaseTimeEntity {
             throw new ItemTradeInProgressException();
         }
     }
+
+    public void startTrade() {
+        if (status != ItemStatus.AVAILABLE) {
+            throw new ItemNotAvailableException();
+        }
+
+        this.status = ItemStatus.IN_PROGRESS;
+    }
+
+    public void completeTrade() {
+        if (status != ItemStatus.IN_PROGRESS) {
+            throw new ItemTradeNotInProgressException();
+        }
+
+        this.status = ItemStatus.COMPLETED;
+    }
 }
