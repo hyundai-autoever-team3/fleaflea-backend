@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.trade.dto;
+package com.anabada.fleaflea.domain.trade.dto.request;
 
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import io.swagger.v3.oas.annotations.media.Schema;

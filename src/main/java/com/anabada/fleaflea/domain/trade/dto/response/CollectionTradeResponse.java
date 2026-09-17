@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.trade.dto;
+package com.anabada.fleaflea.domain.trade.dto.response;
 
 import com.anabada.fleaflea.domain.member.dto.MemberSummaryResponse;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;

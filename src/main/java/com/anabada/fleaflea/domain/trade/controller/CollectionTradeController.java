@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.trade.controller;
 
-import com.anabada.fleaflea.domain.trade.dto.CollectionTradeCreateRequest;
-import com.anabada.fleaflea.domain.trade.dto.CollectionTradeResponse;
+import com.anabada.fleaflea.domain.trade.dto.request.CollectionTradeCreateRequest;
+import com.anabada.fleaflea.domain.trade.dto.response.CollectionTradeResponse;
 import com.anabada.fleaflea.domain.trade.service.CollectionTradeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
