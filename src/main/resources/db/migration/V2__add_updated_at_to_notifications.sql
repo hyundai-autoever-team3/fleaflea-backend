@@ -1,5 +1,0 @@
-ALTER TABLE notifications
-    ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
-
-ALTER TABLE notifications
-    ALTER COLUMN updated_at DROP DEFAULT;
