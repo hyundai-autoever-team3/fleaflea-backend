@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.*;
+import com.anabada.fleaflea.domain.member.exception.InvalidProfileImageRequestException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
 import com.anabada.fleaflea.domain.member.exception.ProfileNotChangedException;
@@ -44,6 +45,10 @@ public class MemberService {
                 request.profileImage() != null
                         && !request.profileImage().isEmpty();
 
+        if (request.deleteProfileImage() && imageChanged) {
+            throw new InvalidProfileImageRequestException();
+        }
+
         boolean imageDeleted = request.deleteProfileImage()
                 && member.getProfileImageKey() != null;
 
@@ -57,6 +62,7 @@ public class MemberService {
 
         if (imageDeleted){
             imageService.delete(profileImageKey);
+            profileImageKey = null;
         }
 
         if (imageChanged) {
