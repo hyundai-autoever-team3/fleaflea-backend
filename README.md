@@ -8,10 +8,73 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 ---
 
 ## 1. 시스템 아키텍처
+```mermaid
+flowchart LR
+    subgraph CLIENT ["Client"]
+        User["User Browser<br/>(Web Client)"]
+    end
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/ce63899b-b38a-46ba-b43d-639a66f579d0" width="100%" alt="System Architecture">
-</p>
+    subgraph FRONTEND ["Frontend (Vercel)"]
+        FE["React 18 + Vite<br/>flea-aaw6.vercel.app<br/>Global CDN / HTTPS"]
+    end
+
+    subgraph GATEWAY ["DNS & Network"]
+        DNS["DuckDNS (DDNS)<br/>fleaflea.duckdns.org"]
+        SG["AWS Security Group<br/>Inbound: 80, 443"]
+    end
+
+    subgraph EC2 ["AWS EC2 Host (Ubuntu 24.04 LTS)"]
+        Nginx["Nginx 1.24+<br/>SSL Termination<br/>80 → 443 Redirect<br/>Proxy → 127.0.0.1:8080"]
+
+        subgraph DOCKER ["Docker Compose"]
+            App["Spring Boot<br/>Java 25 · Port 8080<br/>REST API / JWT"]
+            DB[("PostgreSQL 16<br/>Port 5432<br/>Flyway")]
+            Vol[("Named Volume<br/>fleaflea_postgres_data")]
+        end
+    end
+
+    subgraph STORAGE ["Storage & CI/CD"]
+        S3[("Amazon S3<br/>Image Storage")]
+        CI["GitHub Actions<br/>GHCR Build & SSM Deploy"]
+    end
+
+    User -->|"Web Access"| FE
+    User -.->|"Swagger Access"| DNS
+
+    FE ==>|"REST API · HTTPS"| DNS
+    DNS --> SG
+    SG -->|"443"| Nginx
+
+    Nginx ==>|"Proxy · 8080"| App
+    App <==>|"JDBC · 5432"| DB
+    DB --- Vol
+    App -.->|"AWS SDK"| S3
+
+    CI -.->|"Automated Deploy"| DOCKER
+
+    classDef clientBox fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef feBox fill:#fdf4ff,stroke:#a855f7,stroke-width:2px,color:#0f172a;
+    classDef gwBox fill:#ecfeff,stroke:#06b6d4,stroke-width:2px,color:#0f172a;
+    classDef nginxBox fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#0f172a;
+    classDef appBox fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#0f172a;
+    classDef dbBox fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef extBox fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#0f172a;
+
+    class User clientBox;
+    class FE feBox;
+    class DNS,SG gwBox;
+    class Nginx nginxBox;
+    class App appBox;
+    class DB,Vol dbBox;
+    class S3,CI extBox;
+
+    style CLIENT fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style FRONTEND fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style GATEWAY fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style EC2 fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a
+    style DOCKER fill:#ffffff,stroke:#94a3b8,stroke-width:1.5px,stroke-dasharray:4 4,color:#334155
+    style STORAGE fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#334155
+```
 
 ## 2. 기술 스택
 
@@ -25,7 +88,7 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 | **CI/CD**                | GitHub Actions, GHCR, AWS SSM       | Docker 이미지 기반 자동 배포          |
 | **API Docs**             | Springdoc OpenAPI                   | Swagger UI                   |
 | **Frontend**             | React 18, Vite, Vercel              | HTTPS 통신                     |
-
+```
 ---
 
 ## 3. 구성 및 요청 흐름
