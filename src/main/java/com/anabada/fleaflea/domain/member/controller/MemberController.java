@@ -1,10 +1,9 @@
 package com.anabada.fleaflea.domain.member.controller;
 
-import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
-import com.anabada.fleaflea.domain.member.dto.PasswordUpdateRequest;
-import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
+import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,12 +11,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
@@ -98,5 +100,19 @@ public class MemberController {
         memberService.deleteMember(memberId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "닉네임으로 회원 검색", description = "닉네임을 기준으로 회원을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "회원 검색 성공"),
+            @ApiResponse(responseCode = "400", description = "닉네임이 비어 있음"),
+            @ApiResponse(responseCode = "404", description = "해당 회원을 찾을 수 없음")
+    })
+    @GetMapping("/search")
+    public SearchMemberResponse searchMember(
+            @Parameter(description = "검색할 회원의 닉네임", example = "홍길동", required = true)
+            @RequestParam @NotBlank String nickname
+    ) {
+        return memberService.searchMember(nickname);
     }
 }

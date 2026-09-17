@@ -18,6 +18,7 @@ public enum ErrorCode {
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "DUPLICATE_NICKNAME", "이미 존재하는 닉네임입니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "이미 존재하는 이메일입니다."),
     INVALID_LOGIN(HttpStatus.UNAUTHORIZED, "INVALID_LOGIN", "이메일 또는 비밀번호가 올바르지 않습니다."),
+    PROFILE_NOT_CHANGED(HttpStatus.BAD_REQUEST, "PROFILE_NOT_CHANGED", "변경된 프로필 정보가 없습니다."),
 
     // Authentication
     AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED","인증이 필요합니다."),
@@ -32,6 +33,7 @@ public enum ErrorCode {
     // Friendship
     FRIEND_REQUEST_INVALID_DIRECTION(HttpStatus.BAD_REQUEST, "FRIEND_REQUEST_INVALID_DIRECTION", "잘못된 친구 요청 방향입니다."),
     FRIENDSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "FRIENDSHIP_NOT_FOUND", "존재하지 않는 친구 관계입니다."),
+    INVALID_PROFILE_IMAGE_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_PROFILE_IMAGE_REQUEST", "프로필 이미지 요청이 올바르지 않습니다."),
 
     // Image
     INVALID_IMAGE(HttpStatus.BAD_REQUEST, "INVALID_IMAGE", "유효하지 않은 이미지입니다."),
@@ -65,41 +67,13 @@ public enum ErrorCode {
     MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다."),
 
     // Beg Request
-    BEG_REQUEST_SELF_ITEM(
-            HttpStatus.BAD_REQUEST,
-            "BEG_REQUEST_SELF_ITEM",
-            "자신의 도감 아이템에는 구걸 요청을 할 수 없습니다."
-    ),
-    BEG_REQUEST_ALREADY_EXISTS(
-            HttpStatus.CONFLICT,
-            "BEG_REQUEST_ALREADY_EXISTS",
-            "이미 해당 도감 아이템에 구걸 요청을 보냈습니다."
-    ),
-    BEG_REQUEST_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "BEG_REQUEST_NOT_FOUND",
-            "존재하지 않는 구걸요청입니다."
-    ),
-    BEG_REQUEST_NOT_PENDING(
-            HttpStatus.CONFLICT,
-            "BEG_REQUEST_NOT_PENDING",
-            "대기 중인 구걸 요청만 승인할 수 있습니다."
-    ),
-    BEG_REQUEST_NOT_OWNER(
-            HttpStatus.FORBIDDEN,
-            "BEG_REQUEST_NOT_OWNER",
-            "도감 아이템 소유자만 구걸 요청을 처리할 수 있습니다."
-    ),
-    BEG_REQUEST_NOT_APPLICANT(
-            HttpStatus.FORBIDDEN,
-            "BEG_REQUEST_NOT_APPLICANT",
-            "구걸 요청을 생성한 사용자만 요청을 취소할 수 있습니다."
-    ),
-    COLLECTION_ITEM_NOT_PUBLIC(
-            HttpStatus.FORBIDDEN,
-            "COLLECTION_ITEM_NOT_PUBLIC",
-            "공개된 도감 아이템에만 구걸 요청을 보낼 수 있습니다."
-    ),
+    BEG_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "BEG_REQUEST_SELF_ITEM", "자신의 도감 아이템에는 구걸 요청을 할 수 없습니다."),
+    BEG_REQUEST_ALREADY_EXISTS(HttpStatus.CONFLICT, "BEG_REQUEST_ALREADY_EXISTS", "이미 해당 도감 아이템에 구걸 요청을 보냈습니다."),
+    BEG_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "BEG_REQUEST_NOT_FOUND", "존재하지 않는 구걸요청입니다."),
+    BEG_REQUEST_NOT_PENDING(HttpStatus.CONFLICT, "BEG_REQUEST_NOT_PENDING", "대기 중인 구걸 요청만 승인할 수 있습니다."),
+    BEG_REQUEST_NOT_OWNER(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_OWNER", "도감 아이템 소유자만 구걸 요청을 처리할 수 있습니다."),
+    BEG_REQUEST_NOT_APPLICANT(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_APPLICANT", "구걸 요청을 생성한 사용자만 요청을 취소할 수 있습니다."),
+    COLLECTION_ITEM_NOT_PUBLIC(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_PUBLIC", "공개된 도감 아이템에만 구걸 요청을 보낼 수 있습니다."),
 
     // Collection Trade
     COLLECTION_TRADE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_TRADE_REQUEST_NOT_FOUND", "존재하지 않는 도감 거래 요청입니다."),

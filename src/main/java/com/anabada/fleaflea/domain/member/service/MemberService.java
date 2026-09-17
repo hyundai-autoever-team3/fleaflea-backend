@@ -1,11 +1,8 @@
 package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
-import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
-import com.anabada.fleaflea.domain.member.dto.PasswordUpdateRequest;
-import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
-import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
-import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
+import com.anabada.fleaflea.domain.member.dto.*;
+import com.anabada.fleaflea.domain.member.exception.*;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -38,11 +35,38 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
+        boolean nicknameChanged =
+                !member.getNickname().equals(request.nickname());
+
+        if (nicknameChanged && memberRepository.existsByNickname(request.nickname())) {
+            throw new MemberNicknameDuplicateException();
+        }
+
+        boolean imageChanged =
+                request.profileImage() != null
+                        && !request.profileImage().isEmpty();
+
+        if (request.deleteProfileImage() && imageChanged) {
+            throw new InvalidProfileImageRequestException();
+        }
+
+        boolean imageDeleted = request.deleteProfileImage()
+                && member.getProfileImageKey() != null;
+
+
+        if (!nicknameChanged && !imageChanged && !imageDeleted) {
+            throw new ProfileNotChangedException();
+        }
+
+
         String profileImageKey = member.getProfileImageKey();
 
-        if (request.profileImage() != null
-                && !request.profileImage().isEmpty()) {
+        if (imageDeleted){
+            imageService.delete(profileImageKey);
+            profileImageKey = null;
+        }
 
+        if (imageChanged) {
             if (profileImageKey == null) {
                 profileImageKey = imageService.upload(
                         request.profileImage(),
@@ -61,7 +85,6 @@ public class MemberService {
                 request.nickname(),
                 profileImageKey
         );
-
     }
 
     @Transactional
@@ -87,5 +110,15 @@ public class MemberService {
         memberRepository.delete(member);
     }
 
+    @Transactional(readOnly = true)
+    public SearchMemberResponse searchMember(String nickname) {
+        Member member = memberRepository.findByNickname(nickname)
+                .orElseThrow(MemberNotFoundException::new);
 
+        return SearchMemberResponse.from(
+                member.getMemberId(),
+                member.getNickname()
+        );
+
+    }
 }
