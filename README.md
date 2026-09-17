@@ -9,7 +9,7 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 
 ## 1. 시스템 아키텍처
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph CLIENT ["Client"]
         User["User Browser<br/>(Web Client)"]
     end
