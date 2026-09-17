@@ -1,0 +1,2 @@
+ALTER TABLE collection_trade_requests
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'PENDING';
