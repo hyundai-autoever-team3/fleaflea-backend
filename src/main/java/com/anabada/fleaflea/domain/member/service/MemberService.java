@@ -1,9 +1,7 @@
 package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
-import com.anabada.fleaflea.domain.member.dto.MyProfileResponse;
-import com.anabada.fleaflea.domain.member.dto.PasswordUpdateRequest;
-import com.anabada.fleaflea.domain.member.dto.ProfileUpdateRequest;
+import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -87,5 +85,15 @@ public class MemberService {
         memberRepository.delete(member);
     }
 
+    @Transactional(readOnly = true)
+    public SearchMemberResponse searchMember(String nickname) {
+        Member member = memberRepository.findByNickname(nickname)
+                .orElseThrow(MemberNotFoundException::new);
 
+        return SearchMemberResponse.from(
+                member.getMemberId(),
+                member.getNickname()
+        );
+
+    }
 }
