@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.anabada.fleaflea.domain.collectionitem.dto.MemberCollectionResponse;
 
 @Tag(
         name = "도감 아이템",
@@ -77,9 +78,11 @@ public class CollectionItemController {
     }
 
     @GetMapping("/members/{ownerId}/collection-items")
-    @Operation(summary = "다른 회원의 공개 도감 목록 조회")
-    public ResponseEntity<PageResponse<CollectionItemSummaryResponse>>
-    getMemberCollectionItems(
+    @Operation(
+            summary = "다른 회원의 공개 도감 목록 조회",
+            description = "조회 권한 확인 후 소유자 정보와 공개 아이템 목록을 함께 반환합니다."
+    )
+    public ResponseEntity<MemberCollectionResponse> getMemberCollectionItems(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long requesterId,
 
