@@ -18,6 +18,7 @@ import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class MemberAuthService {
                             request.password()
                     )
             );
-        } catch (BadCredentialsException e) {
+        } catch (BadCredentialsException | InternalAuthenticationServiceException e) {
             throw new InvalidLoginException();
         }
         Member member = memberRepository.findByEmail(request.email())

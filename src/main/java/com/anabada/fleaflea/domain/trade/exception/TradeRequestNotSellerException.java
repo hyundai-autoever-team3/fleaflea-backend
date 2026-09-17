@@ -3,9 +3,9 @@ package com.anabada.fleaflea.domain.trade.exception;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 
-public class CollectionTradeException extends BusinessException {
+public class TradeRequestNotSellerException extends BusinessException {
 
-    public CollectionTradeException(ErrorCode errorCode) {
-        super(errorCode);
+    public TradeRequestNotSellerException() {
+        super(ErrorCode.TRADE_REQUEST_NOT_SELLER);
     }
 }
