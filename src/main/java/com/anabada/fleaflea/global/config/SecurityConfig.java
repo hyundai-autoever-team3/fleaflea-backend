@@ -79,8 +79,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5175"
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://fleaflea.duckdns.org",
+                "https://flea-aaw6.vercel.app",
+                "https://flea-aaw6*.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
