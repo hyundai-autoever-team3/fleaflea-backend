@@ -44,7 +44,11 @@ public class BegRequestService {
             throw new CollectionItemNotPublicException();
         }
 
-        if (begRequestRepository.existsByApplicantAndCollectionItem(member, collectionItem)) {
+        if (begRequestRepository.existsByApplicantAndCollectionItemAndStatus(
+                member,
+                collectionItem,
+                BegRequestStatus.PENDING
+        )) {
             throw new BegRequestAlreadyExistsException();
         }
 
@@ -83,13 +87,14 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
+        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
+            throw new BegRequestNotOwnerException();
+        }
+
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
 
-        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
-            throw new BegRequestNotOwnerException();
-        }
 
         begRequest.accept();
     }
@@ -99,13 +104,14 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
+        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
+            throw new BegRequestNotOwnerException();
+        }
+
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
 
-        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
-            throw new BegRequestNotOwnerException();
-        }
 
         begRequest.reject();
     }
@@ -122,6 +128,8 @@ public class BegRequestService {
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
+
+
 
         begRequest.cancel();
     }
