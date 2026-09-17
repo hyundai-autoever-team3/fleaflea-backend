@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.trade.controller;
 
+import com.anabada.fleaflea.domain.trade.domain.TradeRequestDirection;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeCreateRequest;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeResponse;
 import com.anabada.fleaflea.domain.trade.service.CollectionTradeService;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(
         name = "도감 거래",
@@ -132,5 +135,23 @@ public class CollectionTradeController {
                         requestId
                 )
         );
+    }
+
+    @GetMapping("/trade-requests") // 또는 "/collection-trade-requests"
+    @Operation(
+            summary = "거래 요청 목록 조회",
+            description = "RECEIVED: 내가 받은 요청 목록, SENT: 내가 보낸 요청 목록을 조회합니다."
+    )
+    public ResponseEntity<List<CollectionTradeResponse>> getTradeRequests(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Long memberId,
+
+            @Parameter(description = "요청 방향 (SENT 또는 RECEIVED)", example = "received")
+            @RequestParam TradeRequestDirection direction
+    ) {
+        List<CollectionTradeResponse> responses =
+                collectionTradeService.getTradeRequests(memberId, direction);
+
+        return ResponseEntity.ok(responses);
     }
 }

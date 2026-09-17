@@ -10,6 +10,7 @@ import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
+import com.anabada.fleaflea.domain.trade.domain.TradeRequestDirection;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeCreateRequest;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeResponse;
@@ -317,5 +318,22 @@ public class CollectionTradeService {
                 ownerResponse,
                 requesterResponse
         );
+    }
+
+    // 거래 요청 목록 조회 (보낸 요청 / 받은 요청)
+    public List<CollectionTradeResponse> getTradeRequests(
+            Long memberId,
+            TradeRequestDirection direction
+    ) {
+        List<CollectionTradeRequest> requests = switch (direction) {
+            case RECEIVED -> tradeRequestRepository
+                    .findByTargetItem_Owner_MemberIdOrderByCreatedAtDesc(memberId);
+            case SENT -> tradeRequestRepository
+                    .findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
+        };
+
+        return requests.stream()
+                .map(this::toResponse)
+                .toList();
     }
 }
