@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
         description = "도감 아이템 거래 요청 및 완료 API"
 )
 @RestController
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class CollectionTradeController {
 
