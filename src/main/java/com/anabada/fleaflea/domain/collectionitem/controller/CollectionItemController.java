@@ -27,6 +27,7 @@ import com.anabada.fleaflea.domain.collectionitem.dto.MemberCollectionResponse;
         description = "도감 아이템 등록 및 관리 API"
 )
 @RestController
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class CollectionItemController {
 
