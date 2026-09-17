@@ -88,7 +88,6 @@ flowchart LR
 | **CI/CD**                | GitHub Actions, GHCR, AWS SSM       | Docker 이미지 기반 자동 배포          |
 | **API Docs**             | Springdoc OpenAPI                   | Swagger UI                   |
 | **Frontend**             | React 18, Vite, Vercel              | HTTPS 통신                     |
-```
 
 ## 3. 구성 및 요청 흐름
 
