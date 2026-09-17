@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.notification.domain;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
-import com.anabada.fleaflea.global.entity.BaseTimeEntity;
+import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "notifications")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification extends BaseTimeEntity {
+public class Notification extends BaseCreatedTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
