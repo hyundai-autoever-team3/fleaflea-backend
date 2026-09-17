@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
+import com.anabada.fleaflea.domain.member.exception.ProfileNotChangedException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -36,11 +37,20 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
+        boolean nicknameChanged =
+                !member.getNickname().equals(request.nickname());
+
+        boolean imageChanged =
+                request.profileImage() != null
+                        && !request.profileImage().isEmpty();
+
+        if (!nicknameChanged && !imageChanged) {
+            throw new ProfileNotChangedException();
+        }
+
         String profileImageKey = member.getProfileImageKey();
 
-        if (request.profileImage() != null
-                && !request.profileImage().isEmpty()) {
-
+        if (imageChanged) {
             if (profileImageKey == null) {
                 profileImageKey = imageService.upload(
                         request.profileImage(),
@@ -59,7 +69,6 @@ public class MemberService {
                 request.nickname(),
                 profileImageKey
         );
-
     }
 
     @Transactional
