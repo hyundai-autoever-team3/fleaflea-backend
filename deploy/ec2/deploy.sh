@@ -49,7 +49,7 @@ write_image_env() {
 start_stack() {
   docker compose --env-file "$DEPLOY_ENV" -f "$COMPOSE_FILE" pull app
   docker compose --env-file "$DEPLOY_ENV" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 180
-  curl -fsS http://localhost/actuator/health >/dev/null
+  curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null
 }
 
 write_image_env "$IMAGE_URI"
