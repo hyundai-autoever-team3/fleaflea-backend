@@ -34,7 +34,7 @@ import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
         description = "플리마켓 생성 및 관리 API"
 )
 @RestController
-@RequestMapping("/api/v1/markets")
+@RequestMapping("/markets")
 @RequiredArgsConstructor
 public class MarketController {
 

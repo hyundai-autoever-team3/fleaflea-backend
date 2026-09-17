@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
         description = "플리마켓 생성 및 관리 API"
 )
 @RestController
-@RequestMapping("/api/v1/market-members")
+@RequestMapping("/market-members")
 @RequiredArgsConstructor
 public class MarketJoinController {
 
