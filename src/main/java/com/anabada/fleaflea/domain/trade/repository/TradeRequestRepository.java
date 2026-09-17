@@ -16,6 +16,12 @@ import java.util.Optional;
 public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long> {
 
     @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
+    java.util.List<TradeRequest> findByItem_Seller_MemberIdOrderByCreatedAtDesc(Long sellerId);
+
+    @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
+    java.util.List<TradeRequest> findByRequester_MemberIdOrderByCreatedAtDesc(Long requesterId);
+
+    @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
     Optional<TradeRequest> findWithDetailsByTradeRequestId(Long tradeRequestId);
 
     @Query(

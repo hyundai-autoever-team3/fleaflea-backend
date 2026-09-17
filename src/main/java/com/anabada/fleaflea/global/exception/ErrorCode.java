@@ -111,6 +111,14 @@ public enum ErrorCode {
     COLLECTION_TRADE_INVALID_OFFER(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_INVALID_OFFER", "유효하지 않은 교환 아이템입니다."),
     COLLECTION_TRADE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "COLLECTION_TRADE_ALREADY_CONFIRMED", "이미 거래 완료를 확인했습니다."),
 
+    // Item trade
+    TRADE_REQUEST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "TRADE_REQUEST_ACCESS_DENIED", "거래 요청에 접근할 권한이 없습니다."),
+    TRADE_REQUEST_INVALID_STATUS(HttpStatus.CONFLICT, "TRADE_REQUEST_INVALID_STATUS", "현재 상태에서는 거래 요청을 처리할 수 없습니다."),
+    TRADE_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_SELF_ITEM", "자신의 상품에는 거래를 요청할 수 없습니다."),
+    TRADE_REQUEST_INVALID_OFFER(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_INVALID_OFFER", "유효하지 않은 거래 제안입니다."),
+    TRADE_REQUEST_INVALID_DIRECTION(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_INVALID_DIRECTION", "요청 방향은 received 또는 sent여야 합니다."),
+    TRADE_REQUEST_ITEM_UNAVAILABLE(HttpStatus.CONFLICT, "TRADE_REQUEST_ITEM_UNAVAILABLE", "거래할 수 없는 상품입니다."),
+
     // Friendship request
     SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "SELF_FRIEND_REQUEST", "자기 자신에게 친구 요청을 보낼 수 없습니다."),
     FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT, "FRIENDSHIP_ALREADY_EXISTS", "이미 친구이거나 처리 중인 친구 요청이 있습니다."),

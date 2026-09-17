@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
         description = "도감 아이템 등록 및 관리 API"
 )
 @RestController
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class CollectionItemController {
 
@@ -100,6 +101,7 @@ public class CollectionItemController {
                 )
         );
     }
+
 
     @GetMapping("/collection-items/{collectionItemId}")
     @Operation(summary = "도감 아이템 상세 조회")
