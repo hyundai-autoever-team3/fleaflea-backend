@@ -44,11 +44,20 @@ public class MemberService {
                 request.profileImage() != null
                         && !request.profileImage().isEmpty();
 
-        if (!nicknameChanged && !imageChanged) {
+        boolean imageDeleted = request.deleteProfileImage()
+                && member.getProfileImageKey() != null;
+
+
+        if (!nicknameChanged && !imageChanged && !imageDeleted) {
             throw new ProfileNotChangedException();
         }
 
+
         String profileImageKey = member.getProfileImageKey();
+
+        if (imageDeleted){
+            imageService.delete(profileImageKey);
+        }
 
         if (imageChanged) {
             if (profileImageKey == null) {
