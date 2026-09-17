@@ -2,7 +2,6 @@ package com.anabada.fleaflea.domain.begrequest.dto;
 
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -13,7 +12,7 @@ public record BeggingResponse(
         Long begRequestId,
 
         @Schema(description = "구걸 요청 아이템")
-        CollectionItem collectionItem,
+        Long collectionItemId,
 
         @Schema(description = "구걸 요청자")
         Long applicantId,
@@ -35,7 +34,7 @@ public record BeggingResponse(
     ) {
         return new BeggingResponse(
                 begRequest.getBegRequestId(),
-                begRequest.getCollectionItem(),
+                begRequest.getCollectionItem().getCollectionItemId(),
                 begRequest.getApplicant().getMemberId(),
                 begRequest.getStory(),
                 begRequest.getStatus(),
