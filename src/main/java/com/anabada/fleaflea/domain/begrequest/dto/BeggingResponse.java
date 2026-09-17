@@ -3,7 +3,6 @@ package com.anabada.fleaflea.domain.begrequest.dto;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -17,7 +16,7 @@ public record BeggingResponse(
         CollectionItem collectionItem,
 
         @Schema(description = "구걸 요청자")
-        Member applicant,
+        Long applicantId,
 
         @Schema(description = "구걸 요청 사유")
         String story,
@@ -37,7 +36,7 @@ public record BeggingResponse(
         return new BeggingResponse(
                 begRequest.getBegRequestId(),
                 begRequest.getCollectionItem(),
-                begRequest.getApplicant(),
+                begRequest.getApplicant().getMemberId(),
                 begRequest.getStory(),
                 begRequest.getStatus(),
                 begRequest.getCreatedAt(),
