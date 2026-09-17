@@ -2,6 +2,7 @@ package com.anabada.fleaflea.global.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -65,6 +66,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException e) {
         log.warn("[HttpMessageNotReadableException]: code={}", ErrorCode.INVALID_REQUEST.getCode());
         return toResponse(ErrorCode.INVALID_REQUEST);
+    }
+
+    // DB 유니크, 외래키, NOT NULL 등의 무결성 제약 조건 위반
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException e
+    ) {
+        ErrorCode errorCode = ErrorCode.DATA_INTEGRITY_VIOLATION;
+        log.warn(
+                "[DataIntegrityViolationException]: code={}, cause={}",
+                errorCode.getCode(),
+                e.getMostSpecificCause().getClass().getSimpleName()
+        );
+
+        return toResponse(errorCode);
     }
 
     // multipart 요청이 애플리케이션의 파일 업로드 제한을 초과한 경우

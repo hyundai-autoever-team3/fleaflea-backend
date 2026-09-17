@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -49,6 +50,23 @@ class GlobalExceptionHandlerTest {
                 .isEqualTo("INVALID_REQUEST");
         assertThat(response.getBody().message())
                 .isEqualTo("잘못된 요청입니다.");
+    }
+
+    @Test
+    @DisplayName("DB 무결성 예외가 발생하면 409와 공통 충돌 코드를 반환한다")
+    void dataIntegrityViolationReturnsConflict() {
+        DataIntegrityViolationException exception =
+                new DataIntegrityViolationException("duplicate");
+
+        ResponseEntity<ErrorResponse> response =
+                handler.handleDataIntegrityViolation(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code())
+                .isEqualTo("DATA_INTEGRITY_VIOLATION");
+        assertThat(response.getBody().message())
+                .isEqualTo("요청한 데이터가 기존 데이터와 충돌합니다.");
     }
 
     @Test
