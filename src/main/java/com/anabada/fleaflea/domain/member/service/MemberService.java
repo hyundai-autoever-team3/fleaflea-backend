@@ -2,10 +2,7 @@ package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.*;
-import com.anabada.fleaflea.domain.member.exception.InvalidProfileImageRequestException;
-import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
-import com.anabada.fleaflea.domain.member.exception.PasswordMismatchException;
-import com.anabada.fleaflea.domain.member.exception.ProfileNotChangedException;
+import com.anabada.fleaflea.domain.member.exception.*;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -40,6 +37,10 @@ public class MemberService {
 
         boolean nicknameChanged =
                 !member.getNickname().equals(request.nickname());
+
+        if (nicknameChanged && memberRepository.existsByNickname(request.nickname())) {
+            throw new MemberNicknameDuplicateException();
+        }
 
         boolean imageChanged =
                 request.profileImage() != null
