@@ -89,7 +89,6 @@ flowchart LR
 | **API Docs**             | Springdoc OpenAPI                   | Swagger UI                   |
 | **Frontend**             | React 18, Vite, Vercel              | HTTPS 통신                     |
 ```
----
 
 ## 3. 구성 및 요청 흐름
 
