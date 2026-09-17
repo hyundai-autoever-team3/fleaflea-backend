@@ -61,9 +61,6 @@ public enum ErrorCode {
     MARKET_HOST_CANNOT_LEAVE(HttpStatus.CONFLICT, "MARKET_HOST_CANNOT_LEAVE", "플리마켓 개설자는 플리마켓을 나갈 수 없습니다."),
     MARKET_MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_MEMBERSHIP_NOT_FOUND", "플리마켓 참여 정보를 찾을 수 없습니다."),
 
-    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST,"SELF_FRIEND_REQUEST","자기 자신에게 친구 요청을 보낼 수 없습니다."),
-    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT,"FRIENDSHIP_ALREADY_EXISTS","이미 친구이거나 처리 중인 친구 요청이 있습니다."),
-
     // Beg Request
     BEG_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "BEG_REQUEST_SELF_ITEM", "자신의 도감 아이템에는 구걸 요청을 할 수 없습니다."),
     BEG_REQUEST_ALREADY_EXISTS(HttpStatus.CONFLICT, "BEG_REQUEST_ALREADY_EXISTS", "이미 해당 도감 아이템에 구걸 요청을 보냈습니다."),
@@ -71,7 +68,21 @@ public enum ErrorCode {
     BEG_REQUEST_NOT_PENDING(HttpStatus.CONFLICT, "BEG_REQUEST_NOT_PENDING", "대기 중인 구걸 요청만 승인할 수 있습니다."),
     BEG_REQUEST_NOT_OWNER(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_OWNER", "도감 아이템 소유자만 구걸 요청을 처리할 수 있습니다."),
     BEG_REQUEST_NOT_APPLICANT(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_APPLICANT", "구걸 요청을 생성한 사용자만 요청을 취소할 수 있습니다."),
-    COLLECTION_ITEM_NOT_PUBLIC(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_PUBLIC", "공개된 도감 아이템에만 구걸 요청을 보낼 수 있습니다.");
+    COLLECTION_ITEM_NOT_PUBLIC(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_PUBLIC", "공개된 도감 아이템에만 구걸 요청을 보낼 수 있습니다."),
+
+    // Collection Trade
+    COLLECTION_TRADE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_TRADE_REQUEST_NOT_FOUND", "존재하지 않는 도감 거래 요청입니다."),
+    COLLECTION_TRADE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "COLLECTION_TRADE_ACCESS_DENIED", "도감 거래 요청에 접근할 권한이 없습니다."),
+    COLLECTION_TRADE_INVALID_STATUS(HttpStatus.CONFLICT, "COLLECTION_TRADE_INVALID_STATUS", "현재 상태에서는 거래 요청을 처리할 수 없습니다."),
+    COLLECTION_TRADE_DUPLICATE_REQUEST(HttpStatus.CONFLICT, "COLLECTION_TRADE_DUPLICATE_REQUEST", "이미 진행 중인 거래 요청이 있습니다."),
+    COLLECTION_TRADE_SELF_REQUEST(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_SELF_REQUEST", "자신의 도감 아이템에는 거래를 요청할 수 없습니다."),
+    COLLECTION_TRADE_OFFER_REQUIRED(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_OFFER_REQUIRED", "교환할 도감 아이템을 선택해주세요."),
+    COLLECTION_TRADE_INVALID_OFFER(HttpStatus.BAD_REQUEST, "COLLECTION_TRADE_INVALID_OFFER", "유효하지 않은 교환 아이템입니다."),
+    COLLECTION_TRADE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "COLLECTION_TRADE_ALREADY_CONFIRMED", "이미 거래 완료를 확인했습니다."),
+
+    // Friendship request
+    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "SELF_FRIEND_REQUEST", "자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT, "FRIENDSHIP_ALREADY_EXISTS", "이미 친구이거나 처리 중인 친구 요청이 있습니다.");
 
     private final HttpStatus status;
     private final String code;
