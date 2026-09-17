@@ -19,13 +19,16 @@ public class Trade extends BaseCreatedTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tradeId;
 
-    @Column
+    // 도감 거래 시 채워짐, 플리마켓 거래 시 null
+    @Column(name = "collection_trade_request_id")
     private Long collectionTradeRequestId;
 
-    @Column
+    // 플리마켓 거래 시 채워짐, 도감 거래 시 null
+    @Column(name = "trade_request_id")
     private Long tradeRequestId;
 
-    @Column(nullable = false)
+    // 도감 거래에는 플리마켓 상품 ID가 없다.
+    @Column(name = "item_id")
     private Long itemId;
 
     @Column(nullable = false)
@@ -38,26 +41,52 @@ public class Trade extends BaseCreatedTimeEntity {
 
     @Builder
     private Trade(
+            Long collectionTradeRequestId,
             Long tradeRequestId,
             Long itemId,
             Long buyerId,
-            Long sellerId,
-            LocalDateTime completedAt
+            Long sellerId
     ) {
+        this.collectionTradeRequestId = collectionTradeRequestId;
         this.tradeRequestId = tradeRequestId;
         this.itemId = itemId;
         this.buyerId = buyerId;
         this.sellerId = sellerId;
-        this.completedAt = completedAt;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public static Trade ofCollectionTrade(
+            Long collectionTradeRequestId,
+            Long buyerId,
+            Long sellerId
+    ) {
+        return Trade.builder()
+                .collectionTradeRequestId(collectionTradeRequestId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .build();
     }
 
     public static Trade create(TradeRequest tradeRequest) {
+        return ofItemTrade(
+                tradeRequest.getTradeRequestId(),
+                tradeRequest.getItem().getItemId(),
+                tradeRequest.getRequester().getMemberId(),
+                tradeRequest.getItem().getSeller().getMemberId()
+        );
+    }
+
+    public static Trade ofItemTrade(
+            Long tradeRequestId,
+            Long itemId,
+            Long buyerId,
+            Long sellerId
+    ) {
         return Trade.builder()
-                .tradeRequestId(tradeRequest.getTradeRequestId())
-                .itemId(tradeRequest.getItem().getItemId())
-                .buyerId(tradeRequest.getRequester().getMemberId())
-                .sellerId(tradeRequest.getItem().getSeller().getMemberId())
-                .completedAt(LocalDateTime.now())
+                .tradeRequestId(tradeRequestId)
+                .itemId(itemId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
                 .build();
     }
 }

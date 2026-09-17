@@ -1,0 +1,66 @@
+package com.anabada.fleaflea.domain.trade.service;
+
+import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.dto.MemberSummaryResponse;
+import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
+import com.anabada.fleaflea.domain.trade.domain.TradeRequest;
+import com.anabada.fleaflea.domain.trade.dto.TradeRequestListResponse;
+import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
+import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
+import com.anabada.fleaflea.global.exception.BusinessException;
+import com.anabada.fleaflea.global.exception.ErrorCode;
+import com.anabada.fleaflea.global.image.ImageService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class TradeRequestListService {
+    private final TradeRequestRepository itemRequests;
+    private final CollectionTradeRequestRepository collectionRequests;
+    private final ImageService images;
+
+    public List<TradeRequestListResponse> list(Long memberId, String direction) {
+        boolean received;
+        if ("received".equalsIgnoreCase(direction)) received = true;
+        else if ("sent".equalsIgnoreCase(direction)) received = false;
+        else throw new BusinessException(ErrorCode.TRADE_REQUEST_INVALID_DIRECTION);
+
+        List<TradeRequest> items = received
+                ? itemRequests.findByItem_Seller_MemberIdOrderByCreatedAtDesc(memberId)
+                : itemRequests.findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
+        List<CollectionTradeRequest> collections = received
+                ? collectionRequests.findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(memberId)
+                : collectionRequests.findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
+
+        List<TradeRequestListResponse> result = new ArrayList<>(items.size() + collections.size());
+        for (TradeRequest request : items) {
+            result.add(new TradeRequestListResponse(
+                    "ITEM", request.getTradeRequestId(), request.getItem().getItemId(),
+                    request.getItem().getTitle(), request.getItem().getTradeType().name(),
+                    request.getStatus(), member(request.getItem().getSeller()),
+                    member(request.getRequester()), request.getCreatedAt()));
+        }
+        for (CollectionTradeRequest request : collections) {
+            result.add(new TradeRequestListResponse(
+                    "COLLECTION", request.getCollectionTradeRequestId(),
+                    request.getCollectionItem().getCollectionItemId(),
+                    request.getCollectionItem().getTitle(), request.getTradeType().name(),
+                    request.getStatus(), member(request.getCollectionItem().getOwner()),
+                    member(request.getRequester()), request.getCreatedAt()));
+        }
+        result.sort(Comparator.comparing(TradeRequestListResponse::createdAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    private MemberSummaryResponse member(Member member) {
+        return MemberSummaryResponse.from(member, images.getUrl(member.getProfileImageKey()));
+    }
+}

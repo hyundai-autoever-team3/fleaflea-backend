@@ -1,17 +1,13 @@
 package com.anabada.fleaflea.domain.trade.domain;
 
+import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 
 @Getter
 @Entity
@@ -24,15 +20,69 @@ public class CollectionTradeRequest extends BaseTimeEntity {
     @Column(name = "collection_trade_request_id")
     private Long collectionTradeRequestId;
 
-    @Column(name = "collection_item_id", nullable = false)
-    private Long collectionItemId;
-    @Column(name = "requester_id", nullable = false)
-    private Long requesterId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "collection_item_id", nullable = false)
+    private CollectionItem collectionItem;
 
-    @Column(name = "offer_collection_item_id")
-    private Long offerCollectionItemId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "requester_id", nullable = false)
+    private Member requester;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "offer_collection_item_id")
+    private CollectionItem offerCollectionItem;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "trade_type", length = 20)
+    @Column(name = "trade_type", nullable = false, length = 20)
     private CollectionTradeType tradeType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TradeRequestStatus status;
+
+    @Builder
+    private CollectionTradeRequest(
+            CollectionItem collectionItem,
+            Member requester,
+            CollectionItem offerCollectionItem,
+            CollectionTradeType tradeType,
+            TradeRequestStatus status
+    ) {
+        this.collectionItem = collectionItem;
+        this.requester = requester;
+        this.offerCollectionItem = offerCollectionItem;
+        this.tradeType = tradeType;
+        this.status = status;
+    }
+
+    public static CollectionTradeRequest create(
+            CollectionItem collectionItem,
+            Member requester,
+            CollectionItem offerCollectionItem,
+            CollectionTradeType tradeType
+    ) {
+        return CollectionTradeRequest.builder()
+                .collectionItem(collectionItem)
+                .requester(requester)
+                .offerCollectionItem(offerCollectionItem)
+                .tradeType(tradeType)
+                .status(TradeRequestStatus.PENDING)
+                .build();
+    }
+
+    public void accept() {
+        this.status = TradeRequestStatus.ACCEPTED;
+    }
+
+    public void reject() {
+        this.status = TradeRequestStatus.REJECTED;
+    }
+
+    public void cancel() {
+        this.status = TradeRequestStatus.CANCELLED;
+    }
+
+    public void complete() {
+        this.status = TradeRequestStatus.COMPLETED;
+    }
 }
