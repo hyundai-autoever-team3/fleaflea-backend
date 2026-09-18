@@ -17,6 +17,13 @@ import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestCreateResponse
 import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestDetailResponse;
 import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestStatusResponse;
 import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestSummaryResponse;
+import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeKind;
+import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeTarget;
 import com.anabada.fleaflea.domain.trade.exception.TradeRequestAlreadyExistsException;
 import com.anabada.fleaflea.domain.trade.exception.TradeRequestItemNotAvailableException;
 import com.anabada.fleaflea.domain.trade.exception.TradeRequestNotFoundException;
@@ -26,6 +33,7 @@ import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -50,6 +58,7 @@ public class TradeRequestService {
     private final MarketMemberRepository marketMemberRepository;
     private final TradeRepository tradeRepository;
     private final ImageService imageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TradeRequestCreateResponse createTradeRequest(
@@ -94,9 +103,19 @@ public class TradeRequestService {
                 request.rentalEndDate()
         );
 
-        return TradeRequestCreateResponse.from(
-                tradeRequestRepository.save(tradeRequest)
+        tradeRequestRepository.save(tradeRequest);
+
+        eventPublisher.publishEvent(
+                TradeRequestedEvent.of(
+                        tradeRequest.getTradeRequestId(),
+                        requester.getMemberId(),
+                        item.getSeller().getMemberId(),
+                        requester.getNickname(),
+                        toTradeTarget(item)
+                )
         );
+
+        return TradeRequestCreateResponse.from(tradeRequest);
     }
 
     public TradeRequestDetailResponse getTradeRequest(
@@ -151,6 +170,18 @@ public class TradeRequestService {
                 TradeRequestStatus.REJECTED
         );
 
+        Member seller = tradeRequest.getItem().getSeller();
+
+        eventPublisher.publishEvent(
+                TradeAcceptedEvent.of(
+                        tradeRequest.getTradeRequestId(),
+                        tradeRequest.getRequester().getMemberId(),
+                        seller.getMemberId(),
+                        seller.getNickname(),
+                        toTradeTarget(tradeRequest.getItem())
+                )
+        );
+
         return TradeRequestStatusResponse.from(tradeRequest);
     }
 
@@ -162,6 +193,18 @@ public class TradeRequestService {
         TradeRequest tradeRequest = findTradeRequestOrThrow(requestId);
 
         tradeRequest.reject(memberId);
+
+        Member seller = tradeRequest.getItem().getSeller();
+
+        eventPublisher.publishEvent(
+                TradeRejectedEvent.of(
+                        tradeRequest.getTradeRequestId(),
+                        tradeRequest.getRequester().getMemberId(),
+                        seller.getMemberId(),
+                        seller.getNickname(),
+                        toTradeTarget(tradeRequest.getItem())
+                )
+        );
 
         return TradeRequestStatusResponse.from(tradeRequest);
     }
@@ -175,8 +218,21 @@ public class TradeRequestService {
 
         tradeRequest.cancel(memberId);
 
+        eventPublisher.publishEvent(
+                TradeCancelledEvent.of(
+                        tradeRequest.getTradeRequestId(),
+                        tradeRequest.getRequester().getMemberId(),
+                        tradeRequest.getItem()
+                                .getSeller()
+                                .getMemberId(),
+                        tradeRequest.getRequester().getNickname(),
+                        toTradeTarget(tradeRequest.getItem())
+                )
+        );
+
         return TradeRequestStatusResponse.from(tradeRequest);
     }
+
     @Transactional
     public TradeRequestStatusResponse confirmTradeRequestCompletion(
             Long requestId,
@@ -188,6 +244,26 @@ public class TradeRequestService {
 
         tradeRepository.save(
                 Trade.create(tradeRequest)
+        );
+
+        Member confirmer = findParticipant(
+                tradeRequest,
+                memberId
+        );
+
+        Member counterparty = findCounterparty(
+                tradeRequest,
+                memberId
+        );
+
+        eventPublisher.publishEvent(
+                TradeCompletedEvent.of(
+                        tradeRequest.getTradeRequestId(),
+                        confirmer.getMemberId(),
+                        counterparty.getMemberId(),
+                        confirmer.getNickname(),
+                        toTradeTarget(tradeRequest.getItem())
+                )
         );
 
         return TradeRequestStatusResponse.from(tradeRequest);
@@ -233,6 +309,19 @@ public class TradeRequestService {
         );
     }
 
+    private Member findParticipant(
+            TradeRequest tradeRequest,
+            Long memberId
+    ) {
+        if (tradeRequest.getRequester()
+                .getMemberId()
+                .equals(memberId)) {
+            return tradeRequest.getRequester();
+        }
+
+        return tradeRequest.getItem().getSeller();
+    }
+
     private Member findCounterparty(
             TradeRequest tradeRequest,
             Long memberId
@@ -242,5 +331,15 @@ public class TradeRequestService {
         }
 
         return tradeRequest.getRequester();
+    }
+
+    private TradeTarget toTradeTarget(
+            Item item
+    ) {
+        return TradeTarget.of(
+                TradeKind.ITEM,
+                item.getItemId(),
+                item.getTitle()
+        );
     }
 }
