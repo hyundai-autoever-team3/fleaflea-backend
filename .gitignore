@@ -35,3 +35,4 @@ out/
 
 ### VS Code ###
 .vscode/
+performance/k6/results/
