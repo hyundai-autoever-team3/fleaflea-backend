@@ -3,10 +3,18 @@ package com.anabada.fleaflea.domain.begrequest.service;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingDetailResponse;
-import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingStatusResponse;
-import com.anabada.fleaflea.domain.begrequest.exception.*;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestAlreadyCompletedException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestAlreadyExistsException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotAcceptedException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotApplicantException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotFoundException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotOwnerException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotPendingException;
+import com.anabada.fleaflea.domain.begrequest.exception.BegRequestSelfItemException;
+import com.anabada.fleaflea.domain.begrequest.exception.CollectionItemNotPublicException;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collection.exception.CollectionItemNotFoundException;
@@ -15,18 +23,28 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.trade.domain.Trade;
+import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeKind;
+import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeTarget;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class BegRequestService {
+
     private final BegRequestRepository begRequestRepository;
     private final MemberRepository memberRepository;
     private final CollectionItemRepository collectionItemRepository;
     private final TradeRepository tradeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public BeggingResponse createBegging(
@@ -63,6 +81,17 @@ public class BegRequestService {
                 BegRequestStatus.PENDING
         );
         begRequestRepository.save(begRequest);
+
+        eventPublisher.publishEvent(
+                TradeRequestedEvent.of(
+                        begRequest.getBegRequestId(),
+                        member.getMemberId(),
+                        collectionItem.getOwner().getMemberId(),
+                        member.getNickname(),
+                        toTradeTarget(collectionItem)
+                )
+        );
+
         return BeggingResponse.from(
                 begRequest
         );
@@ -101,6 +130,24 @@ public class BegRequestService {
 
 
         begRequest.accept();
+
+        Member owner =
+                begRequest.getCollectionItem()
+                        .getOwner();
+
+        eventPublisher.publishEvent(
+                TradeAcceptedEvent.of(
+                        begRequest.getBegRequestId(),
+                        begRequest.getApplicant()
+                                .getMemberId(),
+                        owner.getMemberId(),
+                        owner.getNickname(),
+                        toTradeTarget(
+                                begRequest.getCollectionItem()
+                        )
+                )
+        );
+
         return BeggingStatusResponse.from(begRequest);
     }
 
@@ -119,6 +166,24 @@ public class BegRequestService {
 
 
         begRequest.reject();
+
+        Member owner =
+                begRequest.getCollectionItem()
+                        .getOwner();
+
+        eventPublisher.publishEvent(
+                TradeRejectedEvent.of(
+                        begRequest.getBegRequestId(),
+                        begRequest.getApplicant()
+                                .getMemberId(),
+                        owner.getMemberId(),
+                        owner.getNickname(),
+                        toTradeTarget(
+                                begRequest.getCollectionItem()
+                        )
+                )
+        );
+
         return BeggingStatusResponse.from(begRequest);
     }
 
@@ -136,15 +201,38 @@ public class BegRequestService {
         }
 
         begRequest.cancel();
+
+        eventPublisher.publishEvent(
+                TradeCancelledEvent.of(
+                        begRequest.getBegRequestId(),
+                        begRequest.getApplicant()
+                                .getMemberId(),
+                        begRequest.getCollectionItem()
+                                .getOwner()
+                                .getMemberId(),
+                        begRequest.getApplicant()
+                                .getNickname(),
+                        toTradeTarget(
+                                begRequest.getCollectionItem()
+                        )
+                )
+        );
+
         return BeggingStatusResponse.from(begRequest);
     }
 
     @Transactional
-    public BeggingStatusResponse completeBeggingRequest(Long memberId, Long begRequestId) {
+    public BeggingStatusResponse completeBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
-        if (!begRequest.getApplicant().getMemberId().equals(memberId)) {
+        Member applicant = begRequest.getApplicant();
+        Member owner = begRequest.getCollectionItem().getOwner();
+
+        if (!applicant.getMemberId().equals(memberId)) {
             throw new BegRequestNotApplicantException();
         }
 
@@ -161,8 +249,20 @@ public class BegRequestService {
         tradeRepository.save(
                 Trade.ofBegRequest(
                         begRequestId,
-                        memberId,
-                        begRequest.getCollectionItem().getOwner().getMemberId()
+                        applicant.getMemberId(),
+                        owner.getMemberId()
+                )
+        );
+
+        eventPublisher.publishEvent(
+                TradeCompletedEvent.of(
+                        begRequest.getBegRequestId(),
+                        applicant.getMemberId(),
+                        owner.getMemberId(),
+                        applicant.getNickname(),
+                        toTradeTarget(
+                                begRequest.getCollectionItem()
+                        )
                 )
         );
 
@@ -170,5 +270,11 @@ public class BegRequestService {
     }
 
 
-
+    private TradeTarget toTradeTarget(CollectionItem collectionItem) {
+        return TradeTarget.of(
+                TradeKind.BEG,
+                collectionItem.getCollectionItemId(),
+                collectionItem.getTitle()
+        );
+    }
 }
