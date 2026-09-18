@@ -12,11 +12,13 @@ import com.anabada.fleaflea.domain.trade.domain.Trade;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestCreateRequest;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestResponse;
+import com.anabada.fleaflea.domain.trade.event.*;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class CollectionTradeService {
     private final MemberRepository members;
     private final FriendshipRepository friendships;
     private final TradeRepository trades;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CollectionTradeRequestResponse create(Long requesterId, Long itemId,
@@ -59,10 +62,29 @@ public class CollectionTradeService {
         } else if (body.offerCollectionItemId() != null) {
             throw error(ErrorCode.COLLECTION_TRADE_INVALID_OFFER);
         }
-        return CollectionTradeRequestResponse.from(requests.save(
-                CollectionTradeRequest.create(target, requester, offer, body.tradeType())));
-    }
 
+        CollectionTradeRequest tradeRequest =
+                CollectionTradeRequest.create(
+                        target,
+                        requester,
+                        offer,
+                        body.tradeType()
+                );
+
+        requests.save(tradeRequest);
+
+        eventPublisher.publishEvent(
+                TradeRequestedEvent.of(
+                        tradeRequest.getCollectionTradeRequestId(),
+                        requester.getMemberId(),
+                        ownerId,
+                        requester.getNickname(),
+                        toTradeTarget(target)
+                )
+        );
+
+        return CollectionTradeRequestResponse.from(tradeRequest);
+    }
     @Transactional(readOnly = true)
     public CollectionTradeRequestResponse detail(Long memberId, Long id) {
         CollectionTradeRequest request = requests.findWithDetailsByCollectionTradeRequestId(id)
@@ -77,6 +99,21 @@ public class CollectionTradeService {
         requireOwner(request, memberId);
         requireStatus(request, TradeRequestStatus.PENDING);
         request.accept();
+
+        Member owner = request.getCollectionItem().getOwner();
+
+        eventPublisher.publishEvent(
+                TradeAcceptedEvent.of(
+                        request.getCollectionTradeRequestId(),
+                        request.getRequester().getMemberId(),
+                        owner.getMemberId(),
+                        owner.getNickname(),
+                        toTradeTarget(
+                                request.getCollectionItem()
+                        )
+                )
+        );
+
         return CollectionTradeRequestResponse.from(request);
     }
 
@@ -86,6 +123,22 @@ public class CollectionTradeService {
         requireOwner(request, memberId);
         requireStatus(request, TradeRequestStatus.PENDING);
         request.reject();
+
+        Member owner =
+                request.getCollectionItem().getOwner();
+
+        eventPublisher.publishEvent(
+                TradeRejectedEvent.of(
+                        request.getCollectionTradeRequestId(),
+                        request.getRequester().getMemberId(),
+                        owner.getMemberId(),
+                        owner.getNickname(),
+                        toTradeTarget(
+                                request.getCollectionItem()
+                        )
+                )
+        );
+
         return CollectionTradeRequestResponse.from(request);
     }
 
@@ -96,6 +149,21 @@ public class CollectionTradeService {
             throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
         requireStatus(request, TradeRequestStatus.PENDING);
         request.cancel();
+
+        eventPublisher.publishEvent(
+                TradeCancelledEvent.of(
+                        request.getCollectionTradeRequestId(),
+                        request.getRequester().getMemberId(),
+                        request.getCollectionItem()
+                                .getOwner()
+                                .getMemberId(),
+                        request.getRequester().getNickname(),
+                        toTradeTarget(
+                                request.getCollectionItem()
+                        )
+                )
+        );
+
         return CollectionTradeRequestResponse.from(request);
     }
 
@@ -107,7 +175,33 @@ public class CollectionTradeService {
         if (trades.existsByCollectionTradeRequestId(id))
             throw error(ErrorCode.COLLECTION_TRADE_INVALID_STATUS);
         request.complete();
-        trades.save(Trade.ofCollectionTrade(id, request.getRequester().getMemberId(), memberId));
+
+        Member owner =
+                request.getCollectionItem().getOwner();
+
+        Member requester =
+                request.getRequester();
+
+        trades.save(
+                Trade.ofCollectionTrade(
+                        id,
+                        requester.getMemberId(),
+                        owner.getMemberId()
+                )
+        );
+
+        eventPublisher.publishEvent(
+                TradeCompletedEvent.of(
+                        request.getCollectionTradeRequestId(),
+                        owner.getMemberId(),
+                        requester.getMemberId(),
+                        owner.getNickname(),
+                        toTradeTarget(
+                                request.getCollectionItem()
+                        )
+                )
+        );
+
         return CollectionTradeRequestResponse.from(request);
     }
 
@@ -141,4 +235,15 @@ public class CollectionTradeService {
     private BusinessException error(ErrorCode code) {
         return new BusinessException(code);
     }
+
+    private TradeTarget toTradeTarget(
+            CollectionItem collectionItem
+    ) {
+        return TradeTarget.of(
+                TradeKind.COLLECTION,
+                collectionItem.getCollectionItemId(),
+                collectionItem.getTitle()
+        );
+    }
+
 }

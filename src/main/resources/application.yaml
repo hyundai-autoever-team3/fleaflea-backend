@@ -20,10 +20,10 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:update}
+      ddl-auto: ${DDL_AUTO:validate}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
 server:
@@ -31,7 +31,9 @@ server:
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    root: ${LOG_LEVEL_ROOT:WARN}
+    com.anabada.fleaflea: ${LOG_LEVEL_APP:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
 
 aws:
   region: ${AWS_REGION:ap-northeast-2}
