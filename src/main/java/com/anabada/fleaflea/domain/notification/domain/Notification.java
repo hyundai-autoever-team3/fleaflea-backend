@@ -30,13 +30,13 @@ public class Notification extends BaseCreatedTimeEntity {
     @Column(name = "reference_type", nullable = false, length = 30)
     private NotificationReferenceType referenceType;
 
-    @Column(name = "reference_id", nullable = false)
+    @Column(nullable = false)
     private Long referenceId;
 
     @Column(nullable = false, length = 255)
     private String message;
 
-    @Column(name = "is_read", nullable = false)
+    @Column(nullable = false)
     private boolean isRead;
 
     @Builder
