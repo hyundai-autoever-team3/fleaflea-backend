@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.poke.service;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.poke.domain.MemberPoke;
+import com.anabada.fleaflea.domain.poke.event.MemberPokedEvent;
 import com.anabada.fleaflea.domain.poke.repository.MemberPokeRepository;
 import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.exception.BusinessException;
@@ -13,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -29,6 +31,7 @@ class MemberPokeServiceTest {
     @Mock MemberRepository memberRepository;
     @Mock MemberPokeRepository pokeRepository;
     @InjectMocks MemberPokeService pokeService;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     @Test
     void sendSavesSenderAndRecipient() {
@@ -38,6 +41,7 @@ class MemberPokeServiceTest {
         when(memberRepository.findById(2L)).thenReturn(Optional.of(recipient));
 
         pokeService.send(1L, 2L);
+        verify(eventPublisher).publishEvent(any(MemberPokedEvent.class));
 
         ArgumentCaptor<MemberPoke> captor = ArgumentCaptor.forClass(MemberPoke.class);
         verify(pokeRepository).save(captor.capture());
