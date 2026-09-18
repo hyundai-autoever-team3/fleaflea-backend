@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.begrequest.controller;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingDetailResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingStatusResponse;
 import com.anabada.fleaflea.domain.begrequest.service.BegRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -61,49 +62,89 @@ public class BegRequestController {
         );
     }
 
-    @Operation(summary = "구걸 요청 승인", description = "대기 중인 구걸 요청을 승인합니다.")
+    @Operation(
+            summary = "구걸 요청 수락",
+            description = "대기 중인 구걸 요청을 수락합니다."
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "구걸 요청 승인 성공"),
+            @ApiResponse(responseCode = "200", description = "구걸 요청 수락 성공"),
             @ApiResponse(responseCode = "403", description = "구걸 요청에 접근할 권한이 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
-            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+            @ApiResponse(responseCode = "400", description = "대기 중인 구걸 요청이 아님")
     })
     @PostMapping("/beg-requests/{begRequestId}/accept")
-    public ResponseEntity<Void> acceptBeggingRequest(
+    public ResponseEntity<BeggingStatusResponse> acceptBeggingRequest(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable Long begRequestId) {
-        begRequestService.acceptBeggingRequest(memberId ,begRequestId);
-        return ResponseEntity.noContent().build();
+            @PathVariable Long begRequestId
+    ) {
+        BeggingStatusResponse response =
+                begRequestService.acceptBeggingRequest(memberId, begRequestId);
+
+        return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "구걸 요청 거절", description = "대기 중인 구걸 요청을 거절합니다.")
+    @Operation(
+            summary = "구걸 요청 거절",
+            description = "대기 중인 구걸 요청을 거절합니다."
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "구걸 요청 거절 성공"),
+            @ApiResponse(responseCode = "200", description = "구걸 요청 거절 성공"),
             @ApiResponse(responseCode = "403", description = "구걸 요청에 접근할 권한이 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
-            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+            @ApiResponse(responseCode = "400", description = "대기 중인 구걸 요청이 아님")
     })
     @PostMapping("/beg-requests/{begRequestId}/reject")
-    public ResponseEntity<Void> rejectBeggingRequest(
+    public ResponseEntity<BeggingStatusResponse> rejectBeggingRequest(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable Long begRequestId) {
-        begRequestService.rejectBeggingRequest(memberId ,begRequestId);
-        return ResponseEntity.noContent().build();
+            @PathVariable Long begRequestId
+    ) {
+        BeggingStatusResponse response =
+                begRequestService.rejectBeggingRequest(memberId, begRequestId);
+
+        return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "구걸 요청 취소", description = "대기 중인 구걸 요청을 취소합니다.")
+    @Operation(
+            summary = "구걸 요청 취소",
+            description = "대기 중인 구걸 요청을 취소합니다."
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "구걸 요청 취소 성공"),
+            @ApiResponse(responseCode = "200", description = "구걸 요청 취소 성공"),
             @ApiResponse(responseCode = "403", description = "구걸 요청에 접근할 권한이 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
-            @ApiResponse(responseCode = "409", description = "대기 중인 구걸 요청이 아님")
+            @ApiResponse(responseCode = "400", description = "대기 중인 구걸 요청이 아님")
     })
     @PostMapping("/beg-requests/{begRequestId}/cancel")
-    public ResponseEntity<Void> cancelBeggingRequest(
+    public ResponseEntity<BeggingStatusResponse> cancelBeggingRequest(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable Long begRequestId) {
-        begRequestService.cancelBeggingRequest(memberId, begRequestId);
-        return ResponseEntity.noContent().build();
+            @PathVariable Long begRequestId
+    ) {
+        BeggingStatusResponse response =
+                begRequestService.cancelBeggingRequest(memberId, begRequestId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "구걸 요청 완료",
+            description = "수락된 구걸 요청을 완료 처리하고 거래 내역을 생성합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "구걸 요청 완료 성공"),
+            @ApiResponse(responseCode = "403", description = "구걸 요청에 접근할 권한이 없음"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구걸 요청"),
+            @ApiResponse(responseCode = "400", description = "수락된 구걸 요청이 아님"),
+            @ApiResponse(responseCode = "409", description = "이미 완료된 구걸 요청")
+    })
+    @PostMapping("/beg-requests/{begRequestId}/complete")
+    public ResponseEntity<BeggingStatusResponse> completeBeggingRequest(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long begRequestId
+    ) {
+        BeggingStatusResponse response =
+                begRequestService.completeBeggingRequest(memberId, begRequestId);
+
+        return ResponseEntity.ok(response);
     }
 
 
