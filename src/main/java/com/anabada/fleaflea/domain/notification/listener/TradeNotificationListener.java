@@ -11,6 +11,7 @@ import com.anabada.fleaflea.domain.trade.event.TradeKind;
 import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -24,6 +25,7 @@ public class TradeNotificationListener {
     @TransactionalEventListener(
             phase = TransactionPhase.AFTER_COMMIT
     )
+    @Async("tradeNotificationExecutor")
     public void handle(
             TradeRequestedEvent event
     ) {
@@ -42,6 +44,7 @@ public class TradeNotificationListener {
     @TransactionalEventListener(
             phase = TransactionPhase.AFTER_COMMIT
     )
+    @Async("tradeNotificationExecutor")
     public void handle(
             TradeAcceptedEvent event
     ) {
@@ -59,6 +62,7 @@ public class TradeNotificationListener {
     @TransactionalEventListener(
             phase = TransactionPhase.AFTER_COMMIT
     )
+    @Async("tradeNotificationExecutor")
     public void handle(
             TradeRejectedEvent event
     ) {
@@ -76,6 +80,7 @@ public class TradeNotificationListener {
     @TransactionalEventListener(
             phase = TransactionPhase.AFTER_COMMIT
     )
+    @Async("tradeNotificationExecutor")
     public void handle(
             TradeCancelledEvent event
     ) {
@@ -94,6 +99,7 @@ public class TradeNotificationListener {
     @TransactionalEventListener(
             phase = TransactionPhase.AFTER_COMMIT
     )
+    @Async("tradeNotificationExecutor")
     public void handle(
             TradeCompletedEvent event
     ) {

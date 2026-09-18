@@ -15,6 +15,8 @@ export const options = {
   thresholds: {
     http_req_failed: ['rate<0.01'],
     checks: ['rate>0.99'],
+    ...Object.fromEntries(['create', 'accept', 'reject', 'cancel', 'complete']
+      .map((action) => [`http_req_duration{name:collection_trade_${action}}`, ['p(95)<1000']])),
   },
 };
 
