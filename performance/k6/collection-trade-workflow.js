@@ -18,8 +18,8 @@ export const options = {
   },
 };
 
-function headers(token) {
-  return { headers: { Authorization: `Bearer ${token}` } };
+function authHeaders(token) {
+  return { Authorization: `Bearer ${token}` };
 }
 
 export default function () {
@@ -28,8 +28,7 @@ export default function () {
     `${baseUrl}/api/v1/collection-items/${itemId}/trade-requests`,
     JSON.stringify({ tradeType: 'RENTAL' }),
     {
-      ...headers(requesterToken),
-      headers: { ...headers(requesterToken).headers, 'Content-Type': 'application/json' },
+      headers: { ...authHeaders(requesterToken), 'Content-Type': 'application/json' },
       tags: { name: 'collection_trade_create' },
     }
   );
@@ -42,14 +41,14 @@ export default function () {
   const action = branch === 0 ? 'accept' : branch === 1 ? 'reject' : 'cancel';
   const actor = branch === 2 ? requesterToken : ownerToken;
   const changed = http.post(`${baseUrl}/api/v1/collection-trade-requests/${id}/${action}`, null, {
-    ...headers(actor),
+    headers: authHeaders(actor),
     tags: { name: `collection_trade_${action}` },
   });
   if (!check(changed, { [`${action} 200`]: (r) => r.status === 200 })) return;
 
   if (branch === 0) {
     const completed = http.post(`${baseUrl}/api/v1/collection-trade-requests/${id}/complete`, null, {
-      ...headers(ownerToken),
+      headers: authHeaders(ownerToken),
       tags: { name: 'collection_trade_complete' },
     });
     check(completed, { 'complete 200': (r) => r.status === 200 });
