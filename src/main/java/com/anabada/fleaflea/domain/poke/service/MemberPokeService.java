@@ -4,11 +4,13 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.poke.domain.MemberPoke;
 import com.anabada.fleaflea.domain.poke.dto.MemberPokeResponse;
+import com.anabada.fleaflea.domain.poke.event.MemberPokedEvent;
 import com.anabada.fleaflea.domain.poke.repository.MemberPokeRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class MemberPokeService {
 
     private final MemberRepository memberRepository;
     private final MemberPokeRepository pokeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void send(Long senderId, Long recipientId) {
@@ -33,7 +36,18 @@ public class MemberPokeService {
         Member recipient = memberRepository.findById(recipientId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        pokeRepository.save(MemberPoke.create(sender, recipient));
+        MemberPoke poke = MemberPoke.create(sender, recipient);
+
+        pokeRepository.save(poke);
+
+        eventPublisher.publishEvent(
+                MemberPokedEvent.of(
+                        poke.getPokeId(),
+                        sender.getMemberId(),
+                        recipient.getMemberId(),
+                        sender.getNickname()
+                )
+        );
     }
 
     public PageResponse<MemberPokeResponse> received(Long recipientId, int page, int size) {
