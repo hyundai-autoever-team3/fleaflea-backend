@@ -1,27 +1,25 @@
 package com.anabada.fleaflea.domain.market.service;
 
+import com.anabada.fleaflea.domain.market.domain.Market;
+import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
+import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
+import com.anabada.fleaflea.domain.market.repository.MarketRepository;
+import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
+import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
 import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
-import com.anabada.fleaflea.global.dto.PageResponse;
+import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.anabada.fleaflea.domain.market.domain.Market;
-import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
-import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
-import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
-import com.anabada.fleaflea.domain.market.repository.MarketRepository;
-
-import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
-import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
-import com.anabada.fleaflea.global.image.ImageService;
 
 @Service
 @RequiredArgsConstructor
@@ -47,15 +45,17 @@ public class MarketQueryService {
 
         return PageResponse.from(
                 marketMemberRepository
-                        .findAllByMember(member, pageable)
-                        .map(marketMember -> {
+                        .findMarketSummariesByMemberId(
+                                member.getMemberId(),
+                                pageable
+                        )
+                        .map(projection -> {
                             String coverImageUrl = imageService.getUrl(
-                                    marketMember.getMarket()
-                                            .getCoverImageKey()
+                                    projection.coverImageKey()
                             );
 
                             return MarketSummaryResponse.from(
-                                    marketMember,
+                                    projection,
                                     coverImageUrl
                             );
                         })

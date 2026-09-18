@@ -46,4 +46,19 @@ public record MarketSummaryResponse(
                 marketMember.getJoinedAt()
         );
     }
+
+    public static MarketSummaryResponse from(
+            MarketSummaryProjection projection,
+            String coverImageUrl
+    ) {
+        return new MarketSummaryResponse(
+                projection.marketId(),
+                projection.hostId(),
+                projection.hostNickname(),
+                projection.title(),
+                projection.description(),
+                coverImageUrl,
+                projection.joinedAt()
+        );
+    }
 }
