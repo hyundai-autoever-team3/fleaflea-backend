@@ -12,6 +12,7 @@ const paths = {
   markets: '/api/v1/markets?scope=joined&page=0&size=20',
   market: `/api/v1/markets/${__ENV.MARKET_ID || ''}`,
   'market-members': `/api/v1/markets/${__ENV.MARKET_ID || ''}/members?page=0&size=20`,
+  'market-invitation': `/api/v1/markets/${__ENV.MARKET_ID || ''}/invitation`,
   'collection-trade': `/api/v1/collection-trade-requests/${__ENV.TRADE_REQUEST_ID || ''}`,
 };
 
@@ -19,7 +20,7 @@ if (!token) throw new Error('K6_TOKEN is required. Log in and pass the access to
 if (!(endpoint in paths)) throw new Error(`Unknown ENDPOINT: ${endpoint}`);
 if (endpoint === 'collection-item' && !__ENV.COLLECTION_ITEM_ID) throw new Error('COLLECTION_ITEM_ID is required');
 if (endpoint === 'member-collection-items' && !__ENV.OWNER_ID) throw new Error('OWNER_ID is required');
-if ((endpoint === 'market' || endpoint === 'market-members') && !__ENV.MARKET_ID) throw new Error('MARKET_ID is required');
+if ((endpoint === 'market' || endpoint === 'market-members' || endpoint === 'market-invitation') && !__ENV.MARKET_ID) throw new Error('MARKET_ID is required');
 if (endpoint === 'collection-trade' && !__ENV.TRADE_REQUEST_ID) throw new Error('TRADE_REQUEST_ID is required');
 
 export const options = {

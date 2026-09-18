@@ -11,7 +11,25 @@ docker start fleaflea-local-db
 docker exec fleaflea-local-db pg_isready -U postgres -d fleaflea_db
 ```
 
-처음 설치한다면 팀의 로컬 DB 설정에 따라 PostgreSQL 16 컨테이너를 먼저 만든다. 현재 설정은 호스트의 `5434` 포트를 사용한다. PowerShell에서 백엔드를 띄울 때 `DB_URL`도 같은 포트로 맞춘다. 나머지 DB·AWS·JWT 환경 변수는 팀에서 받은 로컬 설정 값을 사용한다.
+이미지 업로드를 포함한 쓰기 API는 로컬 S3가 필요하다. 최초 한 번 아래 컨테이너와 버킷을 만든다. 이후에는 `docker start fleaflea-local-s3`만 실행한다.
+
+```powershell
+docker run --name fleaflea-local-s3 -p 127.0.0.1:9000:9000 -e MINIO_ROOT_USER=k6local -e MINIO_ROOT_PASSWORD=k6localpass123 -v fleaflea-local-s3data:/data -d quay.io/minio/minio server /data
+docker run --rm --network container:fleaflea-local-s3 --entrypoint /bin/sh quay.io/minio/mc -c 'mc alias set local http://127.0.0.1:9000 k6local k6localpass123 && mc mb --ignore-existing local/fleaflea-local'
+```
+
+팀에서 받은 DB와 JWT 환경 변수를 넣은 뒤, 같은 PowerShell 창에서 S3 설정을 로컬로 덮어쓰고 백엔드를 실행한다. 이 설정은 현재 창에만 적용된다.
+
+```powershell
+$env:AWS_PROFILE = ''
+$env:AWS_ACCESS_KEY_ID = 'k6local'
+$env:AWS_SECRET_ACCESS_KEY = 'k6localpass123'
+$env:AWS_ENDPOINT_URL_S3 = 'http://127.0.0.1:9000'
+$env:S3_BUCKET = 'fleaflea-local'
+$env:AWS_EC2_METADATA_DISABLED = 'true'
+```
+
+처음 설치한다면 팀의 로컬 DB 설정에 따라 PostgreSQL 16 컨테이너를 먼저 만든다. 현재 설정은 호스트의 `5434` 포트를 사용한다. PowerShell에서 백엔드를 띄울 때 `DB_URL`도 같은 포트로 맞춘다. DB와 JWT 환경 변수는 팀에서 받은 로컬 설정 값을 사용한다.
 
 ```powershell
 $env:DB_URL = 'jdbc:postgresql://localhost:5434/fleaflea_db'
@@ -63,6 +81,7 @@ k6 run -e VUS=10 -e DURATION=1m --summary-export=performance/k6/results/collecti
 | `markets` | 참여 플리마켓 목록 | 없음 |
 | `market` | 플리마켓 상세 | `MARKET_ID` |
 | `market-members` | 플리마켓 참여자 목록 | `MARKET_ID` |
+| `market-invitation` | 플리마켓 초대 코드 조회 | `MARKET_ID` |
 | `collection-trade` | 도감 거래 요청 상세 | `TRADE_REQUEST_ID` |
 
 예를 들어 플리마켓 상세는 `k6 run -e ENDPOINT=market -e MARKET_ID=1 .\performance\k6\read-api.js`로 실행한다. ID가 다르면 DB에서 확인해서 바꾼다. 다른 서버를 대상으로 할 때는 `-e BASE_URL=http://주소:포트`를 추가한다.
@@ -83,5 +102,20 @@ k6 run -e VUS=3 -e DURATION=30s .\performance\k6\collection-trade-workflow.js
 ```
 
 재실행할 때는 아직 거래 요청에 사용하지 않은 `FIRST_ITEM_ID`를 고른다. 현재 데이터의 아이템 ID는 `1`~`50000`이다. 사용한 ID로 다시 실행하면 중복 요청으로 실패한다.
+
+## 4. 이미지와 플리마켓 쓰기 API 측정
+
+두 스크립트는 1픽셀 PNG를 로컬 S3에 업로드한다. 한 반복에서 생성한 데이터를 수정하고 삭제하므로 재실행할 때 ID를 따로 준비할 필요가 없다. 플리마켓 흐름에는 두 계정의 초대 코드 참여, 초대 코드 재발급, 탈퇴도 포함된다.
+
+```powershell
+$env:K6_TOKEN = $ownerLogin.accessToken
+k6 run -e VUS=1 -e DURATION=10s .\performance\k6\collection-item-workflow.js
+k6 run -e VUS=1 -e DURATION=10s .\performance\k6\market-workflow.js
+
+k6 run -e VUS=10 -e DURATION=20s --summary-export=performance/k6/results/collection-item-workflow.json .\performance\k6\collection-item-workflow.js
+k6 run -e VUS=10 -e DURATION=20s --summary-export=performance/k6/results/market-workflow.json .\performance\k6\market-workflow.js
+```
+
+처음에는 1 VU로 상태 코드와 S3 연결을 확인한 뒤 부하를 높인다. 결과의 `http_req_duration{name:...}`에서 각 API의 p95를 확인한다. 쓰기 테스트는 DB와 S3를 변경하므로 로컬 테스트 환경에서만 실행한다.
 
 결과는 p95(`http_req_duration`), 실패율(`http_req_failed`), 요청 수(`http_reqs`)를 기록한다. 토큰과 `performance/k6/results/`의 원본 결과는 Git에 올리지 않는다.
