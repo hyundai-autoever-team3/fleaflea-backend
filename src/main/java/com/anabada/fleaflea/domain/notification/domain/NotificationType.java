@@ -6,10 +6,9 @@ public enum NotificationType {
     TRADE_ACCEPTED,
     TRADE_REJECTED,
     TRADE_CANCELLED,
-    TRADE_COMPLETION_CONFIRMED,
     TRADE_COMPLETED,
 
-    // 친구 추가
+    // 친구
     FRIEND_REQUESTED,
     FRIEND_ACCEPTED
 }

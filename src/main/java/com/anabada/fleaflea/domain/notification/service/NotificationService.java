@@ -1,6 +1,10 @@
 package com.anabada.fleaflea.domain.notification.service;
 
+import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.domain.Notification;
+import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
+import com.anabada.fleaflea.domain.notification.domain.NotificationType;
 import com.anabada.fleaflea.domain.notification.dto.NotificationResponse;
 import com.anabada.fleaflea.domain.notification.dto.NotificationUnreadCountResponse;
 import com.anabada.fleaflea.domain.notification.exception.NotificationNotFoundException;
@@ -13,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -21,6 +26,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final MemberRepository memberRepository;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createNotification(
+            Long receiverId,
+            NotificationType type,
+            NotificationReferenceType referenceType,
+            Long referenceId,
+            String message
+    ) {
+        Member receiver =
+                memberRepository.getReferenceById(receiverId);
+
+        Notification notification = Notification.create(
+                receiver,
+                type,
+                referenceType,
+                referenceId,
+                message
+        );
+
+        notificationRepository.save(notification);
+    }
+
 
     public PageResponse<NotificationResponse> getNotifications(
             Long memberId,
