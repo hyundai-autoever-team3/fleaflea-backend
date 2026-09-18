@@ -92,4 +92,11 @@ public final class NotificationMessageFactory {
         return accepterNickname
                 + "님이 친구 요청을 수락했습니다.";
     }
+
+    public static String pokeReceived(
+            String senderNickname
+    ) {
+        return senderNickname
+                + "님이 나를 콕 찔렀습니다.";
+    }
 }
