@@ -144,8 +144,8 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
-        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
-            throw new BegRequestNotOwnerException();
+        if (!begRequest.getApplicant().getMemberId().equals(memberId)) {
+            throw new BegRequestNotApplicantException();
         }
 
         if (begRequest.getStatus() != BegRequestStatus.ACCEPTED) {
@@ -161,8 +161,8 @@ public class BegRequestService {
         tradeRepository.save(
                 Trade.ofBegRequest(
                         begRequestId,
-                        begRequest.getApplicant().getMemberId(),
-                        memberId
+                        memberId,
+                        begRequest.getCollectionItem().getOwner().getMemberId()
                 )
         );
 
