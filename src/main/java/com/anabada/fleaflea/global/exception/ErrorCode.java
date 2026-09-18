@@ -74,6 +74,8 @@ public enum ErrorCode {
     BEG_REQUEST_NOT_OWNER(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_OWNER", "도감 아이템 소유자만 구걸 요청을 처리할 수 있습니다."),
     BEG_REQUEST_NOT_APPLICANT(HttpStatus.FORBIDDEN, "BEG_REQUEST_NOT_APPLICANT", "구걸 요청을 생성한 사용자만 요청을 취소할 수 있습니다."),
     COLLECTION_ITEM_NOT_PUBLIC(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_PUBLIC", "공개된 도감 아이템에만 구걸 요청을 보낼 수 있습니다."),
+    BEG_REQUEST_NOT_ACCEPTED(HttpStatus.BAD_REQUEST, "BEG_REQUEST_NOT_ACCEPTED", "수락된 구걸 요청만 완료할 수 있습니다."),
+    BEG_REQUEST_ALREADY_COMPLETED(HttpStatus.CONFLICT, "BEG_REQUEST_ALREADY_COMPLETED", "이미 완료된 구걸 요청입니다."),
 
     // Collection Trade
     COLLECTION_TRADE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_TRADE_REQUEST_NOT_FOUND", "존재하지 않는 도감 거래 요청입니다."),

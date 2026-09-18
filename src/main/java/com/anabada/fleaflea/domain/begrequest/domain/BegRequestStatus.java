@@ -4,5 +4,6 @@ public enum BegRequestStatus {
     PENDING,
     ACCEPTED,
     REJECTED,
-    CANCELLED
+    CANCELLED,
+    COMPLETED;
 }

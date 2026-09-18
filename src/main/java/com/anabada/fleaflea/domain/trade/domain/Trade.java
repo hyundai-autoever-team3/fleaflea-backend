@@ -23,6 +23,10 @@ public class Trade extends BaseCreatedTimeEntity {
     @Column(name = "collection_trade_request_id")
     private Long collectionTradeRequestId;
 
+    // 구걸 거래 시 채워짐
+    @Column(name = "beg_request_id")
+    private Long begRequestId;
+
     // 플리마켓 거래 시 채워짐, 도감 거래 시 null
     @Column(name = "trade_request_id")
     private Long tradeRequestId;
@@ -42,12 +46,14 @@ public class Trade extends BaseCreatedTimeEntity {
     @Builder
     private Trade(
             Long collectionTradeRequestId,
+            Long begRequestId,
             Long tradeRequestId,
             Long itemId,
             Long buyerId,
             Long sellerId
     ) {
         this.collectionTradeRequestId = collectionTradeRequestId;
+        this.begRequestId = begRequestId;
         this.tradeRequestId = tradeRequestId;
         this.itemId = itemId;
         this.buyerId = buyerId;
@@ -62,6 +68,18 @@ public class Trade extends BaseCreatedTimeEntity {
     ) {
         return Trade.builder()
                 .collectionTradeRequestId(collectionTradeRequestId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .build();
+    }
+
+    public static Trade ofBegRequest(
+            Long begRequestId,
+            Long buyerId,
+            Long sellerId
+    ) {
+        return Trade.builder()
+                .begRequestId(begRequestId)
                 .buyerId(buyerId)
                 .sellerId(sellerId)
                 .build();
