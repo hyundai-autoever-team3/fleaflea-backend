@@ -30,6 +30,11 @@ public enum ErrorCode {
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
 
+    // Poke
+    POKE_SELF(HttpStatus.BAD_REQUEST, "POKE_SELF", "자기 자신을 콕 찌를 수 없습니다."),
+    POKE_NOT_FOUND(HttpStatus.NOT_FOUND, "POKE_NOT_FOUND", "존재하지 않는 콕찌르기입니다."),
+    POKE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "POKE_ACCESS_DENIED", "받은 사람만 콕찌르기를 읽을 수 있습니다."),
+
     // Friendship
     FRIEND_REQUEST_INVALID_DIRECTION(HttpStatus.BAD_REQUEST, "FRIEND_REQUEST_INVALID_DIRECTION", "잘못된 친구 요청 방향입니다."),
     FRIENDSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "FRIENDSHIP_NOT_FOUND", "존재하지 않는 친구 관계입니다."),
