@@ -10,5 +10,8 @@ public enum NotificationType {
 
     // 친구
     FRIEND_REQUESTED,
-    FRIEND_ACCEPTED
+    FRIEND_ACCEPTED,
+
+    // 콕찌르기
+    POKE_RECEIVED
 }
