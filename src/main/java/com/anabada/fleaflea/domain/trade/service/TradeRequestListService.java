@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.trade.service;
 
+import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
+import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.MemberSummaryResponse;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
@@ -24,6 +26,7 @@ import java.util.List;
 public class TradeRequestListService {
     private final TradeRequestRepository itemRequests;
     private final CollectionTradeRequestRepository collectionRequests;
+    private final BegRequestRepository begRequestRepository;
     private final ImageService images;
 
     public List<TradeRequestListResponse> list(Long memberId, String direction) {
@@ -38,8 +41,11 @@ public class TradeRequestListService {
         List<CollectionTradeRequest> collections = received
                 ? collectionRequests.findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(memberId)
                 : collectionRequests.findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
+        List<BegRequest> begs = received
+                ? begRequestRepository.findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(memberId)
+                : begRequestRepository.findByApplicant_MemberIdOrderByCreatedAtDesc(memberId);
 
-        List<TradeRequestListResponse> result = new ArrayList<>(items.size() + collections.size());
+        List<TradeRequestListResponse> result = new ArrayList<>(items.size() + collections.size() + begs.size());
         for (TradeRequest request : items) {
             result.add(new TradeRequestListResponse(
                     "ITEM", request.getTradeRequestId(), request.getItem().getItemId(),
@@ -54,6 +60,20 @@ public class TradeRequestListService {
                     request.getCollectionItem().getTitle(), request.getTradeType().name(),
                     request.getStatus(), member(request.getCollectionItem().getOwner()),
                     member(request.getRequester()), request.getCreatedAt()));
+        }
+
+        for (BegRequest request : begs) {
+            result.add(new TradeRequestListResponse(
+                    "BEG",
+                    request.getBegRequestId(),
+                    request.getCollectionItem().getCollectionItemId(),
+                    request.getCollectionItem().getTitle(),
+                    null,
+                    request.getStatus().toTradeRequestStatus(),
+                    member(request.getCollectionItem().getOwner()),
+                    member(request.getApplicant()),
+                    request.getCreatedAt()
+            ));
         }
         result.sort(Comparator.comparing(TradeRequestListResponse::createdAt,
                 Comparator.nullsLast(Comparator.reverseOrder())));
