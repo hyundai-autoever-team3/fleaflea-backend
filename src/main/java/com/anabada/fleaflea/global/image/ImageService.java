@@ -249,4 +249,42 @@ public class ImageService {
                         .key(imageKey))
                 .toExternalForm();
     }
+
+    public String copy(
+            String sourceKey,
+            ImageCategory targetCategory
+    ) {
+        if (sourceKey == null
+                || !IMAGE_KEY_PATTERN.matcher(sourceKey).matches()) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
+        }
+
+        if (targetCategory == null) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_CATEGORY);
+        }
+
+        String extension = sourceKey.substring(
+                sourceKey.lastIndexOf('.') + 1
+        );
+
+        String targetKey = targetCategory.getPrefix()
+                + "/" + UUID.randomUUID()
+                + "." + extension;
+
+        try {
+            s3Client.copyObject(request -> request
+                    .sourceBucket(bucket)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(bucket)
+                    .destinationKey(targetKey)
+            );
+
+            return targetKey;
+        } catch (SdkException e) {
+            throw new ImageException(
+                    ErrorCode.IMAGE_UPLOAD_FAILED,
+                    e
+            );
+        }
+    }
 }
