@@ -209,7 +209,11 @@ public class ItemService {
         item.validateOwner(memberId);
         item.validateDeletable();
 
+        String imageKey = item.getImageKey();
+
         itemRepository.delete(item);
+
+        imageService.delete(imageKey);
     }
 
     private void validateMarketParticipant(
