@@ -85,7 +85,7 @@ public class MemberAuthService {
 
     public ReissueResponse reissue(ReissueRequest request) {
         String refreshToken = request.refreshToken();
-        if (!jwtTokenProvider.validateToken(refreshToken) && !jwtTokenProvider.isRefreshToken(refreshToken)) {
+        if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new InvalidTokenException();
         }
         RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
