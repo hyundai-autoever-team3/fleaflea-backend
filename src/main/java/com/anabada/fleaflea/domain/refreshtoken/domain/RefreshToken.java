@@ -50,4 +50,9 @@ public class RefreshToken extends BaseCreatedTimeEntity {
                 .build();
     }
 
+    public void update(String refreshToken, LocalDateTime expiresAt) {
+        this.refreshToken = refreshToken;
+        this.expiresAt = expiresAt;
+    }
+
 }
