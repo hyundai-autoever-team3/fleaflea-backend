@@ -49,7 +49,7 @@ public class Item extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private ItemStatus status;
 
-    @Column
+    @Column(nullable = false)
     private String imageKey;
 
     @Builder
