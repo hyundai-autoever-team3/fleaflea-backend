@@ -22,6 +22,7 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -35,6 +36,7 @@ public class MemberAuthService {
     private final RefreshTokenRepository refreshTokenRepository;
 
 
+    @Transactional
     public void signUp(SignUpRequest request) {
         if (memberRepository.existsByNickname(request.nickname())) {
             throw new MemberNicknameDuplicateException();
@@ -52,6 +54,7 @@ public class MemberAuthService {
         memberRepository.save(newMember);
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
@@ -70,19 +73,27 @@ public class MemberAuthService {
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
 
         LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
-        refreshTokenRepository.save(
-                RefreshToken.create(
-                        member.getMemberId(),
-                        refreshToken,
-                        expiresAt
-                )
-        );
+
+        RefreshToken existing = refreshTokenRepository.findByMemberId(member.getMemberId()).orElse(null);
+        if (existing != null) {
+            existing.update(refreshToken, expiresAt);
+        }else {
+            refreshTokenRepository.save(
+                    RefreshToken.create(
+                            member.getMemberId(),
+                            refreshToken,
+                            expiresAt
+                    )
+            );
+        }
+
         return new LoginResponse(
                 accessToken,
                 refreshToken
         );
     }
 
+    @Transactional
     public ReissueResponse reissue(ReissueRequest request) {
         String refreshToken = request.refreshToken();
         if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
