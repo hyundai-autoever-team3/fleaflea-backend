@@ -55,6 +55,7 @@ public enum ErrorCode {
     ITEM_TRADE_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_IN_PROGRESS", "거래 진행 중인 상품은 삭제할 수 없습니다."),
     ITEM_NOT_AVAILABLE(HttpStatus.CONFLICT, "ITEM_NOT_AVAILABLE", "거래 가능한 상태의 상품이 아닙니다."),
     ITEM_TRADE_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_NOT_IN_PROGRESS", "거래 진행 중인 상품이 아닙니다."),
+    ITEM_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_REQUIRED", "상품 이미지는 필수입니다."),
 
     // Collection Item
     COLLECTION_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_ITEM_NOT_FOUND", "존재하지 않는 도감 아이템입니다."),
