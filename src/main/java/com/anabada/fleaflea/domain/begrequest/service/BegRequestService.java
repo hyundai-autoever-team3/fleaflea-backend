@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class BegRequestService {
+
     private final BegRequestRepository begRequestRepository;
     private final MemberRepository memberRepository;
     private final CollectionItemRepository collectionItemRepository;

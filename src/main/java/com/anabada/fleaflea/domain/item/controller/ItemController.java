@@ -43,19 +43,17 @@ public class ItemController {
                     content = @Content(schema = @Schema(implementation = ItemSummaryResponse.class))),
             @ApiResponse(responseCode = "400", description = "요청 값 또는 상품 정보가 올바르지 않음"),
             @ApiResponse(responseCode = "401", description = "인증 필요"),
-            @ApiResponse(responseCode = "403", description = "플리마켓 미참여 또는 상품 소유자가 아님"),
-            @ApiResponse(responseCode = "404", description = "플리마켓, 회원 또는 상품을 찾을 수 없음")
+            @ApiResponse(responseCode = "403", description = "플리마켓 미참여 또는 도감 아이템 소유자가 아님"),
+            @ApiResponse(responseCode = "404", description = "플리마켓, 회원 또는 도감 아이템을 찾을 수 없음")
     })
     public ResponseEntity<ItemSummaryResponse> createItem(
             @PathVariable @Positive Long marketId,
             @AuthenticationPrincipal Long memberId,
-            @Valid @ModelAttribute ItemCreateRequest request) {
-
+            @Valid @ModelAttribute ItemCreateRequest request
+    ) {
         ItemSummaryResponse response = itemService.createItem(marketId, memberId, request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/markets/{marketId}/items")
@@ -68,24 +66,20 @@ public class ItemController {
             @ApiResponse(responseCode = "403", description = "플리마켓 참여자가 아님"),
             @ApiResponse(responseCode = "404", description = "플리마켓을 찾을 수 없음")
     })
-    public PageResponse<ItemSummaryResponse> findItems(
+    public ResponseEntity<PageResponse<ItemSummaryResponse>> findItems(
             @PathVariable Long marketId,
             @AuthenticationPrincipal Long memberId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @RequestParam(required = false) ItemTradeType tradeType,
             @RequestParam(required = false) ItemStatus status,
-            @RequestParam(required = false) String keyword) {
-
-        return itemService.findItems(
-                marketId,
-                memberId,
-                page,
-                size,
-                tradeType,
-                status,
-                keyword
+            @RequestParam(required = false) String keyword
+    ) {
+        PageResponse<ItemSummaryResponse> response = itemService.findItems(
+                marketId, memberId, page, size, tradeType, status, keyword
         );
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/items/{itemId}")
@@ -97,11 +91,13 @@ public class ItemController {
             @ApiResponse(responseCode = "403", description = "상품이 등록된 플리마켓의 참여자가 아님"),
             @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음")
     })
-    public ItemDetailResponse findItem(
+    public ResponseEntity<ItemDetailResponse> findItem(
             @PathVariable Long itemId,
-            @AuthenticationPrincipal Long memberId) {
+            @AuthenticationPrincipal Long memberId
+    ) {
+        ItemDetailResponse response = itemService.findItem(itemId, memberId);
 
-        return itemService.findItem(itemId, memberId);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping(
@@ -110,24 +106,24 @@ public class ItemController {
     )
     @Operation(summary = "상품 정보 수정", description = "등록자만 거래 완료 전에 수정 가능")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "상품 정보 수정 성공",
-                    content = @Content(schema = @Schema(implementation = ItemDetailResponse.class))),
+            @ApiResponse(responseCode = "200", description = "상품 정보 수정 성공", content = @Content(schema = @Schema(implementation = ItemDetailResponse.class))),
             @ApiResponse(responseCode = "400", description = "요청 값이 올바르지 않음"),
             @ApiResponse(responseCode = "401", description = "인증 필요"),
             @ApiResponse(responseCode = "403", description = "상품 등록자가 아님"),
             @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음"),
             @ApiResponse(responseCode = "409", description = "거래 완료된 상품은 수정할 수 없음")
     })
-    public ItemDetailResponse updateItem(
+    public ResponseEntity<ItemDetailResponse> updateItem(
             @PathVariable Long itemId,
             @AuthenticationPrincipal Long memberId,
-            @Valid @ModelAttribute ItemUpdateRequest request) {
+            @Valid @ModelAttribute ItemUpdateRequest request
+    ) {
+        ItemDetailResponse response = itemService.updateItem(itemId, memberId, request);
 
-        return itemService.updateItem(itemId, memberId, request);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/items/{itemId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "상품 삭제", description = "등록자만 삭제 가능. 거래 진행 중에는 삭제 불가")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "상품 삭제 성공", content = @Content),
@@ -136,10 +132,12 @@ public class ItemController {
             @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음"),
             @ApiResponse(responseCode = "409", description = "거래 진행 중인 상품은 삭제할 수 없음")
     })
-    public void deleteItem(
+    public ResponseEntity<Void> deleteItem(
             @PathVariable Long itemId,
-            @AuthenticationPrincipal Long memberId) {
-
+            @AuthenticationPrincipal Long memberId
+    ) {
         itemService.deleteItem(itemId, memberId);
+
+        return ResponseEntity.noContent().build();
     }
 }

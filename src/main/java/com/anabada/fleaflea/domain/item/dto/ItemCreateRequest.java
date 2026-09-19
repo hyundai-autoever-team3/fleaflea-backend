@@ -32,7 +32,7 @@ public record ItemCreateRequest(
         Long price,
 
         @Schema(
-                description = "상품 이미지 파일",
+                description = "상품 이미지 파일. 도감 상품을 연결한 경우 생략 가능하며, 생략 시 도감 이미지를 복사하여 사용",
                 type = "string",
                 format = "binary"
         )

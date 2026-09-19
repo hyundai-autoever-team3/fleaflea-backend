@@ -12,6 +12,7 @@ import com.anabada.fleaflea.domain.item.dto.ItemDetailResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemSummaryResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemUpdateRequest;
 import com.anabada.fleaflea.domain.item.dto.SellerResponse;
+import com.anabada.fleaflea.domain.item.exception.ItemImageRequiredException;
 import com.anabada.fleaflea.domain.item.exception.ItemNotFoundException;
 import com.anabada.fleaflea.domain.item.repository.ItemRepository;
 import com.anabada.fleaflea.domain.market.domain.Market;
@@ -67,14 +68,10 @@ public class ItemService {
         Member seller = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        String imageKey = null;
-
-        if (request.image() != null && !request.image().isEmpty()) {
-            imageKey = imageService.upload(
-                    request.image(),
-                    ImageCategory.ITEM
-            );
-        }
+        String imageKey = resolveImageKey(
+                request,
+                collectionItem
+        );
 
         Long price = request.tradeType() == ItemTradeType.SALE
                 ? request.price()
@@ -209,7 +206,11 @@ public class ItemService {
         item.validateOwner(memberId);
         item.validateDeletable();
 
+        String imageKey = item.getImageKey();
+
         itemRepository.delete(item);
+
+        imageService.delete(imageKey);
     }
 
     private void validateMarketParticipant(
@@ -235,5 +236,26 @@ public class ItemService {
         if (!marketRepository.existsById(marketId)) {
             throw new MarketNotFoundException();
         }
+    }
+
+    private String resolveImageKey(
+            ItemCreateRequest request,
+            CollectionItem collectionItem
+    ) {
+        if (request.image() != null && !request.image().isEmpty()) {
+            return imageService.upload(
+                    request.image(),
+                    ImageCategory.ITEM
+            );
+        }
+
+        if (collectionItem != null && collectionItem.getImageKey() != null) {
+            return imageService.copy(
+                    collectionItem.getImageKey(),
+                    ImageCategory.ITEM
+            );
+        }
+
+        throw new ItemImageRequiredException();
     }
 }

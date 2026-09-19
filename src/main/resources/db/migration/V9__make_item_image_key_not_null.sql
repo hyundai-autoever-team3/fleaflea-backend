@@ -1,0 +1,5 @@
+DELETE FROM items
+WHERE image_key IS NULL;
+
+ALTER TABLE items
+    ALTER COLUMN image_key SET NOT NULL;
