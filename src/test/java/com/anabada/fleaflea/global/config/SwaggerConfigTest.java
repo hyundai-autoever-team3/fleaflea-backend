@@ -8,9 +8,11 @@ import org.junit.jupiter.api.Test;
 
 class SwaggerConfigTest {
 
+    private static final String SERVER_URL = "https://fleaflea.duckdns.org";
+
     @Test
     void openApiContainsServiceInformation() {
-        OpenAPI openAPI = new SwaggerConfig().openAPI();
+        OpenAPI openAPI = new SwaggerConfig().openAPI(SERVER_URL);
 
         assertThat(openAPI.getInfo().getTitle()).isEqualTo("FleaFlea API");
         assertThat(openAPI.getInfo().getDescription()).isEqualTo("FleaFlea API 문서");
@@ -18,8 +20,18 @@ class SwaggerConfigTest {
     }
 
     @Test
+    void openApiUsesConfiguredHttpsServerUrl() {
+        OpenAPI openAPI = new SwaggerConfig().openAPI(SERVER_URL);
+
+        assertThat(openAPI.getServers())
+                .singleElement()
+                .extracting(server -> server.getUrl())
+                .isEqualTo(SERVER_URL);
+    }
+
+    @Test
     void openApiContainsAccessTokenSecurityScheme() {
-        OpenAPI openAPI = new SwaggerConfig().openAPI();
+        OpenAPI openAPI = new SwaggerConfig().openAPI(SERVER_URL);
 
         SecurityScheme accessToken = openAPI.getComponents()
                 .getSecuritySchemes()

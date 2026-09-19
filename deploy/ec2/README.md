@@ -71,4 +71,38 @@ sudo docker compose --env-file /etc/fleaflea/deploy.env \
 curl -fsS http://localhost/actuator/health
 ```
 
+## Nginx forwarded headers
+
+The HTTPS server block must pass the original request scheme and host to the
+Spring Boot container. Add these headers to the `location` block that proxies
+API requests:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Port $server_port;
+```
+
+Validate and reload Nginx after editing its configuration:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Verify the OpenAPI server URL and an HTTPS preflight response:
+
+```bash
+curl -fsS https://fleaflea.duckdns.org/v3/api-docs \
+  | grep -o '"servers":\[[^]]*\]'
+
+curl -i -X OPTIONS \
+  'https://fleaflea.duckdns.org/api/v1/friend-requests/1/reject' \
+  -H 'Origin: https://fleaflea.vercel.app' \
+  -H 'Access-Control-Request-Method: POST'
+```
+
 Do not run `docker compose down -v`; it removes the PostgreSQL data volume.
