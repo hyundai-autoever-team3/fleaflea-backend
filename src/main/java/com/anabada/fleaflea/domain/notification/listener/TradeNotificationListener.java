@@ -120,9 +120,33 @@ public class TradeNotificationListener {
     private String requestedMessage(
             TradeRequestedEvent event
     ) {
-        return switch (event.target().kind()) {
-            case ITEM, COLLECTION ->
-                    NotificationMessageFactory.tradeRequested(
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleRequested(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayRequested(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalRequested(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalRequested(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeRequested(
                             event.requesterNickname(),
                             event.target().name()
                     );
@@ -138,9 +162,29 @@ public class TradeNotificationListener {
     private String acceptedMessage(
             TradeAcceptedEvent event
     ) {
-        return switch (event.target().kind()) {
-            case ITEM, COLLECTION ->
-                    NotificationMessageFactory.tradeAccepted(
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleAccepted(
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayAccepted(
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalAccepted(
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalAccepted(
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeAccepted(
                             event.target().name()
                     );
 
@@ -154,9 +198,29 @@ public class TradeNotificationListener {
     private String rejectedMessage(
             TradeRejectedEvent event
     ) {
-        return switch (event.target().kind()) {
-            case ITEM, COLLECTION ->
-                    NotificationMessageFactory.tradeRejected(
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleRejected(
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayRejected(
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalRejected(
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalRejected(
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeRejected(
                             event.target().name()
                     );
 
@@ -170,9 +234,33 @@ public class TradeNotificationListener {
     private String cancelledMessage(
             TradeCancelledEvent event
     ) {
-        return switch (event.target().kind()) {
-            case ITEM, COLLECTION ->
-                    NotificationMessageFactory.tradeCancelled(
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleCancelled(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayCancelled(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalCancelled(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalCancelled(
+                            event.requesterNickname(),
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeCancelled(
                             event.requesterNickname(),
                             event.target().name()
                     );
@@ -188,15 +276,40 @@ public class TradeNotificationListener {
     private String completedMessage(
             TradeCompletedEvent event
     ) {
-        return switch (event.target().kind()) {
-            case ITEM, COLLECTION ->
-                    NotificationMessageFactory.tradeCompleted(
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleCompleted(
+                            event.confirmerNickname(),
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayCompleted(
+                            event.confirmerNickname(),
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalCompleted(
+                            event.confirmerNickname(),
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalCompleted(
+                            event.confirmerNickname(),
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeCompleted(
                             event.confirmerNickname(),
                             event.target().name()
                     );
 
             case BEG ->
                     NotificationMessageFactory.begCompleted(
+                            event.confirmerNickname(),
                             event.target().name()
                     );
         };

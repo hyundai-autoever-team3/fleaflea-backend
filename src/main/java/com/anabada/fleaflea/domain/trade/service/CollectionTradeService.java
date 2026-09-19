@@ -12,7 +12,14 @@ import com.anabada.fleaflea.domain.trade.domain.Trade;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestCreateRequest;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestResponse;
-import com.anabada.fleaflea.domain.trade.event.*;
+import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeDealType;
+import com.anabada.fleaflea.domain.trade.event.TradeKind;
+import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeTarget;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.global.exception.BusinessException;
@@ -79,7 +86,7 @@ public class CollectionTradeService {
                         requester.getMemberId(),
                         ownerId,
                         requester.getNickname(),
-                        toTradeTarget(target)
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -108,9 +115,7 @@ public class CollectionTradeService {
                         request.getRequester().getMemberId(),
                         owner.getMemberId(),
                         owner.getNickname(),
-                        toTradeTarget(
-                                request.getCollectionItem()
-                        )
+                        toTradeTarget(request)
                 )
         );
 
@@ -133,9 +138,7 @@ public class CollectionTradeService {
                         request.getRequester().getMemberId(),
                         owner.getMemberId(),
                         owner.getNickname(),
-                        toTradeTarget(
-                                request.getCollectionItem()
-                        )
+                        toTradeTarget(request)
                 )
         );
 
@@ -157,10 +160,9 @@ public class CollectionTradeService {
                         request.getCollectionItem()
                                 .getOwner()
                                 .getMemberId(),
-                        request.getRequester().getNickname(),
-                        toTradeTarget(
-                                request.getCollectionItem()
-                        )
+                        request.getRequester()
+                                .getNickname(),
+                        toTradeTarget(request)
                 )
         );
 
@@ -177,7 +179,8 @@ public class CollectionTradeService {
         request.complete();
 
         Member owner =
-                request.getCollectionItem().getOwner();
+                request.getCollectionItem()
+                        .getOwner();
 
         Member requester =
                 request.getRequester();
@@ -196,9 +199,7 @@ public class CollectionTradeService {
                         owner.getMemberId(),
                         requester.getMemberId(),
                         owner.getNickname(),
-                        toTradeTarget(
-                                request.getCollectionItem()
-                        )
+                        toTradeTarget(request)
                 )
         );
 
@@ -237,13 +238,28 @@ public class CollectionTradeService {
     }
 
     private TradeTarget toTradeTarget(
-            CollectionItem collectionItem
+            CollectionTradeRequest request
     ) {
+        CollectionItem collectionItem =
+                request.getCollectionItem();
+
         return TradeTarget.of(
                 TradeKind.COLLECTION,
+                toTradeDealType(request),
                 collectionItem.getCollectionItemId(),
                 collectionItem.getTitle()
         );
     }
 
+    private TradeDealType toTradeDealType(
+            CollectionTradeRequest request
+    ) {
+        return switch (request.getTradeType()) {
+            case RENTAL ->
+                    TradeDealType.COLLECTION_RENTAL;
+
+            case EXCHANGE ->
+                    TradeDealType.EXCHANGE;
+        };
+    }
 }

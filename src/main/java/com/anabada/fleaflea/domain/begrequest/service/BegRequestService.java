@@ -26,6 +26,7 @@ import com.anabada.fleaflea.domain.trade.domain.Trade;
 import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeDealType;
 import com.anabada.fleaflea.domain.trade.event.TradeKind;
 import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
@@ -273,6 +274,7 @@ public class BegRequestService {
     private TradeTarget toTradeTarget(CollectionItem collectionItem) {
         return TradeTarget.of(
                 TradeKind.BEG,
+                TradeDealType.BEG,
                 collectionItem.getCollectionItemId(),
                 collectionItem.getTitle()
         );

@@ -20,6 +20,7 @@ import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestSummaryRespons
 import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeDealType;
 import com.anabada.fleaflea.domain.trade.event.TradeKind;
 import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
@@ -111,7 +112,7 @@ public class TradeRequestService {
                         requester.getMemberId(),
                         item.getSeller().getMemberId(),
                         requester.getNickname(),
-                        toTradeTarget(item)
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -162,7 +163,6 @@ public class TradeRequestService {
 
         tradeRequest.accept(memberId);
 
-        // 선택한 요청을 ACCEPTED로 만들고 나머지 PENDING 요청을 전부 REJECTED로 변경
         tradeRequestRepository.rejectOtherPendingRequests(
                 tradeRequest.getItem().getItemId(),
                 tradeRequest.getTradeRequestId(),
@@ -178,7 +178,7 @@ public class TradeRequestService {
                         tradeRequest.getRequester().getMemberId(),
                         seller.getMemberId(),
                         seller.getNickname(),
-                        toTradeTarget(tradeRequest.getItem())
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -202,7 +202,7 @@ public class TradeRequestService {
                         tradeRequest.getRequester().getMemberId(),
                         seller.getMemberId(),
                         seller.getNickname(),
-                        toTradeTarget(tradeRequest.getItem())
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -226,7 +226,7 @@ public class TradeRequestService {
                                 .getSeller()
                                 .getMemberId(),
                         tradeRequest.getRequester().getNickname(),
-                        toTradeTarget(tradeRequest.getItem())
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -262,7 +262,7 @@ public class TradeRequestService {
                         confirmer.getMemberId(),
                         counterparty.getMemberId(),
                         confirmer.getNickname(),
-                        toTradeTarget(tradeRequest.getItem())
+                        toTradeTarget(tradeRequest)
                 )
         );
 
@@ -334,12 +334,30 @@ public class TradeRequestService {
     }
 
     private TradeTarget toTradeTarget(
-            Item item
+            TradeRequest tradeRequest
     ) {
+        Item item = tradeRequest.getItem();
+
         return TradeTarget.of(
                 TradeKind.ITEM,
+                toTradeDealType(item),
                 item.getItemId(),
                 item.getTitle()
         );
+    }
+
+    private TradeDealType toTradeDealType(
+            Item item
+    ) {
+        return switch (item.getTradeType()) {
+            case SALE ->
+                    TradeDealType.SALE;
+
+            case GIVEAWAY ->
+                    TradeDealType.GIVEAWAY;
+
+            case RENTAL ->
+                    TradeDealType.ITEM_RENTAL;
+        };
     }
 }
