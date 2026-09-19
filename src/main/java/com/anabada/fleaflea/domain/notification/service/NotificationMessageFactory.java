@@ -79,6 +79,13 @@ public final class NotificationMessageFactory {
                 + " 구걸 요청을 취소했습니다.";
     }
 
+    public static String begCompleted(
+            String targetName
+    ) {
+        return targetName
+                + " 구걸 거래가 완료되었습니다.";
+    }
+
     public static String friendRequested(
             String requesterNickname
     ) {
