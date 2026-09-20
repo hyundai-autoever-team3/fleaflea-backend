@@ -66,7 +66,7 @@ public class MemberAuthController {
     }
 
     @PostMapping("/reissue")
-    @Operation(summary = "Access Token 재발급", description = "HttpOnly Cookie의 Refresh Token을 사용하여 새로운 Access Token을 발급합니다.")
+    @Operation(summary = "Access Token 재발급", description = "HttpOnly Cookie의 Refresh Token을 사용해 새로운 Access Token을 발급합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Access Token 재발급 성공",
                     content = @Content(schema = @Schema(implementation = ReissueResponse.class))),
