@@ -16,6 +16,7 @@ public record TradeRequestListResponse(
         TradeRequestStatus status,
         MemberSummaryResponse owner,
         MemberSummaryResponse requester,
+        String imageUrl,
         LocalDateTime createdAt
 ) {
 }
