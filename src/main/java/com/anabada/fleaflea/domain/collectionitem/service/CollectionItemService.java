@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.collectionitem.service;
 
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemCreateRequest;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
+import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSummaryResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemAccessDeniedException;
@@ -66,13 +67,19 @@ public class CollectionItemService {
 
     public PageResponse<CollectionItemSummaryResponse> getMyCollectionItems(
             Long memberId,
+            CollectionItemSearchCondition condition,
             Pageable pageable
     ) {
         Member owner = getMember(memberId);
 
         return PageResponse.from(
                 collectionItemRepository
-                        .findAllByOwner(owner, pageable)
+                        .search(
+                                owner.getMemberId(),
+                                false,
+                                condition,
+                                pageable
+                        )
                         .map(this::toSummaryResponse)
         );
     }
@@ -80,6 +87,7 @@ public class CollectionItemService {
     public PageResponse<CollectionItemSummaryResponse> getMemberCollectionItems(
             Long requesterId,
             Long ownerId,
+            CollectionItemSearchCondition condition,
             Pageable pageable
     ) {
         Member requester = getMember(requesterId);
@@ -92,8 +100,10 @@ public class CollectionItemService {
 
         return PageResponse.from(
                 collectionItemRepository
-                        .findAllByOwnerAndIsPublicTrue(
-                                owner,
+                        .search(
+                                owner.getMemberId(),
+                                true,
+                                condition,
                                 pageable
                         )
                         .map(this::toSummaryResponse)

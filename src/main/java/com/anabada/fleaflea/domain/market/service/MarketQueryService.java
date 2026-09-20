@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.market.service;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
 import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
 import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
@@ -34,6 +35,7 @@ public class MarketQueryService {
     public PageResponse<MarketSummaryResponse> getMarkets(
             Long memberId,
             String scope,
+            MarketSearchCondition condition,
             Pageable pageable
     ) {
         if (!"joined".equals(scope)) {
@@ -45,8 +47,9 @@ public class MarketQueryService {
 
         return PageResponse.from(
                 marketMemberRepository
-                        .findMarketSummariesByMemberId(
+                        .searchJoinedMarkets(
                                 member.getMemberId(),
+                                condition,
                                 pageable
                         )
                         .map(projection -> {
