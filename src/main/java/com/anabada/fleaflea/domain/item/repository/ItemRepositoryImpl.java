@@ -69,6 +69,6 @@ public class ItemRepositoryImpl implements ItemRepositoryCustom {
         if (keyword == null || keyword.isEmpty()) {
             return null;
         }
-        return item.title.lower().like(Expressions.asString("%" + keyword + "%").lower());
+        return item.title.containsIgnoreCase(keyword);
     }
 }
