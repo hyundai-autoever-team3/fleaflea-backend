@@ -73,4 +73,11 @@ public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long
             @Param("pendingStatus") TradeRequestStatus pendingStatus,
             @Param("rejectedStatus") TradeRequestStatus rejectedStatus
     );
+
+    @Query("""
+        select tr.item.itemId
+        from TradeRequest tr
+        where tr.tradeRequestId = :requestId
+        """)
+    Optional<Long> findItemIdByTradeRequestId(Long requestId);
 }
