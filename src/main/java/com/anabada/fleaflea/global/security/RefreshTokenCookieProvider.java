@@ -15,7 +15,7 @@ public class RefreshTokenCookieProvider {
         return ResponseCookie.from(COOKIE_NAME, refreshToken)
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Strict")
+                .sameSite("None")
                 .path(COOKIE_PATH)
                 .maxAge(MAX_AGE)
                 .build();
@@ -25,7 +25,7 @@ public class RefreshTokenCookieProvider {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Strict")
+                .sameSite("None")
                 .path(COOKIE_PATH)
                 .maxAge(Duration.ZERO)
                 .build();
