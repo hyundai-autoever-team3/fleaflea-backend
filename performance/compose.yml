@@ -1,0 +1,110 @@
+# Local performance measurement environment.
+#
+# Kept apart from the dev containers (fleaflea-local-db, fleaflea-local-s3) so
+# seed data and measurements never mix with day-to-day development data.
+#
+#   docker compose -f performance/compose.yml up -d
+#       PostgreSQL 16 (localhost:5435) + MinIO (localhost:9010, console 9011)
+#
+#   docker compose -f performance/compose.yml --profile app up -d --build
+#       + the backend built from the real Dockerfile with the EC2 limits
+#         (mem_limit 1g, -Xmx768m) on localhost:8081
+
+name: fleaflea-perf
+
+services:
+  postgres:
+    # Same image and default settings as deploy/ec2/compose.yml.
+    image: postgres:16
+    container_name: fleaflea-perf-db
+    # Docker Desktop을 다시 켜면 함께 올라온다. 멈추려면 stop 또는 down을 쓴다.
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fleaflea_db
+      POSTGRES_USER: postgres
+      # Matches the defaults in application.yaml, so bootRun only needs DB_URL.
+      POSTGRES_PASSWORD: password
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fleaflea_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: fleaflea-perf-s3
+    restart: unless-stopped
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: k6local
+      MINIO_ROOT_PASSWORD: k6localpass123
+      # The app container's S3 client uses virtual-hosted-style URLs
+      # (fleaflea-local.minio). MINIO_DOMAIN plus the alias below resolve them.
+      MINIO_DOMAIN: minio
+    ports:
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      default:
+        aliases:
+          - fleaflea-local.minio
+
+  minio-init:
+    image: quay.io/minio/mc
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        until mc alias set local http://minio:9000 k6local k6localpass123 >/dev/null 2>&1;
+        do sleep 1; done;
+        mc mb --ignore-existing local/fleaflea-local
+    restart: "no"
+
+  app:
+    profiles: [app]
+    build:
+      context: ..
+    container_name: fleaflea-perf-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/fleaflea_db
+      SPRING_PROFILES_ACTIVE: perf
+      # Heap matches the Dockerfile default; GC log goes to build/perf on the host.
+      JAVA_OPTS: -Xms256m -Xmx768m -Xlog:gc*:file=/perf/gc.log:time,uptime,level,tags
+      S3_BUCKET: fleaflea-local
+      AWS_REGION: ap-northeast-2
+      AWS_ACCESS_KEY_ID: k6local
+      AWS_SECRET_ACCESS_KEY: k6localpass123
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+      AWS_EC2_METADATA_DISABLED: "true"
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ../build/perf:/perf
+    # Same memory limit as deploy/ec2/compose.yml. Set cpus to the EC2 vCPU count.
+    mem_limit: 1g
+    cpus: 2
+
+volumes:
+  postgres_data:
+    name: fleaflea_perf_postgres_data
+  minio_data:
+    name: fleaflea_perf_minio_data

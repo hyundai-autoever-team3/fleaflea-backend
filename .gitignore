@@ -36,3 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 performance/k6/results/
+performance/k6/data/
+
+### Local environment ###
+.env
+.env.*
+!.env.example

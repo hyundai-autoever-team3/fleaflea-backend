@@ -62,3 +62,49 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Local environment variables from .env (see .env.example). The file is optional:
+// CI and EC2 set real environment variables, and those always win over the file.
+def dotenvFile = file('.env')
+def dotenv = [:]
+if (dotenvFile.exists()) {
+	dotenvFile.eachLine { line ->
+		def entry = line.trim().replaceFirst(/^export\s+/, '')
+		if (!entry || entry.startsWith('#') || !entry.contains('=')) {
+			return
+		}
+		def (key, value) = entry.split('=', 2).collect { it.trim() }
+		if (value.length() >= 2 && value[0] == value[-1] && value[0] in ['"', "'"]) {
+			value = value[1..-2]
+		}
+		// An empty value (JWT_SECRET=) would override application.yaml defaults.
+		if (value && System.getenv(key) == null) {
+			dotenv[key] = value
+		}
+	}
+}
+
+['bootRun', 'test'].each { taskName ->
+	tasks.named(taskName) {
+		environment dotenv
+		if (dotenvFile.exists()) {
+			// Re-run tests when .env changes; hashed, so values are not stored.
+			inputs.file(dotenvFile)
+		}
+	}
+}
+
+// Local performance measurement: gradlew bootRun -Pperf
+// The settings live here, not in a profile file, so that nothing measurement
+// related ships in the deployed jar. On EC2 Nginx proxies /actuator publicly,
+// and these settings would expose heap and connection pool numbers there.
+tasks.named('bootRun') {
+	if (project.hasProperty('perf')) {
+		def perfDir = layout.buildDirectory.dir('perf').get().asFile
+		doFirst { perfDir.mkdirs() }
+		systemProperty 'management.endpoints.web.exposure.include', 'health,metrics'
+		// Server side p95/p99 per endpoint, to compare against k6's client side numbers.
+		systemProperty 'management.metrics.distribution.percentiles.[http.server.requests]', '0.95,0.99'
+		jvmArgs "-Xlog:gc*:file=${perfDir}/gc.log:time,uptime,level,tags"
+	}
+}

@@ -14,6 +14,10 @@ const paths = {
   'market-members': `/api/v1/markets/${__ENV.MARKET_ID || ''}/members?page=0&size=20`,
   'market-invitation': `/api/v1/markets/${__ENV.MARKET_ID || ''}/invitation`,
   'collection-trade': `/api/v1/collection-trade-requests/${__ENV.TRADE_REQUEST_ID || ''}`,
+  items: `/api/v1/markets/${__ENV.MARKET_ID || ''}/items?page=${__ENV.PAGE || 0}&size=20`,
+  'items-filter': `/api/v1/markets/${__ENV.MARKET_ID || ''}/items?page=${__ENV.PAGE || 0}&size=20&tradeType=SALE&status=AVAILABLE`,
+  'items-keyword': `/api/v1/markets/${__ENV.MARKET_ID || ''}/items?page=0&size=20&keyword=${__ENV.KEYWORD || 'rare'}`,
+  item: `/api/v1/items/${__ENV.ITEM_ID || ''}`,
 };
 
 if (!token) throw new Error('K6_TOKEN is required. Log in and pass the access token with -e K6_TOKEN=...');
@@ -22,6 +26,8 @@ if (endpoint === 'collection-item' && !__ENV.COLLECTION_ITEM_ID) throw new Error
 if (endpoint === 'member-collection-items' && !__ENV.OWNER_ID) throw new Error('OWNER_ID is required');
 if ((endpoint === 'market' || endpoint === 'market-members' || endpoint === 'market-invitation') && !__ENV.MARKET_ID) throw new Error('MARKET_ID is required');
 if (endpoint === 'collection-trade' && !__ENV.TRADE_REQUEST_ID) throw new Error('TRADE_REQUEST_ID is required');
+if ((endpoint === 'items' || endpoint === 'items-filter' || endpoint === 'items-keyword') && !__ENV.MARKET_ID) throw new Error('MARKET_ID is required');
+if (endpoint === 'item' && !__ENV.ITEM_ID) throw new Error('ITEM_ID is required');
 
 export const options = {
   vus: Number(__ENV.VUS || 1),
