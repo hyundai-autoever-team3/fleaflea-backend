@@ -67,7 +67,7 @@ public class TradeRequestService {
             Long memberId,
             TradeRequestCreateRequest request
     ) {
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findLockedByItemId(itemId)
                 .orElseThrow(ItemNotFoundException::new);
 
         validateMarketParticipant(
@@ -159,12 +159,14 @@ public class TradeRequestService {
             Long requestId,
             Long memberId
     ) {
+        Item item = findLockedItemByRequestId(requestId);
+
         TradeRequest tradeRequest = findTradeRequestOrThrow(requestId);
 
         tradeRequest.accept(memberId);
 
         tradeRequestRepository.rejectOtherPendingRequests(
-                tradeRequest.getItem().getItemId(),
+                item.getItemId(),
                 tradeRequest.getTradeRequestId(),
                 TradeRequestStatus.PENDING,
                 TradeRequestStatus.REJECTED
@@ -190,6 +192,8 @@ public class TradeRequestService {
             Long requestId,
             Long memberId
     ) {
+        findLockedItemByRequestId(requestId);
+
         TradeRequest tradeRequest = findTradeRequestOrThrow(requestId);
 
         tradeRequest.reject(memberId);
@@ -214,6 +218,8 @@ public class TradeRequestService {
             Long requestId,
             Long memberId
     ) {
+        findLockedItemByRequestId(requestId);
+
         TradeRequest tradeRequest = findTradeRequestOrThrow(requestId);
 
         tradeRequest.cancel(memberId);
@@ -238,6 +244,8 @@ public class TradeRequestService {
             Long requestId,
             Long memberId
     ) {
+        findLockedItemByRequestId(requestId);
+
         TradeRequest tradeRequest = findTradeRequestOrThrow(requestId);
 
         tradeRequest.confirmCompletion(memberId);
@@ -267,6 +275,14 @@ public class TradeRequestService {
         );
 
         return TradeRequestStatusResponse.from(tradeRequest);
+    }
+
+    private Item findLockedItemByRequestId(Long requestId) {
+        Long itemId = tradeRequestRepository.findItemIdByTradeRequestId(requestId)
+                .orElseThrow(TradeRequestNotFoundException::new);
+
+        return itemRepository.findLockedByItemId(itemId)
+                .orElseThrow(ItemNotFoundException::new);
     }
 
     private TradeRequest findTradeRequestOrThrow(Long requestId) {
