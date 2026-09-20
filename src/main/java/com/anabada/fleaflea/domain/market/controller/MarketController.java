@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
 import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 import com.anabada.fleaflea.domain.market.service.MarketService;
 import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
@@ -87,6 +88,8 @@ public class MarketController {
             )
             @RequestParam(defaultValue = "joined") String scope,
 
+            @ParameterObject MarketSearchCondition condition,
+
             @ParameterObject
             @PageableDefault(
                     size = 20,
@@ -98,6 +101,7 @@ public class MarketController {
                 marketQueryService.getMarkets(
                         memberId,
                         scope,
+                        condition,
                         pageable
                 );
 

@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.collectionitem.controller;
 
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemCreateRequest;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
+import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSummaryResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
 import com.anabada.fleaflea.domain.collectionitem.service.CollectionItemService;
@@ -62,6 +63,8 @@ public class CollectionItemController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
+            @ParameterObject CollectionItemSearchCondition condition,
+
             @ParameterObject
             @PageableDefault(
                     size = 20,
@@ -72,6 +75,7 @@ public class CollectionItemController {
         return ResponseEntity.ok(
                 collectionItemService.getMyCollectionItems(
                         memberId,
+                        condition,
                         pageable
                 )
         );
@@ -86,6 +90,8 @@ public class CollectionItemController {
 
             @PathVariable Long ownerId,
 
+            @ParameterObject CollectionItemSearchCondition condition,
+
             @ParameterObject
             @PageableDefault(
                     size = 20,
@@ -97,6 +103,7 @@ public class CollectionItemController {
                 collectionItemService.getMemberCollectionItems(
                         requesterId,
                         ownerId,
+                        condition,
                         pageable
                 )
         );
