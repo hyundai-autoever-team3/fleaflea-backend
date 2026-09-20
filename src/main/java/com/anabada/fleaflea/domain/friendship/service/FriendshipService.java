@@ -32,10 +32,7 @@ public class FriendshipService {
     @Transactional(readOnly = true)
     public List<FriendshipResponse> getReceivedRequests(Long memberId) {
         List<Friendship> friendships =
-                friendshipRepository.findByAddressee_MemberIdAndStatus(
-                        memberId,
-                        FriendshipStatus.PENDING
-                );
+                friendshipRepository.findReceivedRequests(memberId);
 
         return friendships.stream()
                 .map(friendship -> {
@@ -59,10 +56,7 @@ public class FriendshipService {
     @Transactional(readOnly = true)
     public List<FriendshipResponse> getSentRequests(Long memberId) {
         List<Friendship> friendships =
-                friendshipRepository.findByRequester_MemberIdAndStatus(
-                        memberId,
-                        FriendshipStatus.PENDING
-                );
+                friendshipRepository.findSentRequests(memberId);
 
         return friendships.stream()
                 .map(friendship -> {
@@ -86,10 +80,7 @@ public class FriendshipService {
     @Transactional(readOnly = true)
     public List<FriendshipResponse> getMyFriends(Long memberId) {
         List<Friendship> friendships =
-                friendshipRepository.findByFriendships(
-                        memberId,
-                        FriendshipStatus.ACCEPTED
-                );
+                friendshipRepository.findFriends(memberId);
 
         return friendships.stream()
                 .map(friendship -> {
