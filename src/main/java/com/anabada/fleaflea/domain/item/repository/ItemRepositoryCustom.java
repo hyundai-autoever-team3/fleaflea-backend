@@ -1,13 +1,13 @@
 package com.anabada.fleaflea.domain.item.repository;
 
-import com.anabada.fleaflea.domain.item.domain.Item;
 import com.anabada.fleaflea.domain.item.domain.ItemStatus;
 import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
+import com.anabada.fleaflea.domain.item.dto.ItemSummaryProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ItemRepositoryCustom {
-    Page<Item> searchInMarket(
+    Page<ItemSummaryProjection> searchInMarket(
             Long marketId,
             ItemTradeType tradeType,
             ItemStatus status,

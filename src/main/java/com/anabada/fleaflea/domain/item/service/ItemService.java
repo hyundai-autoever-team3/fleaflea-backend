@@ -133,9 +133,9 @@ public class ItemService {
                         keyword,
                         pageable
                 )
-                .map(item -> ItemSummaryResponse.of(
-                        item,
-                        imageService.getUrl(item.getImageKey())
+                .map(projection -> ItemSummaryResponse.of(
+                        projection,
+                        imageService.getUrl(projection.imageKey())
                 ));
 
         return PageResponse.from(items);

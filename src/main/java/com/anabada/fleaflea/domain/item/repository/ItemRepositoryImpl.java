@@ -1,10 +1,10 @@
 package com.anabada.fleaflea.domain.item.repository;
 
-import com.anabada.fleaflea.domain.item.domain.Item;
 import com.anabada.fleaflea.domain.item.domain.ItemStatus;
 import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
+import com.anabada.fleaflea.domain.item.dto.ItemSummaryProjection;
+import com.anabada.fleaflea.domain.item.dto.QItemSummaryProjection;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class ItemRepositoryImpl implements ItemRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Item> searchInMarket(
+    public Page<ItemSummaryProjection> searchInMarket(
             Long marketId,
             ItemTradeType tradeType,
             ItemStatus status,
@@ -39,8 +39,17 @@ public class ItemRepositoryImpl implements ItemRepositoryCustom {
         };
 
         // 정렬은 idx_items_market_created_at의 컬럼 순서와 같아야 첫 페이지를 20건만 읽는다.
-        List<Item> content = queryFactory
-                .selectFrom(item)
+        List<ItemSummaryProjection> content = queryFactory
+                .select(new QItemSummaryProjection(
+                        item.itemId,
+                        item.title,
+                        item.tradeType,
+                        item.price,
+                        item.status,
+                        item.imageKey,
+                        item.createdAt
+                ))
+                .from(item)
                 .where(conditions)
                 .orderBy(item.createdAt.desc(), item.itemId.desc())
                 .offset(pageable.getOffset())
@@ -64,7 +73,6 @@ public class ItemRepositoryImpl implements ItemRepositoryCustom {
         return status == null ? null : item.status.eq(status);
     }
 
-    // 기존 쿼리와 같이 DB의 lower()로 대소문자를 무시하고, 와일드카드(%, _)는 이스케이프하지 않는다.
     private BooleanExpression titleContains(String keyword) {
         if (keyword == null || keyword.isEmpty()) {
             return null;
