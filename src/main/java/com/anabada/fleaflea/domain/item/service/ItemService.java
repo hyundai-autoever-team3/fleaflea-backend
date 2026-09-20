@@ -29,7 +29,6 @@ import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,17 +122,11 @@ public class ItemService {
         validateMarketExists(marketId);
         validateMarketParticipant(marketId, memberId);
 
-        PageRequest pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        Sort.Order.desc("createdAt"),
-                        Sort.Order.desc("itemId")
-                )
-        );
+        // 정렬(최신 등록순)은 인덱스와 맞춰 리포지토리 쿼리에 고정되어 있다.
+        PageRequest pageable = PageRequest.of(page, size);
 
         Page<ItemSummaryResponse> items = itemRepository
-                .findAllByMarketId(
+                .searchInMarket(
                         marketId,
                         tradeType,
                         status,
