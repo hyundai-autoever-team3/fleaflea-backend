@@ -80,7 +80,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:5175"
+                "http://localhost:5175",
+                "https://flea-aaw6.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
