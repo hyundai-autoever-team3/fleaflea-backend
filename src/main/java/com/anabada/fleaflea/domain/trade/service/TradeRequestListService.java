@@ -51,7 +51,9 @@ public class TradeRequestListService {
                     "ITEM", request.getTradeRequestId(), request.getItem().getItemId(),
                     request.getItem().getTitle(), request.getItem().getTradeType().name(),
                     request.getStatus(), member(request.getItem().getSeller()),
-                    member(request.getRequester()), request.getCreatedAt()));
+                    member(request.getRequester()),
+                    images.getUrl(request.getItem().getImageKey()),
+                    request.getCreatedAt()));
         }
         for (CollectionTradeRequest request : collections) {
             result.add(new TradeRequestListResponse(
@@ -59,7 +61,9 @@ public class TradeRequestListService {
                     request.getCollectionItem().getCollectionItemId(),
                     request.getCollectionItem().getTitle(), request.getTradeType().name(),
                     request.getStatus(), member(request.getCollectionItem().getOwner()),
-                    member(request.getRequester()), request.getCreatedAt()));
+                    member(request.getRequester()),
+                    images.getUrl(request.getCollectionItem().getImageKey()),
+                    request.getCreatedAt()));
         }
 
         for (BegRequest request : begs) {
@@ -72,6 +76,7 @@ public class TradeRequestListService {
                     request.getStatus().toTradeRequestStatus(),
                     member(request.getCollectionItem().getOwner()),
                     member(request.getApplicant()),
+                    images.getUrl(request.getCollectionItem().getImageKey()),
                     request.getCreatedAt()
             ));
         }
