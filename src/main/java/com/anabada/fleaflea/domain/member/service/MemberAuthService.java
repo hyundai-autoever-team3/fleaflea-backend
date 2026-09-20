@@ -2,15 +2,14 @@ package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
-import com.anabada.fleaflea.domain.member.dto.LoginResponse;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
+import com.anabada.fleaflea.domain.member.dto.TokenPair;
 import com.anabada.fleaflea.domain.member.exception.InvalidLoginException;
 import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
-import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueRequest;
 import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepository;
@@ -55,7 +54,7 @@ public class MemberAuthService {
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public TokenPair login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -87,21 +86,26 @@ public class MemberAuthService {
             );
         }
 
-        return new LoginResponse(
+        return new TokenPair(
                 accessToken,
                 refreshToken
         );
     }
 
     @Transactional
-    public ReissueResponse reissue(ReissueRequest request) {
-        String refreshToken = request.refreshToken();
-        if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
+    public ReissueResponse reissue(String refreshToken) {
+        if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new InvalidTokenException();
         }
         RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(InvalidTokenException::new);
+        if (savedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new InvalidTokenException();
+        }
         Long memberId = Long.valueOf(jwtTokenProvider.getMemberId(refreshToken));
+        if (!savedToken.getMemberId().equals(memberId)) {
+            throw new InvalidTokenException();
+        }
         String accessToken = jwtTokenProvider.createAccessToken(memberId);
         return new ReissueResponse(accessToken);
 
