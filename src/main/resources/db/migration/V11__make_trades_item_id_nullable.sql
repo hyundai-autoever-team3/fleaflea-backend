@@ -1,2 +1,2 @@
 ALTER TABLE trades
-    MODIFY COLUMN item_id BIGINT NULL;
+    ALTER COLUMN item_id DROP NOT NULL;
