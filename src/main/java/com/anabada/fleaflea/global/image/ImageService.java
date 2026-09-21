@@ -115,9 +115,7 @@ public class ImageService {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || !TransactionSynchronizationManager.isSynchronizationActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new IllegalStateException(
-                    "트랜잭션 완료 후 이미지 삭제는 쓰기 가능한 DB 트랜잭션 안에서 호출해야 합니다."
-            );
+            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
         }
 
         TransactionSynchronizationManager.registerSynchronization(
@@ -239,9 +237,7 @@ public class ImageService {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || !TransactionSynchronizationManager.isSynchronizationActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new IllegalStateException(
-                    "이미지 교체는 쓰기 가능한 DB 트랜잭션 안에서 호출해야 합니다."
-            );
+            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
         }
 
         ImageReplacement replacement =

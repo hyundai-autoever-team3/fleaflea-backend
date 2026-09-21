@@ -221,10 +221,13 @@ class ImageServiceTest {
     void deleteAfterCommitRejectsMissingTransaction() {
         String key = "items/12345678-1234-1234-1234-123456789abc.png";
 
-        assertThrows(
-                IllegalStateException.class,
+        ImageException exception = assertThrows(
+                ImageException.class,
                 () -> imageService.deleteAfterCommit(key)
         );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
 
         verifyNoInteractions(s3Client);
     }
@@ -388,14 +391,17 @@ class ImageServiceTest {
     void replaceRejectsMissingTransaction() throws Exception {
         MockMultipartFile file = createPngFile();
 
-        assertThrows(
-                IllegalStateException.class,
+        ImageException exception = assertThrows(
+                ImageException.class,
                 () -> imageService.replace(
                         "items/12345678-1234-1234-1234-123456789abc.png",
                         file,
                         ImageCategory.ITEM
                 )
         );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
 
         verifyNoInteractions(s3Client);
     }
