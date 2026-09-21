@@ -51,7 +51,7 @@ public record BeggingDetailResponse(
     public static BeggingDetailResponse from(BegRequest begRequest) {
 
         CollectionItem collectionItem = begRequest.getCollectionItem();
-        Member owner = collectionItem.getOwner();
+        Member owner = begRequest.getOwner();
         Member applicant = begRequest.getApplicant();
 
         return new BeggingDetailResponse(
