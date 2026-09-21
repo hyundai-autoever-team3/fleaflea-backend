@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.trade.repository;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
+import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,11 +26,19 @@ public interface CollectionTradeRequestRepository extends JpaRepository<Collecti
                 request.collectionItem.collectionItemId = :collectionItemId
                 or request.offerCollectionItem.collectionItemId = :collectionItemId
             )
-            and request.status in :statuses
+            and (
+                request.status in :statuses
+                or (
+                    request.status = :completedStatus
+                    and request.tradeType = :rentalType
+                )
+            )
             """)
-    void deleteAllByCollectionItemIdAndStatusIn(
+    void deleteAllDeletableByCollectionItemId(
             @Param("collectionItemId") Long collectionItemId,
-            @Param("statuses") Collection<TradeRequestStatus> statuses
+            @Param("statuses") Collection<TradeRequestStatus> statuses,
+            @Param("completedStatus") TradeRequestStatus completedStatus,
+            @Param("rentalType") CollectionTradeType rentalType
     );
 
     boolean existsByRequesterAndCollectionItemAndStatusIn(
