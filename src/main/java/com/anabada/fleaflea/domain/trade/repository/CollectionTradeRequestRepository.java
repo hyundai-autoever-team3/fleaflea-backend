@@ -7,6 +7,9 @@ import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
 
@@ -14,6 +17,20 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CollectionTradeRequestRepository extends JpaRepository<CollectionTradeRequest, Long> {
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            delete from CollectionTradeRequest request
+            where (
+                request.collectionItem.collectionItemId = :collectionItemId
+                or request.offerCollectionItem.collectionItemId = :collectionItemId
+            )
+            and request.status in :statuses
+            """)
+    void deleteAllByCollectionItemIdAndStatusIn(
+            @Param("collectionItemId") Long collectionItemId,
+            @Param("statuses") Collection<TradeRequestStatus> statuses
+    );
 
     boolean existsByRequesterAndCollectionItemAndStatusIn(
             Member requester,
