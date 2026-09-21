@@ -129,7 +129,11 @@ public class TradeRequest extends BaseTimeEntity {
         requesterConfirmed = true;
         status = TradeRequestStatus.COMPLETED;
 
-        item.completeTrade();
+        if (item.getTradeType() == ItemTradeType.RENTAL) {
+            item.completeRental();
+        } else {
+            item.completeTrade();
+        }
     }
 
     public void validateParticipant(Long memberId) {
