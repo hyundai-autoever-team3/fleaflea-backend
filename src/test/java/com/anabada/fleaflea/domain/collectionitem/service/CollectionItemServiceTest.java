@@ -8,6 +8,7 @@ import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
+import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.fixture.MemberFixture;
@@ -78,13 +79,15 @@ class CollectionItemServiceTest {
         service.deleteCollectionItem(MEMBER_ID, COLLECTION_ITEM_ID);
 
         verify(collectionTradeRequestRepository)
-                .deleteAllByCollectionItemIdAndStatusIn(
+                .deleteAllDeletableByCollectionItemId(
                         COLLECTION_ITEM_ID,
                         List.of(
                                 TradeRequestStatus.PENDING,
                                 TradeRequestStatus.REJECTED,
                                 TradeRequestStatus.CANCELLED
-                        )
+                        ),
+                        TradeRequestStatus.COMPLETED,
+                        CollectionTradeType.RENTAL
                 );
         verify(begRequestRepository)
                 .deleteAllByCollectionItemIdAndStatusIn(

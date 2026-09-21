@@ -29,6 +29,7 @@ import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepositor
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
+import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 
@@ -209,13 +210,15 @@ public class CollectionItemService {
 
         String imageKey = collectionItem.getImageKey();
 
-        collectionTradeRequestRepository.deleteAllByCollectionItemIdAndStatusIn(
+        collectionTradeRequestRepository.deleteAllDeletableByCollectionItemId(
                 collectionItemId,
                 List.of(
                         TradeRequestStatus.PENDING,
                         TradeRequestStatus.REJECTED,
                         TradeRequestStatus.CANCELLED
-                )
+                ),
+                TradeRequestStatus.COMPLETED,
+                CollectionTradeType.RENTAL
         );
         begRequestRepository.deleteAllByCollectionItemIdAndStatusIn(
                 collectionItemId,
