@@ -49,6 +49,9 @@ dependencies {
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:signin'
 
+	// WebP 이미지 검증
+	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.14.0'
+
 	// Actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 

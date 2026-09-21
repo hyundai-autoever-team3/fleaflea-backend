@@ -34,7 +34,7 @@ public class ImageService {
     private static final Pattern IMAGE_KEY_PATTERN = Pattern.compile(
             "^(profiles|collection-items|items|markets)/"
                     + "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
-                    + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png)$"
+                    + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$"
     );
 
     private final S3Client s3Client;
@@ -63,9 +63,12 @@ public class ImageService {
 
         byte[] bytes = readBytes(file);
         String extension = detectImageExtension(bytes);
-        String contentType = extension.equals("jpg")
-                ? "image/jpeg"
-                : "image/png";
+        String contentType = switch (extension) {
+            case "jpg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "webp" -> "image/webp";
+            default -> throw new ImageException(ErrorCode.INVALID_IMAGE);
+        };
 
         String imageKey = category.getPrefix()
                 + "/" + UUID.randomUUID() + "." + extension;
@@ -176,6 +179,7 @@ public class ImageService {
                 String extension = switch (format) {
                     case "jpeg", "jpg" -> "jpg";
                     case "png" -> "png";
+                    case "webp" -> "webp";
                     default -> throw new ImageException(
                             ErrorCode.INVALID_IMAGE);
                 };
