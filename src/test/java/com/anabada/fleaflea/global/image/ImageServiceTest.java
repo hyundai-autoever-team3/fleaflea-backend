@@ -160,6 +160,76 @@ class ImageServiceTest {
     }
 
     @Test
+    void deleteAfterCommitDeletesImageOnlyAfterCommit() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        try {
+            imageService.deleteAfterCommit(key);
+
+            verify(s3Client, never()).deleteObject(
+                    org.mockito.ArgumentMatchers
+                            .<Consumer<DeleteObjectRequest.Builder>>any()
+            );
+
+            var synchronizations =
+                    TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).hasSize(1);
+
+            synchronizations.getFirst().afterCompletion(
+                    TransactionSynchronization.STATUS_COMMITTED
+            );
+
+            ArgumentCaptor<Consumer<DeleteObjectRequest.Builder>> captor =
+                    ArgumentCaptor.captor();
+            verify(s3Client).deleteObject(captor.capture());
+
+            DeleteObjectRequest.Builder builder = DeleteObjectRequest.builder();
+            captor.getValue().accept(builder);
+            assertThat(builder.build().key()).isEqualTo(key);
+        } finally {
+            TransactionSynchronizationManager.clear();
+        }
+    }
+
+    @Test
+    void deleteAfterCommitKeepsImageAfterRollback() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        try {
+            imageService.deleteAfterCommit(key);
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .getFirst()
+                    .afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+
+            verify(s3Client, never()).deleteObject(
+                    org.mockito.ArgumentMatchers
+                            .<Consumer<DeleteObjectRequest.Builder>>any()
+            );
+        } finally {
+            TransactionSynchronizationManager.clear();
+        }
+    }
+
+    @Test
+    void deleteAfterCommitRejectsMissingTransaction() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> imageService.deleteAfterCommit(key)
+        );
+
+        verifyNoInteractions(s3Client);
+    }
+
+    @Test
     void uploadPreservesS3FailureCause() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ImageIO.write(

@@ -202,8 +202,7 @@ public class ItemService {
         String imageKey = item.getImageKey();
 
         itemRepository.delete(item);
-
-        imageService.delete(imageKey);
+        imageService.deleteAfterCommit(imageKey);
     }
 
     private void validateMarketParticipant(

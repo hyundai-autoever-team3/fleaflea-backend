@@ -203,10 +203,7 @@ public class MarketService {
 
         marketMemberRepository.deleteAllByMarket(market);
         marketRepository.delete(market);
-
-        if (coverImageKey != null) {
-            imageService.delete(coverImageKey);
-        }
+        imageService.deleteAfterCommit(coverImageKey);
     }
 
     private Market getMarket(Long marketId) {
