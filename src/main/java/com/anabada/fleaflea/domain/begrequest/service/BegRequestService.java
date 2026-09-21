@@ -33,7 +33,7 @@ import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeTarget;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.anabada.fleaflea.domain.notification.notifier.TradeNotifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +45,7 @@ public class BegRequestService {
     private final MemberRepository memberRepository;
     private final CollectionItemRepository collectionItemRepository;
     private final TradeRepository tradeRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final TradeNotifier tradeNotifier;
 
     @Transactional
     public BeggingResponse createBegging(
@@ -83,7 +83,7 @@ public class BegRequestService {
         );
         begRequestRepository.save(begRequest);
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRequestedEvent.of(
                         begRequest.getBegRequestId(),
                         member.getMemberId(),
@@ -134,7 +134,7 @@ public class BegRequestService {
 
         Member owner = begRequest.getOwner();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
                         begRequest.getBegRequestId(),
                         begRequest.getApplicant()
@@ -168,7 +168,7 @@ public class BegRequestService {
 
         Member owner = begRequest.getOwner();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
                         begRequest.getBegRequestId(),
                         begRequest.getApplicant()
@@ -199,7 +199,7 @@ public class BegRequestService {
 
         begRequest.cancel();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCancelledEvent.of(
                         begRequest.getBegRequestId(),
                         begRequest.getApplicant()
@@ -253,7 +253,7 @@ public class BegRequestService {
                 )
         );
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCompletedEvent.of(
                         begRequest.getBegRequestId(),
                         applicant.getMemberId(),

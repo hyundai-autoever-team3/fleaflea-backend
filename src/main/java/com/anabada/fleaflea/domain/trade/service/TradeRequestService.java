@@ -18,6 +18,7 @@ import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestDetailResponse
 import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestStatusResponse;
 import com.anabada.fleaflea.domain.trade.dto.response.TradeRequestSummaryResponse;
 import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeAutoRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeDealType;
@@ -34,7 +35,7 @@ import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.anabada.fleaflea.domain.notification.notifier.TradeNotifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class TradeRequestService {
     private final MarketMemberRepository marketMemberRepository;
     private final TradeRepository tradeRepository;
     private final ImageService imageService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final TradeNotifier tradeNotifier;
 
     @Transactional
     public TradeRequestCreateResponse createTradeRequest(
@@ -106,7 +107,7 @@ public class TradeRequestService {
 
         tradeRequestRepository.save(tradeRequest);
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRequestedEvent.of(
                         tradeRequest.getTradeRequestId(),
                         requester.getMemberId(),
@@ -165,6 +166,13 @@ public class TradeRequestService {
 
         tradeRequest.accept(memberId);
 
+        List<TradeRequest> autoRejectedRequests = tradeRequestRepository
+                .findPendingRequestsToAutoReject(
+                        item.getItemId(),
+                        tradeRequest.getTradeRequestId(),
+                        TradeRequestStatus.PENDING
+                );
+
         tradeRequestRepository.rejectOtherPendingRequests(
                 item.getItemId(),
                 tradeRequest.getTradeRequestId(),
@@ -174,13 +182,25 @@ public class TradeRequestService {
 
         Member seller = tradeRequest.getItem().getSeller();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
                         tradeRequest.getTradeRequestId(),
                         tradeRequest.getRequester().getMemberId(),
                         seller.getMemberId(),
                         seller.getNickname(),
                         toTradeTarget(tradeRequest)
+                )
+        );
+
+        autoRejectedRequests.forEach(autoRejected ->
+                tradeNotifier.notifyOf(
+                        TradeAutoRejectedEvent.of(
+                                autoRejected.getTradeRequestId(),
+                                autoRejected.getRequester().getMemberId(),
+                                seller.getMemberId(),
+                                seller.getNickname(),
+                                toTradeTarget(autoRejected)
+                        )
                 )
         );
 
@@ -200,7 +220,7 @@ public class TradeRequestService {
 
         Member seller = tradeRequest.getItem().getSeller();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
                         tradeRequest.getTradeRequestId(),
                         tradeRequest.getRequester().getMemberId(),
@@ -224,7 +244,7 @@ public class TradeRequestService {
 
         tradeRequest.cancel(memberId);
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCancelledEvent.of(
                         tradeRequest.getTradeRequestId(),
                         tradeRequest.getRequester().getMemberId(),
@@ -264,7 +284,7 @@ public class TradeRequestService {
                 memberId
         );
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCompletedEvent.of(
                         tradeRequest.getTradeRequestId(),
                         confirmer.getMemberId(),

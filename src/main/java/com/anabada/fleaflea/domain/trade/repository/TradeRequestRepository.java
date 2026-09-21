@@ -11,15 +11,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long> {
 
     @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
-    java.util.List<TradeRequest> findByItem_Seller_MemberIdOrderByCreatedAtDesc(Long sellerId);
+    List<TradeRequest> findByItem_Seller_MemberIdOrderByCreatedAtDesc(Long sellerId);
 
     @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
-    java.util.List<TradeRequest> findByRequester_MemberIdOrderByCreatedAtDesc(Long requesterId);
+    List<TradeRequest> findByRequester_MemberIdOrderByCreatedAtDesc(Long requesterId);
 
     @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
     Optional<TradeRequest> findWithDetailsByTradeRequestId(Long tradeRequestId);
@@ -57,6 +58,20 @@ public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long
             Long itemId,
             Long memberId,
             TradeRequestStatus status
+    );
+
+    @Query("""
+        select tradeRequest
+        from TradeRequest tradeRequest
+        join fetch tradeRequest.requester
+        where tradeRequest.item.itemId = :itemId
+          and tradeRequest.tradeRequestId <> :acceptedRequestId
+          and tradeRequest.status = :pendingStatus
+        """)
+    List<TradeRequest> findPendingRequestsToAutoReject(
+            @Param("itemId") Long itemId,
+            @Param("acceptedRequestId") Long acceptedRequestId,
+            @Param("pendingStatus") TradeRequestStatus pendingStatus
     );
 
     boolean existsByItem_CollectionItem_CollectionItemIdAndStatus(

@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.notification.listener;
+package com.anabada.fleaflea.domain.notification.notifier;
 
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
 import com.anabada.fleaflea.domain.notification.domain.NotificationType;
@@ -7,19 +7,14 @@ import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import com.anabada.fleaflea.domain.poke.event.MemberPokedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-public class PokeNotificationListener {
+public class PokeNotifier {
 
     private final NotificationService notificationService;
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    public void handle(
+    public void notifyOf(
             MemberPokedEvent event
     ) {
         notificationService.createNotification(

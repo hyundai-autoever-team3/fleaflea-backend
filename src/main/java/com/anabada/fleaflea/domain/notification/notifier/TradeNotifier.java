@@ -1,32 +1,26 @@
-package com.anabada.fleaflea.domain.notification.listener;
+package com.anabada.fleaflea.domain.notification.notifier;
 
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
 import com.anabada.fleaflea.domain.notification.domain.NotificationType;
 import com.anabada.fleaflea.domain.notification.service.NotificationMessageFactory;
 import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import com.anabada.fleaflea.domain.trade.event.TradeAcceptedEvent;
+import com.anabada.fleaflea.domain.trade.event.TradeAutoRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCancelledEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeKind;
 import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-public class TradeNotificationListener {
+public class TradeNotifier {
 
     private final NotificationService notificationService;
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    @Async("tradeNotificationExecutor")
-    public void handle(
+    public void notifyOf(
             TradeRequestedEvent event
     ) {
         notificationService.createNotification(
@@ -38,11 +32,7 @@ public class TradeNotificationListener {
         );
     }
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    @Async("tradeNotificationExecutor")
-    public void handle(
+    public void notifyOf(
             TradeAcceptedEvent event
     ) {
         notificationService.createNotification(
@@ -54,11 +44,7 @@ public class TradeNotificationListener {
         );
     }
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    @Async("tradeNotificationExecutor")
-    public void handle(
+    public void notifyOf(
             TradeRejectedEvent event
     ) {
         notificationService.createNotification(
@@ -70,11 +56,19 @@ public class TradeNotificationListener {
         );
     }
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    @Async("tradeNotificationExecutor")
-    public void handle(
+    public void notifyOf(
+            TradeAutoRejectedEvent event
+    ) {
+        notificationService.createNotification(
+                event.requesterId(),
+                NotificationType.TRADE_REJECTED,
+                referenceType(event.target().kind()),
+                event.requestId(),
+                autoRejectedMessage(event)
+        );
+    }
+
+    public void notifyOf(
             TradeCancelledEvent event
     ) {
         notificationService.createNotification(
@@ -86,11 +80,7 @@ public class TradeNotificationListener {
         );
     }
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    @Async("tradeNotificationExecutor")
-    public void handle(
+    public void notifyOf(
             TradeCompletedEvent event
     ) {
         notificationService.createNotification(
@@ -226,6 +216,42 @@ public class TradeNotificationListener {
 
             case BEG ->
                     NotificationMessageFactory.begRejected(
+                            event.target().name()
+                    );
+        };
+    }
+
+    private String autoRejectedMessage(
+            TradeAutoRejectedEvent event
+    ) {
+        return switch (event.target().dealType()) {
+            case SALE ->
+                    NotificationMessageFactory.saleAutoRejected(
+                            event.target().name()
+                    );
+
+            case GIVEAWAY ->
+                    NotificationMessageFactory.giveawayAutoRejected(
+                            event.target().name()
+                    );
+
+            case ITEM_RENTAL ->
+                    NotificationMessageFactory.itemRentalAutoRejected(
+                            event.target().name()
+                    );
+
+            case COLLECTION_RENTAL ->
+                    NotificationMessageFactory.collectionRentalAutoRejected(
+                            event.target().name()
+                    );
+
+            case EXCHANGE ->
+                    NotificationMessageFactory.exchangeAutoRejected(
+                            event.target().name()
+                    );
+
+            case BEG ->
+                    NotificationMessageFactory.begAutoRejected(
                             event.target().name()
                     );
         };

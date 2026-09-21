@@ -7,11 +7,13 @@ import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType
 import com.anabada.fleaflea.domain.notification.domain.NotificationType;
 import com.anabada.fleaflea.domain.notification.dto.NotificationResponse;
 import com.anabada.fleaflea.domain.notification.dto.NotificationUnreadCountResponse;
+import com.anabada.fleaflea.domain.notification.event.NotificationCreatedEvent;
 import com.anabada.fleaflea.domain.notification.exception.NotificationNotFoundException;
 import com.anabada.fleaflea.domain.notification.exception.NotificationNotReceiverException;
 import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,8 +29,13 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    /**
+     * 알림은 발행자의 트랜잭션과 함께 커밋되어야 한다
+     * MANDATORY라 트랜잭션 밖에서 호출하면 즉시 실패
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void createNotification(
             Long receiverId,
             NotificationType type,
@@ -48,6 +55,13 @@ public class NotificationService {
         );
 
         notificationRepository.save(notification);
+
+        eventPublisher.publishEvent(
+                new NotificationCreatedEvent(
+                        receiverId,
+                        NotificationResponse.from(notification)
+                )
+        );
     }
 
 

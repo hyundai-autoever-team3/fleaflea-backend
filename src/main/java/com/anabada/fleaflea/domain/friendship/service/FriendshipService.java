@@ -15,7 +15,7 @@ import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.anabada.fleaflea.domain.notification.notifier.FriendNotifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +27,7 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final MemberRepository memberRepository;
     private final ImageService imageService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final FriendNotifier friendNotifier;
 
     @Transactional(readOnly = true)
     public List<FriendshipResponse> getReceivedRequests(Long memberId) {
@@ -159,7 +159,7 @@ public class FriendshipService {
 
         friendshipRepository.save(friendship);
 
-        eventPublisher.publishEvent(
+        friendNotifier.notifyOf(
                 FriendRequestedEvent.of(
                         friendship.getFriendshipId(),
                         requester.getMemberId(),
@@ -190,7 +190,7 @@ public class FriendshipService {
         Member requester = friendship.getRequester();
         Member addressee = friendship.getAddressee();
 
-        eventPublisher.publishEvent(
+        friendNotifier.notifyOf(
                 FriendAcceptedEvent.of(
                         friendship.getFriendshipId(),
                         requester.getMemberId(),

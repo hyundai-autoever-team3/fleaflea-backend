@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.notification.listener;
+package com.anabada.fleaflea.domain.notification.notifier;
 
 import com.anabada.fleaflea.domain.friendship.event.FriendAcceptedEvent;
 import com.anabada.fleaflea.domain.friendship.event.FriendRequestedEvent;
@@ -8,19 +8,14 @@ import com.anabada.fleaflea.domain.notification.service.NotificationMessageFacto
 import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-public class FriendNotificationListener {
+public class FriendNotifier {
 
     private final NotificationService notificationService;
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    public void handle(
+    public void notifyOf(
             FriendRequestedEvent event
     ) {
         notificationService.createNotification(
@@ -34,10 +29,7 @@ public class FriendNotificationListener {
         );
     }
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
-    public void handle(
+    public void notifyOf(
             FriendAcceptedEvent event
     ) {
         notificationService.createNotification(

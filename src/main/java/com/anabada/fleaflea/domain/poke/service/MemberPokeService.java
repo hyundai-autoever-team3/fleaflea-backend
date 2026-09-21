@@ -10,7 +10,7 @@ import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.anabada.fleaflea.domain.notification.notifier.PokeNotifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class MemberPokeService {
 
     private final MemberRepository memberRepository;
     private final MemberPokeRepository pokeRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final PokeNotifier pokeNotifier;
 
     @Transactional
     public void send(Long senderId, Long recipientId) {
@@ -40,7 +40,7 @@ public class MemberPokeService {
 
         pokeRepository.save(poke);
 
-        eventPublisher.publishEvent(
+        pokeNotifier.notifyOf(
                 MemberPokedEvent.of(
                         poke.getPokeId(),
                         sender.getMemberId(),
