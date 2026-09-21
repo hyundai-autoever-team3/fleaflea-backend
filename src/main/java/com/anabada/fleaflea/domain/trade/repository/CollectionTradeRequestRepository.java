@@ -43,7 +43,7 @@ public interface CollectionTradeRequestRepository extends JpaRepository<Collecti
             TradeRequestStatus status
     );
 
-    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem"})
+    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem", "offerCollectionItem.owner"})
     Optional<CollectionTradeRequest> findWithDetailsByCollectionTradeRequestId(Long collectionTradeRequestId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
