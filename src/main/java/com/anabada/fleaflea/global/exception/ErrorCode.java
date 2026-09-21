@@ -105,6 +105,7 @@ public enum ErrorCode {
     TRADE_REQUEST_SELF_ITEM(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_SELF_ITEM", "자신의 상품에는 거래를 요청할 수 없습니다."),
     TRADE_REQUEST_INVALID_OFFER(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_INVALID_OFFER", "유효하지 않은 거래 제안입니다."),
     TRADE_REQUEST_INVALID_DIRECTION(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_INVALID_DIRECTION", "요청 방향은 received 또는 sent여야 합니다."),
+    TRADE_REQUEST_INVALID_TYPE(HttpStatus.BAD_REQUEST, "TRADE_REQUEST_INVALID_TYPE", "요청 유형은 ITEM, COLLECTION 또는 BEG여야 합니다."),
     TRADE_REQUEST_ITEM_UNAVAILABLE(HttpStatus.CONFLICT, "TRADE_REQUEST_ITEM_UNAVAILABLE", "거래할 수 없는 상품입니다."),
 
     // Friendship request

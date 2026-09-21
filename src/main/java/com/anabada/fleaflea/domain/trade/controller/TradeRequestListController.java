@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.trade.controller;
 
 import com.anabada.fleaflea.domain.trade.dto.TradeRequestListResponse;
+import com.anabada.fleaflea.domain.trade.dto.TradeRequestHistoryDetailResponse;
 import com.anabada.fleaflea.domain.trade.service.TradeRequestListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,5 +50,32 @@ public class TradeRequestListController {
             @RequestParam String direction
     ) {
         return ResponseEntity.ok(tradeRequestListService.list(memberId, direction));
+    }
+
+    @GetMapping("/{requestType}/{requestId}")
+    @Operation(
+            summary = "지난 거래 요청 통합 상세 조회",
+            description = "requestType은 ITEM, COLLECTION, BEG 중 하나이며 거래 당사자만 조회할 수 있습니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "거래 요청 상세 조회 성공",
+                    content = @Content(schema = @Schema(
+                            implementation = TradeRequestHistoryDetailResponse.class))),
+            @ApiResponse(responseCode = "400", description = "지원하지 않는 요청 유형"),
+            @ApiResponse(responseCode = "403", description = "거래 당사자가 아님"),
+            @ApiResponse(responseCode = "404", description = "거래 요청을 찾을 수 없음")
+    })
+    public ResponseEntity<TradeRequestHistoryDetailResponse> detail(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable String requestType,
+            @PathVariable Long requestId
+    ) {
+        return ResponseEntity.ok(
+                tradeRequestListService.detail(
+                        memberId,
+                        requestType,
+                        requestId
+                )
+        );
     }
 }
