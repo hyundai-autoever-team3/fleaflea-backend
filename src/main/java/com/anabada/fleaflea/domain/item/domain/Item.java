@@ -151,4 +151,12 @@ public class Item extends BaseTimeEntity {
 
         this.status = ItemStatus.COMPLETED;
     }
+
+    public void completeRental() {
+        if (status != ItemStatus.IN_PROGRESS) {
+            throw new ItemTradeNotInProgressException();
+        }
+
+        this.status = ItemStatus.AVAILABLE;
+    }
 }

@@ -5,14 +5,19 @@ import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface BegRequestRepository extends JpaRepository<BegRequest, Long> {
+
+    @EntityGraph(attributePaths = {"collectionItem", "owner", "applicant"})
+    Optional<BegRequest> findWithDetailsByBegRequestId(Long begRequestId);
 
     @Modifying(flushAutomatically = true)
     @Query("""
