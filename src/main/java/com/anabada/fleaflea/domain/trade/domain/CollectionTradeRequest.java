@@ -28,6 +28,10 @@ public class CollectionTradeRequest extends BaseTimeEntity {
     @JoinColumn(name = "requester_id", nullable = false)
     private Member requester;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private Member owner;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offer_collection_item_id")
     private CollectionItem offerCollectionItem;
@@ -44,12 +48,14 @@ public class CollectionTradeRequest extends BaseTimeEntity {
     private CollectionTradeRequest(
             CollectionItem collectionItem,
             Member requester,
+            Member owner,
             CollectionItem offerCollectionItem,
             CollectionTradeType tradeType,
             TradeRequestStatus status
     ) {
         this.collectionItem = collectionItem;
         this.requester = requester;
+        this.owner = owner;
         this.offerCollectionItem = offerCollectionItem;
         this.tradeType = tradeType;
         this.status = status;
@@ -64,6 +70,7 @@ public class CollectionTradeRequest extends BaseTimeEntity {
         return CollectionTradeRequest.builder()
                 .collectionItem(collectionItem)
                 .requester(requester)
+                .owner(collectionItem.getOwner())
                 .offerCollectionItem(offerCollectionItem)
                 .tradeType(tradeType)
                 .status(TradeRequestStatus.PENDING)

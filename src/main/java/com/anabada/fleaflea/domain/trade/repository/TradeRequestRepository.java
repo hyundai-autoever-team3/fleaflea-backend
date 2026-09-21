@@ -74,6 +74,11 @@ public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long
             @Param("pendingStatus") TradeRequestStatus pendingStatus
     );
 
+    boolean existsByItem_CollectionItem_CollectionItemIdAndStatus(
+            Long collectionItemId,
+            TradeRequestStatus status
+    );
+
     @Modifying
     @Query("""
         update TradeRequest tradeRequest

@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.friendship.repository;
 
 import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface FriendshipRepositoryCustom {
@@ -11,4 +12,8 @@ public interface FriendshipRepositoryCustom {
 
     List<Friendship> findFriends(Long memberId);
 
+    List<Friendship> findActiveRelationships(
+            Long memberId,
+            Collection<Long> targetMemberIds
+    );
 }

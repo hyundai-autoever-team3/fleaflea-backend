@@ -91,4 +91,8 @@ public class CollectionItem extends BaseTimeEntity {
     public boolean isOwnedBy(Long memberId) {
         return owner.getMemberId().equals(memberId);
     }
+
+    public void transferTo(Member newOwner) {
+        this.owner = newOwner;
+    }
 }

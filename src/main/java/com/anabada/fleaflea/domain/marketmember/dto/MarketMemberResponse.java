@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.marketmember.dto;
 
+import com.anabada.fleaflea.domain.friendship.domain.RelationshipStatus;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,6 +21,12 @@ public record MarketMemberResponse(
         @Schema(description = "플리마켓 개설자 여부", example = "true")
         boolean host,
 
+        @Schema(
+                description = "현재 로그인 사용자 기준 친구 관계 상태",
+                example = "FRIEND"
+        )
+        RelationshipStatus relationshipStatus,
+
         @Schema(description = "플리마켓 참여 시각")
         LocalDateTime joinedAt
 ) {
@@ -27,7 +34,8 @@ public record MarketMemberResponse(
     public static MarketMemberResponse from(
             MarketMember marketMember,
             String profileImageUrl,
-            Long hostId
+            Long hostId,
+            RelationshipStatus relationshipStatus
     ) {
         Member member = marketMember.getMember();
 
@@ -36,6 +44,7 @@ public record MarketMemberResponse(
                 member.getNickname(),
                 profileImageUrl,
                 member.getMemberId().equals(hostId),
+                relationshipStatus,
                 marketMember.getJoinedAt()
         );
     }

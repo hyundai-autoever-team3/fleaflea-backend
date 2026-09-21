@@ -1,0 +1,2 @@
+ALTER TABLE trades
+    ALTER COLUMN item_id DROP NOT NULL;

@@ -39,10 +39,10 @@ public class TradeRequestListService {
                 ? itemRequests.findByItem_Seller_MemberIdOrderByCreatedAtDesc(memberId)
                 : itemRequests.findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
         List<CollectionTradeRequest> collections = received
-                ? collectionRequests.findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(memberId)
+                ? collectionRequests.findByOwner_MemberIdOrderByCreatedAtDesc(memberId)
                 : collectionRequests.findByRequester_MemberIdOrderByCreatedAtDesc(memberId);
         List<BegRequest> begs = received
-                ? begRequestRepository.findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(memberId)
+                ? begRequestRepository.findByOwner_MemberIdOrderByCreatedAtDesc(memberId)
                 : begRequestRepository.findByApplicant_MemberIdOrderByCreatedAtDesc(memberId);
 
         List<TradeRequestListResponse> result = new ArrayList<>(items.size() + collections.size() + begs.size());
@@ -60,7 +60,7 @@ public class TradeRequestListService {
                     "COLLECTION", request.getCollectionTradeRequestId(),
                     request.getCollectionItem().getCollectionItemId(),
                     request.getCollectionItem().getTitle(), request.getTradeType().name(),
-                    request.getStatus(), member(request.getCollectionItem().getOwner()),
+                    request.getStatus(), member(request.getOwner()),
                     member(request.getRequester()),
                     images.getUrl(request.getCollectionItem().getImageKey()),
                     request.getCreatedAt()));
@@ -74,7 +74,7 @@ public class TradeRequestListService {
                     request.getCollectionItem().getTitle(),
                     null,
                     request.getStatus().toTradeRequestStatus(),
-                    member(request.getCollectionItem().getOwner()),
+                    member(request.getOwner()),
                     member(request.getApplicant()),
                     images.getUrl(request.getCollectionItem().getImageKey()),
                     request.getCreatedAt()

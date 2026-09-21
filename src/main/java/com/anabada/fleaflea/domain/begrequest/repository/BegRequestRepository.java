@@ -14,9 +14,13 @@ public interface BegRequestRepository extends JpaRepository<BegRequest, Long> {
             CollectionItem collectionItem,
             BegRequestStatus status
             );
-    List<BegRequest> findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(
-            Long memberId
+
+    boolean existsByCollectionItem_CollectionItemIdAndStatus(
+            Long collectionItemId,
+            BegRequestStatus status
     );
+
+    List<BegRequest> findByOwner_MemberIdOrderByCreatedAtDesc(Long memberId);
 
     List<BegRequest> findByApplicant_MemberIdOrderByCreatedAtDesc(
             Long memberId

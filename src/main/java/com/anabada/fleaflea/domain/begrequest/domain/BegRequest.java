@@ -34,15 +34,21 @@ public class BegRequest extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private BegRequestStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private Member owner;
+
     @Builder
     private BegRequest(
             CollectionItem collectionItem,
             Member applicant,
+            Member owner,
             String story,
             BegRequestStatus status
     ) {
         this.collectionItem = collectionItem;
         this.applicant = applicant;
+        this.owner = owner;
         this.story = story;
         this.status = status;
     }
@@ -56,6 +62,7 @@ public class BegRequest extends BaseTimeEntity {
         return BegRequest.builder()
                 .collectionItem(collectionItem)
                 .applicant(applicant)
+                .owner(collectionItem.getOwner())
                 .story(story)
                 .status(status)
                 .build();

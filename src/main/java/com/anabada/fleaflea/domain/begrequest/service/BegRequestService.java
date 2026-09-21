@@ -106,7 +106,7 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
-        Long ownerId = begRequest.getCollectionItem().getOwner().getMemberId();
+        Long ownerId = begRequest.getOwner().getMemberId();
         Long applicantId = begRequest.getApplicant().getMemberId();
 
         if (!memberId.equals(ownerId) && !memberId.equals(applicantId)) {
@@ -121,7 +121,7 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
-        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
+        if (!begRequest.getOwner().getMemberId().equals(memberId)) {
             throw new BegRequestNotOwnerException();
         }
 
@@ -132,9 +132,7 @@ public class BegRequestService {
 
         begRequest.accept();
 
-        Member owner =
-                begRequest.getCollectionItem()
-                        .getOwner();
+        Member owner = begRequest.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
@@ -157,7 +155,7 @@ public class BegRequestService {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
-        if (!begRequest.getCollectionItem().getOwner().getMemberId().equals(memberId)) {
+        if (!begRequest.getOwner().getMemberId().equals(memberId)) {
             throw new BegRequestNotOwnerException();
         }
 
@@ -168,9 +166,7 @@ public class BegRequestService {
 
         begRequest.reject();
 
-        Member owner =
-                begRequest.getCollectionItem()
-                        .getOwner();
+        Member owner = begRequest.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
@@ -208,8 +204,7 @@ public class BegRequestService {
                         begRequest.getBegRequestId(),
                         begRequest.getApplicant()
                                 .getMemberId(),
-                        begRequest.getCollectionItem()
-                                .getOwner()
+                        begRequest.getOwner()
                                 .getMemberId(),
                         begRequest.getApplicant()
                                 .getNickname(),
@@ -231,7 +226,7 @@ public class BegRequestService {
                 .orElseThrow(BegRequestNotFoundException::new);
 
         Member applicant = begRequest.getApplicant();
-        Member owner = begRequest.getCollectionItem().getOwner();
+        Member owner = begRequest.getOwner();
 
         if (!applicant.getMemberId().equals(memberId)) {
             throw new BegRequestNotApplicantException();
@@ -245,6 +240,9 @@ public class BegRequestService {
             throw new BegRequestAlreadyCompletedException();
         }
 
+        CollectionItem collectionItem = begRequest.getCollectionItem();
+
+        collectionItem.transferTo(applicant);
         begRequest.complete();
 
         tradeRepository.save(

@@ -2,18 +2,18 @@ package com.anabada.fleaflea.domain.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "로그인 응답")
+@Schema(description = """
+                로그인 응답입니다.
+                Refresh Token은 응답 body에 포함되지 않으며
+                HttpOnly Cookie로 전달됩니다.
+                """)
 public record LoginResponse(
         @Schema(
-                description = "API 요청에 사용하는 Access Token",
+                description = """
+                        API 요청의 Authorization 헤더에 Bearer 형식으로 넣는 Access Token
+                        """,
                 example = "eyJhbGciOiJIUzI1NiJ9..."
         )
-        String accessToken,
-
-        @Schema(
-                description = "Access Token 재발급에 사용하는 Refresh Token",
-                example = "eyJhbGciOiJIUzI1NiJ9..."
-        )
-        String refreshToken
+        String accessToken
 ) {
 }

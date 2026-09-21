@@ -3,6 +3,8 @@ package com.anabada.fleaflea.domain.trade.controller;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestCreateRequest;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestResponse;
 import com.anabada.fleaflea.domain.trade.service.CollectionTradeService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,7 +54,17 @@ public class CollectionTradeController {
     }
 
     @PostMapping("/collection-trade-requests/{id}/complete")
-    @Operation(summary = "도감 거래 완료")
+    @Operation(
+            summary = "도감 거래 완료",
+            description = "요청자가 수락된 도감 거래의 완료를 확인합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "거래 완료 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요"),
+            @ApiResponse(responseCode = "403", description = "도감 거래 요청자가 아님"),
+            @ApiResponse(responseCode = "404", description = "도감 거래 요청을 찾을 수 없음"),
+            @ApiResponse(responseCode = "409", description = "수락된 거래가 아니거나 이미 완료된 거래")
+    })
     public CollectionTradeRequestResponse complete(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
         return service.complete(memberId, id);
     }

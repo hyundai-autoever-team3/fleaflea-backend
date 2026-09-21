@@ -30,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -107,7 +110,7 @@ public class CollectionTradeService {
         requireStatus(request, TradeRequestStatus.PENDING);
         request.accept();
 
-        Member owner = request.getCollectionItem().getOwner();
+        Member owner = request.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
@@ -129,8 +132,7 @@ public class CollectionTradeService {
         requireStatus(request, TradeRequestStatus.PENDING);
         request.reject();
 
-        Member owner =
-                request.getCollectionItem().getOwner();
+        Member owner = request.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
@@ -157,9 +159,7 @@ public class CollectionTradeService {
                 TradeCancelledEvent.of(
                         request.getCollectionTradeRequestId(),
                         request.getRequester().getMemberId(),
-                        request.getCollectionItem()
-                                .getOwner()
-                                .getMemberId(),
+                        request.getOwner().getMemberId(),
                         request.getRequester()
                                 .getNickname(),
                         toTradeTarget(request)
@@ -172,18 +172,16 @@ public class CollectionTradeService {
     @Transactional
     public CollectionTradeRequestResponse complete(Long memberId, Long id) {
         CollectionTradeRequest request = locked(id);
-        requireOwner(request, memberId);
+        requireRequester(request, memberId);
         requireStatus(request, TradeRequestStatus.ACCEPTED);
         if (trades.existsByCollectionTradeRequestId(id))
             throw error(ErrorCode.COLLECTION_TRADE_INVALID_STATUS);
+
+        Member owner = request.getOwner();
+        Member requester = request.getRequester();
+
+        exchangeOwnership(request, owner, requester);
         request.complete();
-
-        Member owner =
-                request.getCollectionItem()
-                        .getOwner();
-
-        Member requester =
-                request.getRequester();
 
         trades.save(
                 Trade.ofCollectionTrade(
@@ -196,9 +194,9 @@ public class CollectionTradeService {
         tradeNotifier.notifyOf(
                 TradeCompletedEvent.of(
                         request.getCollectionTradeRequestId(),
-                        owner.getMemberId(),
                         requester.getMemberId(),
-                        owner.getNickname(),
+                        owner.getMemberId(),
+                        requester.getNickname(),
                         toTradeTarget(request)
                 )
         );
@@ -212,14 +210,49 @@ public class CollectionTradeService {
     }
 
     private void requireOwner(CollectionTradeRequest request, Long memberId) {
-        if (!request.getCollectionItem().getOwner().getMemberId().equals(memberId))
+        if (!request.getOwner().getMemberId().equals(memberId))
+            throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
+    }
+
+    private void requireRequester(CollectionTradeRequest request, Long memberId) {
+        if (!request.getRequester().getMemberId().equals(memberId))
             throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
     }
 
     private void requireParty(CollectionTradeRequest request, Long memberId) {
         if (!request.getRequester().getMemberId().equals(memberId)
-                && !request.getCollectionItem().getOwner().getMemberId().equals(memberId))
+                && !request.getOwner().getMemberId().equals(memberId))
             throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
+    }
+
+    private void exchangeOwnership(
+            CollectionTradeRequest request,
+            Member owner,
+            Member requester
+    ) {
+        if (request.getTradeType() != CollectionTradeType.EXCHANGE) return;
+
+        CollectionItem requestedItem = request.getCollectionItem();
+        CollectionItem offeredItem = request.getOfferCollectionItem();
+        if (offeredItem == null) throw error(ErrorCode.COLLECTION_TRADE_OWNERSHIP_CHANGED);
+
+        Map<Long, CollectionItem> lockedItems = items.findAllByIdForUpdate(List.of(
+                        requestedItem.getCollectionItemId(),
+                        offeredItem.getCollectionItemId()
+                )).stream()
+                .collect(Collectors.toMap(CollectionItem::getCollectionItemId, Function.identity()));
+
+        CollectionItem lockedRequestedItem = lockedItems.get(requestedItem.getCollectionItemId());
+        CollectionItem lockedOfferedItem = lockedItems.get(offeredItem.getCollectionItemId());
+        if (lockedRequestedItem == null
+                || lockedOfferedItem == null
+                || !lockedRequestedItem.isOwnedBy(owner.getMemberId())
+                || !lockedOfferedItem.isOwnedBy(requester.getMemberId())) {
+            throw error(ErrorCode.COLLECTION_TRADE_OWNERSHIP_CHANGED);
+        }
+
+        lockedRequestedItem.transferTo(requester);
+        lockedOfferedItem.transferTo(owner);
     }
 
     private void requireStatus(CollectionTradeRequest request, TradeRequestStatus expected) {
