@@ -25,7 +25,7 @@ import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.anabada.fleaflea.domain.notification.notifier.TradeNotifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +42,7 @@ public class CollectionTradeService {
     private final MemberRepository members;
     private final FriendshipRepository friendships;
     private final TradeRepository trades;
-    private final ApplicationEventPublisher eventPublisher;
+    private final TradeNotifier tradeNotifier;
 
     @Transactional
     public CollectionTradeRequestResponse create(Long requesterId, Long itemId,
@@ -80,7 +80,7 @@ public class CollectionTradeService {
 
         requests.save(tradeRequest);
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRequestedEvent.of(
                         tradeRequest.getCollectionTradeRequestId(),
                         requester.getMemberId(),
@@ -109,7 +109,7 @@ public class CollectionTradeService {
 
         Member owner = request.getCollectionItem().getOwner();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
                         request.getCollectionTradeRequestId(),
                         request.getRequester().getMemberId(),
@@ -132,7 +132,7 @@ public class CollectionTradeService {
         Member owner =
                 request.getCollectionItem().getOwner();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
                         request.getCollectionTradeRequestId(),
                         request.getRequester().getMemberId(),
@@ -153,7 +153,7 @@ public class CollectionTradeService {
         requireStatus(request, TradeRequestStatus.PENDING);
         request.cancel();
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCancelledEvent.of(
                         request.getCollectionTradeRequestId(),
                         request.getRequester().getMemberId(),
@@ -193,7 +193,7 @@ public class CollectionTradeService {
                 )
         );
 
-        eventPublisher.publishEvent(
+        tradeNotifier.notifyOf(
                 TradeCompletedEvent.of(
                         request.getCollectionTradeRequestId(),
                         owner.getMemberId(),

@@ -162,6 +162,54 @@ public final class NotificationMessageFactory {
                 + "' 구걸 요청이 거절됐어요.";
     }
 
+    public static String saleAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 상품이 다른 분과 거래되어 구매 요청이 자동으로 거절됐어요.";
+    }
+
+    public static String giveawayAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 상품이 다른 분에게 나눔되어 신청이 자동으로 거절됐어요.";
+    }
+
+    public static String itemRentalAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 상품이 다른 분에게 대여되어 요청이 자동으로 거절됐어요.";
+    }
+
+    public static String collectionRentalAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 도감 물건이 다른 분에게 대여되어 요청이 자동으로 거절됐어요.";
+    }
+
+    public static String exchangeAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 상품이 다른 분과 교환되어 제안이 자동으로 거절됐어요.";
+    }
+
+    public static String begAutoRejected(
+            String targetName
+    ) {
+        return "'"
+                + targetName
+                + "' 구걸 요청이 다른 분에게 수락되어 자동으로 거절됐어요.";
+    }
+
     public static String saleCancelled(
             String requesterNickname,
             String targetName
