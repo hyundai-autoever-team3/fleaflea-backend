@@ -172,7 +172,7 @@ public class CollectionTradeService {
     @Transactional
     public CollectionTradeRequestResponse complete(Long memberId, Long id) {
         CollectionTradeRequest request = locked(id);
-        requireOwner(request, memberId);
+        requireRequester(request, memberId);
         requireStatus(request, TradeRequestStatus.ACCEPTED);
         if (trades.existsByCollectionTradeRequestId(id))
             throw error(ErrorCode.COLLECTION_TRADE_INVALID_STATUS);
@@ -196,9 +196,9 @@ public class CollectionTradeService {
         eventPublisher.publishEvent(
                 TradeCompletedEvent.of(
                         request.getCollectionTradeRequestId(),
-                        owner.getMemberId(),
                         requester.getMemberId(),
-                        owner.getNickname(),
+                        owner.getMemberId(),
+                        requester.getNickname(),
                         toTradeTarget(request)
                 )
         );
@@ -213,6 +213,11 @@ public class CollectionTradeService {
 
     private void requireOwner(CollectionTradeRequest request, Long memberId) {
         if (!request.getCollectionItem().getOwner().getMemberId().equals(memberId))
+            throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
+    }
+
+    private void requireRequester(CollectionTradeRequest request, Long memberId) {
+        if (!request.getRequester().getMemberId().equals(memberId))
             throw error(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED);
     }
 
