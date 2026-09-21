@@ -9,79 +9,151 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 
 ## 1. 시스템 아키텍처
 
-브라우저는 `fleaflea.app`에서 Vercel이 제공하는 프론트엔드를 받고,
-`api.fleaflea.app`을 통해 AWS EC2의 백엔드 API를 호출합니다.
+FleaFlea는 프론트엔드와 백엔드를 분리하여 운영합니다.
+
+- `fleaflea.app`: Vercel에서 React 프론트엔드 제공
+- `api.fleaflea.app`: AWS EC2에서 Spring Boot API 제공
+- Gabia DNS에서 프론트엔드와 백엔드 도메인의 DNS 레코드 관리
+- EC2 호스트의 Nginx에서 HTTPS를 처리하고 Spring Boot 컨테이너로 요청 전달
+- Spring Boot와 PostgreSQL은 Docker Compose로 실행
+- 업로드 이미지는 Amazon S3에 저장
+- `main` 브랜치 배포는 GitHub Actions, GHCR, AWS SSM을 통해 자동화
 
 ```mermaid
 flowchart LR
+    USER["사용자<br/>Web Browser"]
 
-    USER["👤 사용자<br/>Web Browser"]
-
-    VERCEL["▲ Vercel<br/>fleaflea.app<br/>React 18 + Vite"]
-
-    DNS["🌐 Gabia DNS<br/>api.fleaflea.app"]
-
-    subgraph AWS["☁️ AWS Cloud"]
-
-        subgraph EC2["Amazon EC2 · Ubuntu 24.04"]
-
-            NGINX["Nginx<br/>HTTPS / Reverse Proxy"]
-
-            APP["Spring Boot<br/>Java 25 · REST API<br/>Docker Container"]
-
-            DB[("PostgreSQL 16<br/>Flyway")]
-
-            APP -->|"JDBC"| DB
-            NGINX -->|"8080"| APP
-        end
-
-        S3["Amazon S3<br/>이미지 저장"]
-
-        APP -->|"AWS SDK"| S3
+    subgraph DNS["Gabia DNS"]
+        WEB_DNS["fleaflea.app<br/>Frontend DNS"]
+        API_DNS["api.fleaflea.app<br/>Backend DNS"]
     end
 
-    USER -->|"Frontend · HTTPS"| VERCEL
+    VERCEL["Vercel<br/>React 18 + Vite<br/>Frontend Hosting"]
 
-    USER -->|"REST API · HTTPS"| DNS
+    subgraph CICD["CI/CD"]
+        GHA["GitHub Actions<br/>Build & Test"]
+        GHCR["GitHub Container Registry<br/>Spring Boot Image"]
+    end
 
-    DNS -->|"DNS"| NGINX
+    subgraph AWS["AWS Cloud"]
+        SSM["AWS Systems Manager<br/>EC2 Deployment"]
+        S3["Amazon S3<br/>Profile & Item Images"]
+
+        subgraph EC2["Amazon EC2 · Ubuntu 24.04 LTS"]
+            SG["Security Group<br/>80 · 443 Public"]
+
+            NGINX["Host Nginx<br/>TLS Termination<br/>Reverse Proxy"]
+
+            subgraph DOCKER["Docker Compose"]
+                APP["Spring Boot API<br/>Java 25<br/>127.0.0.1:8080"]
+
+                DB["PostgreSQL 16<br/>127.0.0.1:5432"]
+
+                VOLUME[("Named Volume<br/>fleaflea_postgres_data")]
+
+                APP -->|"JDBC<br/>postgres:5432"| DB
+                DB --- VOLUME
+            end
+        end
+    end
+
+    USER -->|"Frontend HTTPS"| WEB_DNS
+    WEB_DNS --> VERCEL
+    VERCEL -->|"HTML · CSS · JavaScript"| USER
+
+    USER -->|"REST API HTTPS"| API_DNS
+    API_DNS --> SG
+    SG -->|"80 / 443"| NGINX
+    NGINX -->|"HTTP<br/>127.0.0.1:8080"| APP
+
+    APP -->|"AWS SDK · HTTPS"| S3
+
+    GHA -->|"Docker Image Push"| GHCR
+    GHA -->|"AWS OIDC"| SSM
+    SSM -->|"Deploy Command"| DOCKER
+    DOCKER -.->|"Image Pull"| GHCR
 ```
 
 ### 요청 흐름
 
 ```text
-사용자
- ├─ 웹 화면 → Vercel
- │            └─ React + Vite
+사용자 브라우저
+ ├─ https://fleaflea.app
+ │   └─ Gabia DNS
+ │       └─ Vercel
+ │           └─ React + Vite 프론트엔드 제공
  │
- └─ API 요청 → api.fleaflea.app
-               └─ AWS EC2
-                   └─ Nginx
-                       └─ Spring Boot
-                           ├─ PostgreSQL
-                           └─ Amazon S3
+ └─ https://api.fleaflea.app
+     └─ Gabia DNS
+         └─ AWS EC2 Security Group
+             └─ Host Nginx
+                 └─ 127.0.0.1:8080
+                     └─ Spring Boot 컨테이너
+                         ├─ PostgreSQL 컨테이너
+                         │   └─ fleaflea_postgres_data 볼륨
+                         └─ Amazon S3
+```
+
+### 배포 흐름
+
+```text
+main 브랜치 Push 또는 PR 병합
+ └─ GitHub Actions
+     ├─ Gradle Build 및 Test
+     ├─ Docker 이미지 생성
+     ├─ GHCR에 이미지 Push
+     └─ AWS Systems Manager 명령 실행
+         └─ EC2 Docker Compose 배포
+             ├─ GHCR 이미지 Pull
+             ├─ Spring Boot 컨테이너 재생성
+             └─ Health Check
 ```
 
 ### 인프라 구성
 
 | 구성 요소 | 역할 |
 |---|---|
-| **Vercel** | React 프론트엔드 배포 및 HTTPS 제공 |
-| **Gabia DNS** | `fleaflea.app`과 `api.fleaflea.app`의 DNS 관리 |
-| **AWS EC2** | Spring Boot 서버 실행 |
-| **Nginx** | HTTPS 처리 및 Reverse Proxy |
-| **Spring Boot** | REST API / 인증 / 비즈니스 로직 |
-| **PostgreSQL** | 서비스 데이터 저장 |
-| **Flyway** | DB 스키마 버전 관리 |
-| **Amazon S3** | 프로필 및 상품 이미지 저장 |
+| **Gabia DNS** | `fleaflea.app`, `api.fleaflea.app` DNS 레코드 관리 |
+| **Vercel** | React 18 및 Vite 프론트엔드 배포, CDN과 HTTPS 제공 |
+| **AWS EC2** | Nginx, Spring Boot, PostgreSQL 실행 |
+| **Security Group** | EC2 인바운드 및 아웃바운드 트래픽 제어 |
+| **Nginx** | HTTPS 처리, HTTP에서 HTTPS 리다이렉트, Spring Boot Reverse Proxy |
+| **Let's Encrypt / Certbot** | `api.fleaflea.app` TLS 인증서 발급 및 갱신 |
+| **Docker Compose** | Spring Boot 및 PostgreSQL 컨테이너 실행과 상태 관리 |
+| **Spring Boot** | REST API, JWT 인증, 비즈니스 로직 처리 |
+| **PostgreSQL 16** | 회원, 마켓, 도감 및 거래 데이터 저장 |
+| **Flyway** | PostgreSQL 스키마 버전 관리 |
+| **Named Volume** | `fleaflea_postgres_data`에 PostgreSQL 데이터 영구 저장 |
+| **Amazon S3** | 프로필, 도감, 상품 및 마켓 이미지 저장 |
+| **EC2 Instance Role** | Spring Boot 컨테이너의 S3 접근 권한 제공 |
+| **GitHub Actions** | CI 빌드·테스트 및 운영 배포 자동화 |
+| **GHCR** | 커밋 SHA별 Spring Boot Docker 이미지 저장 |
+| **AWS SSM** | 공개 SSH 배포 없이 EC2에서 배포 명령 실행 |
 
-### 네트워크
+### 네트워크 구성
 
-| 대상 | 포트 | 공개 여부 |
-|---|---:|---|
-| Nginx | `80`, `443` | Public |
-| Spring Boot | `8080` | Internal |
-| PostgreSQL | `5432` | Internal |
+| 대상 | 포트 | 접근 범위 | 설명 |
+|---|---:|---|---|
+| **Vercel** | `443` | Public | 프론트엔드 HTTPS 제공 |
+| **EC2 Nginx** | `80` | Public | HTTPS로 리다이렉트 |
+| **EC2 Nginx** | `443` | Public | 백엔드 API 및 Swagger HTTPS 제공 |
+| **SSH** | `22` | 관리자 IP 제한 | EC2 운영 및 장애 대응 |
+| **Spring Boot** | `8080` | Loopback | `127.0.0.1:8080`에만 바인딩 |
+| **PostgreSQL** | `5432` | Loopback / Docker 내부 | `127.0.0.1:5432` 및 Docker 네트워크에서만 접근 |
+| **Amazon S3** | `443` | Outbound | Spring Boot가 AWS SDK로 이미지 저장 및 조회 |
+| **AWS SSM** | `443` | Outbound | GitHub Actions에서 전달된 배포 명령 수신 |
+
+Spring Boot와 PostgreSQL 포트는 외부에 공개하지 않습니다. 외부 API 요청은 반드시 Nginx를 거쳐 Spring Boot로 전달됩니다.
+
+### 운영 주소
+
+| 구분 | 주소 |
+|---|---|
+| **프론트엔드** | `https://fleaflea.app` |
+| **백엔드 API** | `https://api.fleaflea.app` |
+| **Swagger UI** | `https://api.fleaflea.app/swagger-ui/index.html` |
+| **OpenAPI JSON** | `https://api.fleaflea.app/v3/api-docs` |
+| **Health Check** | `https://api.fleaflea.app/actuator/health` |
 ## 2. 기술 스택
 
 | 구분                       | 기술 / 도구                             | 버전 / 비고                      |
