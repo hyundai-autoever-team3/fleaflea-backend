@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.collectionitem.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collection.domain.CollectionItemStatus;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +29,12 @@ public record CollectionItemResponse(
         @Schema(description = "공개 여부")
         Boolean isPublic,
 
+        @Schema(
+                description = "도감 아이템 거래 상태",
+                allowableValues = {"AVAILABLE", "IN_PROGRESS"}
+        )
+        CollectionItemStatus status,
+
         @Schema(description = "등록 시각")
         LocalDateTime createdAt,
 
@@ -37,7 +44,8 @@ public record CollectionItemResponse(
 
     public static CollectionItemResponse from(
             CollectionItem collectionItem,
-            String imageUrl
+            String imageUrl,
+            CollectionItemStatus status
     ) {
         return new CollectionItemResponse(
                 collectionItem.getCollectionItemId(),
@@ -47,6 +55,7 @@ public record CollectionItemResponse(
                 collectionItem.getDescription(),
                 imageUrl,
                 collectionItem.getIsPublic(),
+                status,
                 collectionItem.getCreatedAt(),
                 collectionItem.getUpdatedAt()
         );

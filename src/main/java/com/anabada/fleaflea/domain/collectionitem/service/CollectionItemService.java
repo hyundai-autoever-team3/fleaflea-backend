@@ -22,7 +22,13 @@ import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collection.domain.CollectionItemStatus;
 import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
+import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
+import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
+import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
+import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +39,9 @@ public class CollectionItemService {
     private final MemberRepository memberRepository;
     private final ImageService imageService;
     private final FriendshipRepository friendshipRepository;
+    private final BegRequestRepository begRequestRepository;
+    private final CollectionTradeRequestRepository collectionTradeRequestRepository;
+    private final TradeRequestRepository tradeRequestRepository;
 
     @Transactional
     public CollectionItemResponse createCollectionItem(
@@ -236,8 +245,33 @@ public class CollectionItemService {
 
         return CollectionItemResponse.from(
                 collectionItem,
-                imageUrl
+                imageUrl,
+                getStatus(collectionItem)
         );
+    }
+
+    private CollectionItemStatus getStatus(CollectionItem collectionItem) {
+        Long collectionItemId = collectionItem.getCollectionItemId();
+
+        boolean inProgress =
+                begRequestRepository.existsByCollectionItem_CollectionItemIdAndStatus(
+                        collectionItemId,
+                        BegRequestStatus.ACCEPTED
+                )
+                || collectionTradeRequestRepository
+                        .existsByCollectionItem_CollectionItemIdAndStatus(
+                                collectionItemId,
+                                TradeRequestStatus.ACCEPTED
+                        )
+                || tradeRequestRepository
+                        .existsByItem_CollectionItem_CollectionItemIdAndStatus(
+                                collectionItemId,
+                                TradeRequestStatus.ACCEPTED
+                        );
+
+        return inProgress
+                ? CollectionItemStatus.IN_PROGRESS
+                : CollectionItemStatus.AVAILABLE;
     }
 
     private CollectionItemSummaryResponse toSummaryResponse(
