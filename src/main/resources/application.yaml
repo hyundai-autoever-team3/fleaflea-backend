@@ -36,10 +36,10 @@ server:
   forward-headers-strategy: framework
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175,http://localhost:8080}
 
 swagger:
-  server-url: ${SWAGGER_SERVER_URL:https://api.fleaflea.app}
+  server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
 
 logging:
   level:
