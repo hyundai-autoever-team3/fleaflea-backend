@@ -8,21 +8,8 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 ---
 
 ## 1. 시스템 아키텍처
-```mermaid
-flowchart TB
-    Browser["사용자 브라우저"] --> Frontend["Vercel<br/>React + Vite"]
-    Frontend -->|HTTPS| DNS["DuckDNS"]
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/fb368c26-c2a2-4539-9ecb-695d3f8c2aec" />
 
-    subgraph EC2["AWS EC2"]
-        Nginx["Nginx<br/>HTTPS · Reverse Proxy"] --> App["Spring Boot<br/>Java 25"]
-        App --> DB[("PostgreSQL 16")]
-    end
-
-    DNS --> Nginx
-    App -->|이미지| S3[("Amazon S3")]
-```
-
-GitHub Actions가 이미지를 빌드해 GHCR에 올리고, SSM을 통해 EC2에 배포합니다.
 
 ## 2. 기술 스택
 
