@@ -7,6 +7,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 import static com.anabada.fleaflea.domain.friendship.domain.QFriendship.friendship;
@@ -57,6 +58,33 @@ public class FriendshipRepositoryImpl implements FriendshipRepositoryCustom {
                         friendship.status.eq(FriendshipStatus.ACCEPTED),
                         friendship.requester.memberId.eq(memberId)
                                 .or(friendship.addressee.memberId.eq(memberId))
+                )
+                .fetch();
+    }
+
+    @Override
+    public List<Friendship> findActiveRelationships(
+            Long memberId,
+            Collection<Long> targetMemberIds
+    ) {
+        QMember requester = new QMember("requester");
+        QMember addressee = new QMember("addressee");
+
+        return queryFactory
+                .selectFrom(friendship)
+                .join(friendship.requester, requester).fetchJoin()
+                .join(friendship.addressee, addressee).fetchJoin()
+                .where(
+                        friendship.status.in(
+                                FriendshipStatus.PENDING,
+                                FriendshipStatus.ACCEPTED
+                        ),
+                        friendship.requester.memberId.eq(memberId)
+                                .and(friendship.addressee.memberId.in(targetMemberIds))
+                                .or(
+                                        friendship.addressee.memberId.eq(memberId)
+                                                .and(friendship.requester.memberId.in(targetMemberIds))
+                                )
                 )
                 .fetch();
     }

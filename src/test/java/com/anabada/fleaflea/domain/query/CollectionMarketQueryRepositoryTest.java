@@ -3,6 +3,9 @@ package com.anabada.fleaflea.domain.query;
 import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
+import com.anabada.fleaflea.domain.friendship.domain.Friendship;
+import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
+import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryProjection;
@@ -19,6 +22,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,6 +42,9 @@ class CollectionMarketQueryRepositoryTest {
 
     @Autowired
     private MarketMemberRepository marketMemberRepository;
+
+    @Autowired
+    private FriendshipRepository friendshipRepository;
 
     @Test
     void collectionSearchAppliesTitlePublicAndPageConditions() {
@@ -89,6 +97,63 @@ class CollectionMarketQueryRepositoryTest {
                 .containsExactly("동네 장터");
         assertThat(result.getContent().getFirst().hostNickname())
                 .isEqualTo("member");
+    }
+
+    @Test
+    void activeRelationshipSearchIncludesBothDirectionsAndExcludesFinishedRequests() {
+        Member requester = persistMember("requester@example.com", "requester");
+        Member friend = persistMember("friend@example.com", "friend");
+        Member receivedFrom = persistMember("received@example.com", "received");
+        Member rejected = persistMember("rejected@example.com", "rejected");
+        Member outsidePage = persistMember("outside@example.com", "outside");
+
+        Friendship accepted = Friendship.create(
+                requester,
+                friend,
+                FriendshipStatus.PENDING
+        );
+        accepted.accept();
+        entityManager.persist(accepted);
+        entityManager.persist(Friendship.create(
+                receivedFrom,
+                requester,
+                FriendshipStatus.PENDING
+        ));
+
+        Friendship rejectedRequest = Friendship.create(
+                requester,
+                rejected,
+                FriendshipStatus.PENDING
+        );
+        rejectedRequest.reject();
+        entityManager.persist(rejectedRequest);
+        entityManager.persist(Friendship.create(
+                requester,
+                outsidePage,
+                FriendshipStatus.PENDING
+        ));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Friendship> result = friendshipRepository.findActiveRelationships(
+                requester.getMemberId(),
+                List.of(
+                        friend.getMemberId(),
+                        receivedFrom.getMemberId(),
+                        rejected.getMemberId()
+                )
+        );
+
+        assertThat(result)
+                .extracting(Friendship::getStatus)
+                .containsExactlyInAnyOrder(
+                        FriendshipStatus.ACCEPTED,
+                        FriendshipStatus.PENDING
+                );
+        assertThat(result)
+                .allSatisfy(friendship -> assertThat(friendship.isParticipant(
+                        requester.getMemberId()
+                )).isTrue());
     }
 
     private Member persistMember(String email, String nickname) {
