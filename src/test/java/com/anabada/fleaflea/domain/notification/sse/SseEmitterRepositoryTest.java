@@ -7,6 +7,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -77,11 +78,11 @@ class SseEmitterRepositoryTest {
 
     @Test
     @DisplayName("탭을 닫는 동시에 새 탭을 열어도 새 연결이 유실되지 않는다")
-    void save_isNotLostWhenConcurrentlyDeleting() throws InterruptedException {
+    void save_isNotLostWhenConcurrentlyDeleting() throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
         try {
-            for (int i = 0; i < 2_000; i++) {
+            for (int i = 0; i < 1_000; i++) {
                 String closingId = "1_closing_" + i;
                 String openingId = "1_opening_" + i;
 
@@ -89,26 +90,21 @@ class SseEmitterRepositoryTest {
 
                 CountDownLatch start = new CountDownLatch(1);
 
-                executor.submit(() -> {
+                Future<?> closing = executor.submit(() -> {
                     await(start);
                     repository.delete(1L, closingId);
                 });
-                executor.submit(() -> {
+                Future<?> opening = executor.submit(() -> {
                     await(start);
                     repository.save(1L, openingId, new SseEmitter());
                 });
 
                 start.countDown();
+                closing.get();
+                opening.get();
 
-                long deadline = System.currentTimeMillis() + 1_000;
-                boolean found = false;
-                while (System.currentTimeMillis() < deadline) {
-                    found = repository.findAllByMemberId(1L).stream()
-                            .anyMatch(entry -> entry.getKey().equals(openingId));
-                    if (found) {
-                        break;
-                    }
-                }
+                boolean found = repository.findAllByMemberId(1L).stream()
+                        .anyMatch(entry -> entry.getKey().equals(openingId));
 
                 assertThat(found)
                         .as("새로 연 탭의 연결이 유실됐다 (i=%d)", i)

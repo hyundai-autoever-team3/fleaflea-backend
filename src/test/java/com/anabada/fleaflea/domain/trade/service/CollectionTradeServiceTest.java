@@ -11,6 +11,7 @@ import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
+import com.anabada.fleaflea.domain.notification.notifier.TradeNotifier;
 import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
@@ -22,7 +23,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
@@ -33,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,7 +54,7 @@ class CollectionTradeServiceTest {
     @Mock
     private TradeRepository trades;
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private TradeNotifier tradeNotifier;
 
     @InjectMocks
     private CollectionTradeService service;
@@ -114,7 +115,7 @@ class CollectionTradeServiceTest {
 
         ArgumentCaptor<TradeCompletedEvent> eventCaptor =
                 ArgumentCaptor.forClass(TradeCompletedEvent.class);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        verify(tradeNotifier).notifyOf(eventCaptor.capture());
 
         TradeCompletedEvent event = eventCaptor.getValue();
         assertThat(event.confirmerId()).isEqualTo(REQUESTER_ID);
@@ -132,7 +133,7 @@ class CollectionTradeServiceTest {
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
         verify(trades, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
+        verifyNoInteractions(tradeNotifier);
     }
 
     @Test
@@ -173,6 +174,6 @@ class CollectionTradeServiceTest {
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
         assertThat(target.getOwner()).isSameAs(owner);
         verify(trades, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
+        verifyNoInteractions(tradeNotifier);
     }
 }
