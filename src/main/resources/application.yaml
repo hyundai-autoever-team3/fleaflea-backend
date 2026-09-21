@@ -18,6 +18,11 @@ spring:
     baseline-version: 1
     validate-migration-naming: true
 
+  task:
+    scheduling:
+      pool:
+        size: 2
+
   jpa:
     hibernate:
       ddl-auto: ${DDL_AUTO:validate}

@@ -89,7 +89,8 @@ public class SecurityConfig {
         ));
 
         configuration.setAllowedHeaders(List.of(
-                "Authorization", "Content-Type"
+                "Authorization", "Content-Type",
+                "Accept", "Last-Event-ID"
         ));
 
         configuration.setAllowCredentials(true);
