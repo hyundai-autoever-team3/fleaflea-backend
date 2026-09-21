@@ -8,7 +8,6 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 ---
 
 ## 1. 시스템 아키텍처
-## 1. 시스템 아키텍처
 
 브라우저는 **Vercel**에서 프론트엔드를 제공받고,  
 **DuckDNS**를 통해 AWS EC2의 백엔드 API를 호출합니다.
