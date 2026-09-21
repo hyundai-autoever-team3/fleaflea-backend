@@ -96,12 +96,12 @@ sudo systemctl reload nginx
 Verify the OpenAPI server URL and an HTTPS preflight response:
 
 ```bash
-curl -fsS https://fleaflea.duckdns.org/v3/api-docs \
+curl -fsS https://api.fleaflea.app/v3/api-docs \
   | grep -o '"servers":\[[^]]*\]'
 
 curl -i -X OPTIONS \
-  'https://fleaflea.duckdns.org/api/v1/friend-requests/1/reject' \
-  -H 'Origin: https://fleaflea.vercel.app' \
+  'https://api.fleaflea.app/api/v1/friend-requests/1/reject' \
+  -H 'Origin: https://fleaflea.app' \
   -H 'Access-Control-Request-Method: POST'
 ```
 
