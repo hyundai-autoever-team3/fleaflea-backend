@@ -214,7 +214,8 @@ public class CollectionItemService {
                 List.of(
                         TradeRequestStatus.PENDING,
                         TradeRequestStatus.REJECTED,
-                        TradeRequestStatus.CANCELLED
+                        TradeRequestStatus.CANCELLED,
+                        TradeRequestStatus.COMPLETED
                 )
         );
         begRequestRepository.deleteAllByCollectionItemIdAndStatusIn(

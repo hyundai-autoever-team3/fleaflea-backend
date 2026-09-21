@@ -83,7 +83,8 @@ class CollectionItemServiceTest {
                         List.of(
                                 TradeRequestStatus.PENDING,
                                 TradeRequestStatus.REJECTED,
-                                TradeRequestStatus.CANCELLED
+                                TradeRequestStatus.CANCELLED,
+                                TradeRequestStatus.COMPLETED
                         )
                 );
         verify(begRequestRepository)
