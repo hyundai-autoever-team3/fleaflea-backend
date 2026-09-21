@@ -47,6 +47,11 @@ public enum ErrorCode {
     INVALID_IMAGE_KEY(HttpStatus.BAD_REQUEST, "INVALID_IMAGE_KEY", "유효하지 않은 이미지 경로입니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_UPLOAD_FAILED", "이미지 업로드에 실패했습니다."),
     IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_DELETE_FAILED", "이미지 삭제에 실패했습니다."),
+    IMAGE_TRANSACTION_REQUIRED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "IMAGE_TRANSACTION_REQUIRED",
+            "이미지 변경은 쓰기 트랜잭션 안에서 처리해야 합니다."
+    ),
 
     // Item
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_NOT_FOUND", "존재하지 않는 상품입니다."),
