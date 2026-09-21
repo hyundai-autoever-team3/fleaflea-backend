@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 
@@ -207,6 +209,22 @@ public class CollectionItemService {
 
         String imageKey = collectionItem.getImageKey();
 
+        collectionTradeRequestRepository.deleteAllByCollectionItemIdAndStatusIn(
+                collectionItemId,
+                List.of(
+                        TradeRequestStatus.PENDING,
+                        TradeRequestStatus.REJECTED,
+                        TradeRequestStatus.CANCELLED
+                )
+        );
+        begRequestRepository.deleteAllByCollectionItemIdAndStatusIn(
+                collectionItemId,
+                List.of(
+                        BegRequestStatus.PENDING,
+                        BegRequestStatus.REJECTED,
+                        BegRequestStatus.CANCELLED
+                )
+        );
         collectionItemRepository.delete(collectionItem);
         imageService.deleteAfterCommit(imageKey);
     }
