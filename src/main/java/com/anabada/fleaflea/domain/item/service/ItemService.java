@@ -23,6 +23,9 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
+import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
+import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -43,6 +46,8 @@ public class ItemService {
     private final CollectionItemRepository collectionItemRepository;
     private final MemberRepository memberRepository;
     private final ImageService imageService;
+    private final TradeRequestRepository tradeRequestRepository;
+    private final NotificationRepository notificationRepository;
 
     @Transactional
     public ItemSummaryResponse createItem(
@@ -193,7 +198,7 @@ public class ItemService {
             Long itemId,
             Long memberId
     ) {
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findLockedByItemId(itemId)
                 .orElseThrow(ItemNotFoundException::new);
 
         item.validateOwner(memberId);
@@ -201,6 +206,8 @@ public class ItemService {
 
         String imageKey = item.getImageKey();
 
+        notificationRepository.deleteAllByItemTradeRequests(itemId, NotificationReferenceType.ITEM_TRADE_REQUEST);
+        tradeRequestRepository.deleteAllByItemId(itemId);
         itemRepository.delete(item);
 
         imageService.delete(imageKey);
