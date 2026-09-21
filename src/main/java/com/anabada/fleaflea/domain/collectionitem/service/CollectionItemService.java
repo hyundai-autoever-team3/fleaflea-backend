@@ -208,10 +208,7 @@ public class CollectionItemService {
         String imageKey = collectionItem.getImageKey();
 
         collectionItemRepository.delete(collectionItem);
-
-        if (imageKey != null) {
-            imageService.delete(imageKey);
-        }
+        imageService.deleteAfterCommit(imageKey);
     }
 
     private Member getMember(Long memberId) {

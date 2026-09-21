@@ -99,6 +99,49 @@ public class ImageService {
         }
     }
 
+    /**
+     * DB 트랜잭션이 커밋된 경우에만 S3 이미지를 삭제한다.
+     * 롤백되면 DB가 계속 참조하는 이미지이므로 삭제하지 않는다.
+     */
+    public void deleteAfterCommit(String imageKey) {
+        if (imageKey == null) {
+            return;
+        }
+
+        if (!IMAGE_KEY_PATTERN.matcher(imageKey).matches()) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
+        }
+
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw new IllegalStateException(
+                    "트랜잭션 완료 후 이미지 삭제는 쓰기 가능한 DB 트랜잭션 안에서 호출해야 합니다."
+            );
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            return;
+                        }
+
+                        try {
+                            delete(imageKey);
+                        } catch (RuntimeException e) {
+                            log.error(
+                                    "DB 삭제 이후 S3 이미지 정리 실패: 재처리 필요. imageKey={}",
+                                    imageKey,
+                                    e
+                            );
+                        }
+                    }
+                }
+        );
+    }
+
     private byte[] readBytes(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             byte[] bytes = input.readNBytes(MAX_FILE_SIZE + 1);

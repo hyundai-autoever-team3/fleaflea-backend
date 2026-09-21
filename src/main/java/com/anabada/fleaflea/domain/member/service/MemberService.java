@@ -62,7 +62,7 @@ public class MemberService {
         String profileImageKey = member.getProfileImageKey();
 
         if (imageDeleted){
-            imageService.delete(profileImageKey);
+            imageService.deleteAfterCommit(profileImageKey);
             profileImageKey = null;
         }
 
@@ -107,7 +107,11 @@ public class MemberService {
     public void deleteMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+
+        String profileImageKey = member.getProfileImageKey();
+
         memberRepository.delete(member);
+        imageService.deleteAfterCommit(profileImageKey);
     }
 
     @Transactional(readOnly = true)
