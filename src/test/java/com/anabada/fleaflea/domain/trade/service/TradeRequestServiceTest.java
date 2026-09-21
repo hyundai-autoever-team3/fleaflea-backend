@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.trade.service;
 
 import com.anabada.fleaflea.domain.item.domain.Item;
 import com.anabada.fleaflea.domain.item.domain.ItemStatus;
+import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
 import com.anabada.fleaflea.domain.item.repository.ItemRepository;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.market.exception.MarketNotParticipantException;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -342,6 +345,76 @@ class TradeRequestServiceTest {
 
         assertThat(tradeCountAfter - tradeCountBefore)
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("대여 거래를 완료하면 상품이 다시 거래 가능해지고 재대여 요청을 생성할 수 있다")
+    void confirmRentalCompletionMakesItemAvailableAgain() {
+        Member seller = memberRepository.save(MemberFixture.createMember("seller"));
+        Member buyer = memberRepository.save(MemberFixture.createMember("buyer"));
+
+        Market market = marketRepository.save(MarketFixture.createMarket(seller));
+        Item item = itemRepository.save(
+                ItemFixture.createItem(
+                        market,
+                        seller,
+                        "대여 상품",
+                        ItemTradeType.RENTAL,
+                        ItemStatus.AVAILABLE
+                )
+        );
+        joinMarket(market, buyer);
+
+        LocalDate rentalStartDate = LocalDate.now().plusDays(1);
+        LocalDate rentalEndDate = rentalStartDate.plusDays(3);
+        TradeRequest tradeRequest = tradeRequestRepository.save(
+                TradeRequest.create(
+                        item,
+                        buyer,
+                        "대여 요청",
+                        rentalStartDate,
+                        rentalEndDate
+                )
+        );
+
+        tradeRequestService.acceptTradeRequest(
+                tradeRequest.getTradeRequestId(),
+                seller.getMemberId()
+        );
+        tradeRequestService.confirmTradeRequestCompletion(
+                tradeRequest.getTradeRequestId(),
+                buyer.getMemberId()
+        );
+
+        TradeRequest completedRequest = tradeRequestRepository.findById(
+                tradeRequest.getTradeRequestId()
+        ).orElseThrow();
+        Item availableItem = itemRepository.findById(item.getItemId())
+                .orElseThrow();
+
+        assertThat(completedRequest.getStatus())
+                .isEqualTo(TradeRequestStatus.COMPLETED);
+        assertThat(availableItem.getStatus())
+                .isEqualTo(ItemStatus.AVAILABLE);
+
+        TradeRequestCreateRequest nextRentalRequest = new TradeRequestCreateRequest(
+                "다시 대여 요청",
+                rentalEndDate.plusDays(1),
+                rentalEndDate.plusDays(3)
+        );
+
+        tradeRequestService.createTradeRequest(
+                item.getItemId(),
+                buyer.getMemberId(),
+                nextRentalRequest
+        );
+
+        assertThat(tradeRequestRepository
+                .existsByItem_ItemIdAndRequester_MemberIdAndStatus(
+                        item.getItemId(),
+                        buyer.getMemberId(),
+                        TradeRequestStatus.PENDING
+                )).isTrue();
     }
 
     private TradeRequestCreateRequest createRequest(String message) {
