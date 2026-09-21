@@ -9,17 +9,17 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 
 ## 1. 시스템 아키텍처
 
-브라우저는 **Vercel**에서 프론트엔드를 제공받고,  
-**DuckDNS**를 통해 AWS EC2의 백엔드 API를 호출합니다.
+브라우저는 `fleaflea.app`에서 Vercel이 제공하는 프론트엔드를 받고,
+`api.fleaflea.app`을 통해 AWS EC2의 백엔드 API를 호출합니다.
 
 ```mermaid
 flowchart LR
 
     USER["👤 사용자<br/>Web Browser"]
 
-    VERCEL["▲ Vercel<br/>React 18 + Vite"]
+    VERCEL["▲ Vercel<br/>fleaflea.app<br/>React 18 + Vite"]
 
-    DNS["🦆 DuckDNS<br/>fleaflea.duckdns.org"]
+    DNS["🌐 Gabia DNS<br/>api.fleaflea.app"]
 
     subgraph AWS["☁️ AWS Cloud"]
 
@@ -54,7 +54,7 @@ flowchart LR
  ├─ 웹 화면 → Vercel
  │            └─ React + Vite
  │
- └─ API 요청 → DuckDNS
+ └─ API 요청 → api.fleaflea.app
                └─ AWS EC2
                    └─ Nginx
                        └─ Spring Boot
@@ -67,7 +67,7 @@ flowchart LR
 | 구성 요소 | 역할 |
 |---|---|
 | **Vercel** | React 프론트엔드 배포 및 HTTPS 제공 |
-| **DuckDNS** | 백엔드 EC2 도메인 연결 |
+| **Gabia DNS** | `fleaflea.app`과 `api.fleaflea.app`의 DNS 관리 |
 | **AWS EC2** | Spring Boot 서버 실행 |
 | **Nginx** | HTTPS 처리 및 Reverse Proxy |
 | **Spring Boot** | REST API / 인증 / 비즈니스 로직 |
@@ -90,7 +90,7 @@ flowchart LR
 | **Database & ORM**       | PostgreSQL, Spring Data JPA, Flyway | PostgreSQL 16                |
 | **Web Server & SSL**     | Nginx, Certbot                      | Nginx 1.24+, Let's Encrypt   |
 | **Container**            | Docker, Docker Compose              | Bridge Network, Named Volume |
-| **Cloud**                | AWS EC2, Amazon S3, DuckDNS         | Ubuntu 24.04 LTS             |
+| **Cloud**                | AWS EC2, Amazon S3, Gabia DNS       | Ubuntu 24.04 LTS             |
 | **CI/CD**                | GitHub Actions, GHCR, AWS SSM       | Docker 이미지 기반 자동 배포          |
 | **API Docs**             | Springdoc OpenAPI                   | Swagger UI                   |
 | **Frontend**             | React 18, Vite, Vercel              | HTTPS 통신                     |
@@ -101,16 +101,16 @@ flowchart LR
 
 프론트엔드는 React와 Vite로 구성되어 있으며 Vercel을 통해 배포하고 있습니다.
 
-사용자가 Vercel에 배포된 웹 페이지에 접속하면 브라우저에서 백엔드 API 도메인인 `fleaflea.duckdns.org`로 요청을 보냅니다.
+사용자가 `fleaflea.app`에 접속하면 Vercel이 프론트엔드를 제공하고, 브라우저는 백엔드 API 도메인인 `api.fleaflea.app`으로 요청을 보냅니다.
 
 프론트엔드와 백엔드 간 통신은 HTTPS 기반의 REST API 방식으로 이루어집니다.
 
 ### 3-2. DNS / Nginx
 
-백엔드 서버는 AWS EC2에서 운영하고 있으며, DuckDNS를 이용해 EC2 IP와 도메인을 연결했습니다.
+백엔드 서버는 AWS EC2에서 운영하며, Gabia DNS의 `api` 레코드로 EC2 IP와 연결합니다.
 
 ```text
-fleaflea.duckdns.org
+api.fleaflea.app
         ↓
 AWS EC2
         ↓
@@ -131,9 +131,9 @@ Nginx는 외부 요청을 가장 먼저 받아 다음 역할을 수행합니다.
 HTTP로 들어온 요청은 HTTPS로 자동 전환됩니다.
 
 ```text
-http://fleaflea.duckdns.org
+http://api.fleaflea.app
         ↓
-https://fleaflea.duckdns.org
+https://api.fleaflea.app
 ```
 
 ### 3-3. Docker Compose
@@ -289,4 +289,4 @@ EC2에서는 애플리케이션 설정과 계정 정보를 코드와 분리해 `
 
 **Swagger UI**
 
-https://fleaflea.duckdns.org/swagger-ui/index.html
+https://api.fleaflea.app/swagger-ui/index.html

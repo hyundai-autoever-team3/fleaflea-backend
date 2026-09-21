@@ -24,7 +24,7 @@ class CorsConfigurationTest {
     void bindsCommaSeparatedOrigins() {
         Binder binder = new Binder(new MapConfigurationPropertySource(Map.of(
                 "cors.allowed-origins",
-                "http://localhost:5175,https://flea-aaw6.vercel.app"
+                "http://localhost:5175,https://fleaflea.app"
         )));
 
         CorsProperties properties = binder
@@ -33,7 +33,7 @@ class CorsConfigurationTest {
 
         assertThat(properties.allowedOrigins()).containsExactly(
                 "http://localhost:5175",
-                "https://flea-aaw6.vercel.app"
+                "https://fleaflea.app"
         );
     }
 
@@ -41,7 +41,7 @@ class CorsConfigurationTest {
     void usesConfiguredAllowedOrigins() {
         CorsProperties properties = new CorsProperties(List.of(
                 "http://localhost:5175",
-                "https://flea-aaw6.vercel.app"
+                "https://fleaflea.app"
         ));
         SecurityConfig securityConfig = new SecurityConfig(
                 mock(CustomMemberDetailsService.class),
@@ -61,7 +61,7 @@ class CorsConfigurationTest {
         assertThat(configuration.getAllowedOrigins())
                 .containsExactly(
                         "http://localhost:5175",
-                        "https://flea-aaw6.vercel.app"
+                        "https://fleaflea.app"
                 );
         assertThat(configuration.getAllowCredentials()).isTrue();
     }

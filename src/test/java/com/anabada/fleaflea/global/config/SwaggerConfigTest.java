@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 class SwaggerConfigTest {
 
-    private static final String SERVER_URL = "https://fleaflea.duckdns.org";
+    private static final String SERVER_URL = "https://api.fleaflea.app";
 
     @Test
     void openApiContainsServiceInformation() {
