@@ -8,7 +8,99 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 ---
 
 ## 1. 시스템 아키텍처
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/fb368c26-c2a2-4539-9ecb-695d3f8c2aec" />
+## 1. 시스템 아키텍처
+
+```mermaid
+flowchart LR
+
+    %% =========================
+    %% Client
+    %% =========================
+    subgraph CLIENT["사용자"]
+        USER["👤 사용자 브라우저<br/>React 화면 렌더링<br/>API 호출"]
+    end
+
+    %% =========================
+    %% Frontend
+    %% =========================
+    subgraph FRONTEND["Frontend"]
+        VERCEL["▲ Vercel<br/>React 18 + Vite<br/>flea-aaw6.vercel.app"]
+    end
+
+    %% =========================
+    %% DNS
+    %% =========================
+    subgraph DNSAREA["DNS"]
+        DUCK["🦆 DuckDNS<br/>fleaflea.duckdns.org"]
+    end
+
+    %% =========================
+    %% AWS Cloud
+    %% =========================
+    subgraph AWS["☁️ AWS Cloud"]
+
+        subgraph EC2["Amazon EC2 · Ubuntu 24.04"]
+
+            INSTANCE["EC2 Instance<br/>Security Group: 80 / 443"]
+
+            NGINX["🟢 Nginx<br/>TLS 종료<br/>80 → 443<br/>Reverse Proxy"]
+
+            subgraph DOCKER["🐳 Docker Compose"]
+
+                SPRING["🍃 Spring Boot<br/>Java 25<br/>REST API<br/>JWT<br/>:8080"]
+
+                POSTGRES[("🐘 PostgreSQL 16<br/>:5432<br/>Flyway")]
+
+                VOLUME[("🐳 Named Volume<br/>DB 데이터 영속화")]
+
+                SPRING -->|"JDBC"| POSTGRES
+                POSTGRES --- VOLUME
+            end
+
+            INSTANCE --- NGINX
+            NGINX -->|"127.0.0.1:8080"| SPRING
+        end
+
+        S3["🪣 Amazon S3<br/>프로필 · 상품<br/>이미지 파일 저장"]
+
+        SPRING -->|"AWS SDK"| S3
+    end
+
+    %% =========================
+    %% Request Flow
+    %% =========================
+    USER -->|"웹 앱 · HTTPS"| VERCEL
+    USER -->|"REST API · HTTPS"| DUCK
+    DUCK -->|"DNS → EC2"| NGINX
+
+    %% =========================
+    %% Styles
+    %% =========================
+    classDef client fill:#f7f9ff,stroke:#7c83ff,stroke-width:1.5px,color:#172554;
+    classDef frontend fill:#ffffff,stroke:#60a5fa,stroke-width:1.5px,color:#172554;
+    classDef dns fill:#fffbea,stroke:#3b82f6,stroke-width:1.5px,color:#172554;
+    classDef nginx fill:#f0fdf4,stroke:#22c55e,stroke-width:1.5px,color:#14532d;
+    classDef spring fill:#f0fdf4,stroke:#86efac,stroke-width:1.5px,color:#14532d;
+    classDef db fill:#eff6ff,stroke:#60a5fa,stroke-width:1.5px,color:#172554;
+    classDef storage fill:#fff7ed,stroke:#fb923c,stroke-width:1.5px,color:#7c2d12;
+
+    class USER client;
+    class VERCEL frontend;
+    class DUCK dns;
+    class NGINX nginx;
+    class SPRING spring;
+    class POSTGRES,VOLUME db;
+    class S3 storage;
+```
+
+### 네트워크 구성
+
+| 구분 | 포트 | 설명 |
+|---|---:|---|
+| Public | `80 / 443` | 외부에서 접근 가능한 HTTP / HTTPS 포트 |
+| Nginx | `80 / 443` | TLS 종료 및 Spring Boot Reverse Proxy |
+| Spring Boot | `8080` | EC2 내부에서만 접근 |
+| PostgreSQL | `5432` | Docker 네트워크 또는 Loopback에서만 접근 |
 
 
 ## 2. 기술 스택
