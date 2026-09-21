@@ -11,68 +11,181 @@ Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이
 
 FleaFlea는 프론트엔드와 백엔드를 분리하여 운영합니다.
 
-- `fleaflea.app`: Vercel에서 React 프론트엔드 제공
-- `api.fleaflea.app`: AWS EC2에서 Spring Boot API 제공
-- Gabia DNS에서 프론트엔드와 백엔드 도메인의 DNS 레코드 관리
-- EC2 호스트의 Nginx에서 HTTPS를 처리하고 Spring Boot 컨테이너로 요청 전달
-- Spring Boot와 PostgreSQL은 Docker Compose로 실행
-- 업로드 이미지는 Amazon S3에 저장
-- `main` 브랜치 배포는 GitHub Actions, GHCR, AWS SSM을 통해 자동화
+- 프론트엔드: `https://fleaflea.app`
+- 백엔드 API: `https://api.fleaflea.app`
+- 이미지 저장소: Amazon S3
+- 애플리케이션 및 데이터베이스: AWS EC2의 Docker Compose
+- 배포: GitHub Actions, GHCR, AWS SSM
+
+### 운영 아키텍처
 
 ```mermaid
-flowchart LR
-    USER["사용자<br/>Web Browser"]
+flowchart TB
+    USER["사용자 브라우저"]
 
-    subgraph DNS["Gabia DNS"]
-        WEB_DNS["fleaflea.app<br/>Frontend DNS"]
-        API_DNS["api.fleaflea.app<br/>Backend DNS"]
-    end
+    subgraph FRONTEND["Frontend"]
+        WEB_DNS["fleaflea.app<br/>Gabia DNS"]
+        VERCEL["Vercel<br/>React 18 + Vite"]
 
-    VERCEL["Vercel<br/>React 18 + Vite<br/>Frontend Hosting"]
-
-    subgraph CICD["CI/CD"]
-        GHA["GitHub Actions<br/>Build & Test"]
-        GHCR["GitHub Container Registry<br/>Spring Boot Image"]
+        WEB_DNS --> VERCEL
     end
 
     subgraph AWS["AWS Cloud"]
-        SSM["AWS Systems Manager<br/>EC2 Deployment"]
-        S3["Amazon S3<br/>Profile & Item Images"]
+        API_DNS["api.fleaflea.app<br/>Gabia DNS"]
 
-        subgraph EC2["Amazon EC2 · Ubuntu 24.04 LTS"]
-            SG["Security Group<br/>80 · 443 Public"]
-
-            NGINX["Host Nginx<br/>TLS Termination<br/>Reverse Proxy"]
+        subgraph EC2["EC2 · Ubuntu 24.04 LTS"]
+            NGINX["Nginx<br/>HTTPS · Reverse Proxy"]
 
             subgraph DOCKER["Docker Compose"]
-                APP["Spring Boot API<br/>Java 25<br/>127.0.0.1:8080"]
+                APP["Spring Boot API<br/>Java 25 · Port 8080"]
+                DB["PostgreSQL 16<br/>Port 5432"]
+                VOLUME[("Named Volume<br/>PostgreSQL Data")]
 
-                DB["PostgreSQL 16<br/>127.0.0.1:5432"]
-
-                VOLUME[("Named Volume<br/>fleaflea_postgres_data")]
-
-                APP -->|"JDBC<br/>postgres:5432"| DB
+                APP -->|"JDBC"| DB
                 DB --- VOLUME
             end
         end
+
+        S3["Amazon S3<br/>Image Storage"]
+
+        API_DNS --> NGINX
+        NGINX -->|"127.0.0.1:8080"| APP
+        APP -->|"AWS SDK"| S3
     end
 
-    USER -->|"Frontend HTTPS"| WEB_DNS
-    WEB_DNS --> VERCEL
-    VERCEL -->|"HTML · CSS · JavaScript"| USER
+    USER -->|"웹 접속"| WEB_DNS
+    USER -->|"REST API · HTTPS"| API_DNS
 
-    USER -->|"REST API HTTPS"| API_DNS
-    API_DNS --> SG
-    SG -->|"80 / 443"| NGINX
-    NGINX -->|"HTTP<br/>127.0.0.1:8080"| APP
+    classDef user fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
+    classDef dns fill:#ecfeff,stroke:#0891b2,stroke-width:2px,color:#164e63;
+    classDef frontend fill:#fafafa,stroke:#18181b,stroke-width:2px,color:#18181b;
+    classDef proxy fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
+    classDef application fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#14532d;
+    classDef database fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef storage fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
 
-    APP -->|"AWS SDK · HTTPS"| S3
+    class USER user;
+    class WEB_DNS,API_DNS dns;
+    class VERCEL frontend;
+    class NGINX proxy;
+    class APP application;
+    class DB,VOLUME database;
+    class S3 storage;
 
-    GHA -->|"Docker Image Push"| GHCR
-    GHA -->|"AWS OIDC"| SSM
-    SSM -->|"Deploy Command"| DOCKER
-    DOCKER -.->|"Image Pull"| GHCR
+    style FRONTEND fill:#ffffff,stroke:#a1a1aa,stroke-width:1px
+    style AWS fill:#fffbeb,stroke:#f59e0b,stroke-width:2px
+    style EC2 fill:#ffffff,stroke:#f59e0b,stroke-width:2px
+    style DOCKER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,stroke-dasharray:5 5
 ```
+
+### 요청 흐름
+
+```text
+사용자 브라우저
+ ├─ https://fleaflea.app
+ │   └─ Gabia DNS
+ │       └─ Vercel
+ │           └─ React + Vite 프론트엔드
+ │
+ └─ https://api.fleaflea.app
+     └─ Gabia DNS
+         └─ AWS EC2
+             └─ Nginx
+                 └─ Spring Boot
+                     ├─ PostgreSQL
+                     │   └─ Named Volume
+                     └─ Amazon S3
+```
+
+### CI/CD 배포 구조
+
+```mermaid
+flowchart LR
+    GIT["main 브랜치<br/>Push 또는 PR 병합"]
+
+    subgraph ACTIONS["GitHub Actions"]
+        CI["Build & Test"]
+        IMAGE["Docker Image Build"]
+
+        CI --> IMAGE
+    end
+
+    GHCR["GHCR<br/>Docker Image"]
+    SSM["AWS SSM<br/>Deploy Command"]
+
+    subgraph SERVER["AWS EC2"]
+        COMPOSE["Docker Compose"]
+        APP["Spring Boot"]
+        DB["PostgreSQL"]
+
+        COMPOSE --> APP
+        COMPOSE --> DB
+    end
+
+    GIT --> CI
+    IMAGE -->|"Push"| GHCR
+    IMAGE -->|"배포 요청"| SSM
+    SSM --> COMPOSE
+    GHCR -->|"Pull"| COMPOSE
+
+    classDef source fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
+    classDef github fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95;
+    classDef registry fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef aws fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
+    classDef container fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
+
+    class GIT source;
+    class CI,IMAGE github;
+    class GHCR registry;
+    class SSM,COMPOSE aws;
+    class APP,DB container;
+
+    style ACTIONS fill:#ffffff,stroke:#8b5cf6,stroke-width:1px
+    style SERVER fill:#fffbeb,stroke:#f59e0b,stroke-width:2px
+```
+
+### 인프라 구성
+
+| 구성 요소 | 역할 |
+|---|---|
+| **Gabia DNS** | `fleaflea.app`, `api.fleaflea.app` DNS 관리 |
+| **Vercel** | React 프론트엔드 배포, CDN 및 HTTPS 제공 |
+| **AWS EC2** | Nginx, Spring Boot, PostgreSQL 실행 |
+| **Nginx** | HTTPS 처리 및 Spring Boot Reverse Proxy |
+| **Docker Compose** | Spring Boot 및 PostgreSQL 컨테이너 관리 |
+| **Spring Boot** | REST API, JWT 인증 및 비즈니스 로직 처리 |
+| **PostgreSQL 16** | 서비스 데이터 저장 |
+| **Flyway** | 데이터베이스 스키마 버전 관리 |
+| **Named Volume** | PostgreSQL 데이터 영구 저장 |
+| **Amazon S3** | 프로필, 도감, 상품 및 마켓 이미지 저장 |
+| **GitHub Actions** | 빌드, 테스트 및 배포 자동화 |
+| **GHCR** | Spring Boot Docker 이미지 저장 |
+| **AWS SSM** | EC2에 배포 명령 전달 |
+
+### 네트워크 구성
+
+| 대상 | 포트 | 접근 범위 | 설명 |
+|---|---:|---|---|
+| **Vercel** | `443` | Public | 프론트엔드 HTTPS 제공 |
+| **Nginx** | `80` | Public | HTTPS로 리다이렉트 |
+| **Nginx** | `443` | Public | API 및 Swagger HTTPS 제공 |
+| **SSH** | `22` | 관리자 IP 제한 | EC2 운영 및 장애 대응 |
+| **Spring Boot** | `8080` | Loopback | `127.0.0.1:8080`에만 바인딩 |
+| **PostgreSQL** | `5432` | Loopback / Docker 내부 | 외부 접근 차단 |
+| **Amazon S3** | `443` | Outbound | 이미지 저장 및 조회 |
+| **AWS SSM** | `443` | Outbound | 배포 명령 수신 |
+
+Spring Boot와 PostgreSQL은 외부에 직접 공개하지 않습니다. 모든 외부 API 요청은 Nginx를 거쳐 Spring Boot로 전달됩니다.
+
+### 운영 주소
+
+| 구분 | 주소 |
+|---|---|
+| **프론트엔드** | `https://fleaflea.app` |
+| **백엔드 API** | `https://api.fleaflea.app` |
+| **Swagger UI** | `https://api.fleaflea.app/swagger-ui/index.html` |
+| **OpenAPI JSON** | `https://api.fleaflea.app/v3/api-docs` |
+| **Health Check** | `https://api.fleaflea.app/actuator/health` |
 
 ### 요청 흐름
 
