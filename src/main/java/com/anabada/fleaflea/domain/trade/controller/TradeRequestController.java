@@ -150,16 +150,15 @@ public class TradeRequestController {
 
     @PostMapping("/item-trade-requests/{requestId}/complete")
     @Operation(
-            summary = "거래 완료 확인",
-            description = "거래 당사자가 수락된 거래의 완료를 확인."
+            summary = "상품 거래 완료 확인", description = "거래 요청자가 수락된 거래의 완료를 확인. 완료 확인 시 거래가 최종 완료."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "완료 확인 성공. 상태: COMPLETED",
+            @ApiResponse(responseCode = "200", description = "거래 완료 확인 성공. 상태: COMPLETED",
                     content = @Content(schema = @Schema(implementation = TradeRequestStatusResponse.class))),
-            @ApiResponse(responseCode = "401", description = "인증 필요"),
-            @ApiResponse(responseCode = "403", description = "거래 당사자가 아님"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "거래 요청자가 아님"),
             @ApiResponse(responseCode = "404", description = "거래 요청을 찾을 수 없음"),
-            @ApiResponse(responseCode = "409", description = "수락된 거래가 아니거나 이미 완료 확인한 거래")
+            @ApiResponse(responseCode = "409", description = "완료 확인할 수 없는 거래 상태")
     })
     public ResponseEntity<TradeRequestStatusResponse> confirmTradeRequestCompletion(
             @PathVariable Long requestId,

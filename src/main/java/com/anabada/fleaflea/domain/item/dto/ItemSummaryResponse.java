@@ -46,4 +46,16 @@ public record ItemSummaryResponse(
                 .createdAt(item.getCreatedAt())
                 .build();
     }
+
+    public static ItemSummaryResponse of(ItemSummaryProjection projection, String imageUrl) {
+        return ItemSummaryResponse.builder()
+                .itemId(projection.itemId())
+                .title(projection.title())
+                .tradeType(projection.tradeType())
+                .price(projection.price())
+                .status(projection.status())
+                .imageUrl(imageUrl)
+                .createdAt(projection.createdAt())
+                .build();
+    }
 }
