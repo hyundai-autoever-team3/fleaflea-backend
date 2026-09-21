@@ -16,6 +16,10 @@ import java.util.Optional;
 
 public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long> {
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from TradeRequest tr where tr.item.itemId = :itemId")
+    void deleteAllByItemId(Long itemId);
+
     @EntityGraph(attributePaths = {"item", "item.seller", "requester"})
     List<TradeRequest> findByItem_Seller_MemberIdOrderByCreatedAtDesc(Long sellerId);
 
