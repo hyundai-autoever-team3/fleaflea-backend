@@ -21,15 +21,15 @@ public interface CollectionTradeRequestRepository extends JpaRepository<Collecti
             Collection<TradeRequestStatus> statuses
     );
 
-    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "offerCollectionItem"})
+    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem"})
     Optional<CollectionTradeRequest> findWithDetailsByCollectionTradeRequestId(Long collectionTradeRequestId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<CollectionTradeRequest> findLockedByCollectionTradeRequestId(Long collectionTradeRequestId);
 
-    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "offerCollectionItem"})
-    List<CollectionTradeRequest> findByCollectionItem_Owner_MemberIdOrderByCreatedAtDesc(Long ownerId);
+    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem"})
+    List<CollectionTradeRequest> findByOwner_MemberIdOrderByCreatedAtDesc(Long ownerId);
 
-    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "offerCollectionItem"})
+    @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem"})
     List<CollectionTradeRequest> findByRequester_MemberIdOrderByCreatedAtDesc(Long requesterId);
 }

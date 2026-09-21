@@ -26,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,20 +59,24 @@ class CollectionTradeServiceTest {
     private CollectionTradeService service;
 
     private CollectionTradeRequest request;
+    private Member owner;
+    private Member requester;
+    private CollectionItem target;
+    private CollectionItem offer;
 
     @BeforeEach
     void setUp() {
-        Member owner = MemberFixture.createMember(OWNER_ID);
-        Member requester = MemberFixture.createMember(REQUESTER_ID);
+        owner = MemberFixture.createMember(OWNER_ID);
+        requester = MemberFixture.createMember(REQUESTER_ID);
 
-        CollectionItem target = CollectionItem.create(
+        target = CollectionItem.create(
                 owner,
                 "교환 대상",
                 "교환할 도감 아이템",
                 null,
                 true
         );
-        CollectionItem offer = CollectionItem.create(
+        offer = CollectionItem.create(
                 requester,
                 "제안 아이템",
                 "요청자가 제안한 도감 아이템",
@@ -98,10 +103,13 @@ class CollectionTradeServiceTest {
     @DisplayName("도감 교환 요청자는 수락된 거래를 완료할 수 있다")
     void requesterCompletesAcceptedCollectionTrade() {
         when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+        when(items.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
 
         service.complete(REQUESTER_ID, REQUEST_ID);
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
+        assertThat(target.getOwner()).isSameAs(requester);
+        assertThat(offer.getOwner()).isSameAs(owner);
         verify(trades).save(any());
 
         ArgumentCaptor<TradeCompletedEvent> eventCaptor =
@@ -123,6 +131,47 @@ class CollectionTradeServiceTest {
                                 .isEqualTo(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED));
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
+        verify(trades, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("도감 대여 거래를 완료해도 아이템 소유권은 유지된다")
+    void rentalCompletionKeepsOwnership() {
+        CollectionTradeRequest rentalRequest = CollectionTradeRequest.create(
+                target,
+                requester,
+                null,
+                CollectionTradeType.RENTAL
+        );
+        ReflectionTestUtils.setField(rentalRequest, "collectionTradeRequestId", REQUEST_ID);
+        rentalRequest.accept();
+        when(requests.findLockedByCollectionTradeRequestId(REQUEST_ID))
+                .thenReturn(Optional.of(rentalRequest));
+        when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+
+        service.complete(REQUESTER_ID, REQUEST_ID);
+
+        assertThat(rentalRequest.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
+        assertThat(target.getOwner()).isSameAs(owner);
+        verify(items, never()).findAllByIdForUpdate(any());
+    }
+
+    @Test
+    @DisplayName("교환 완료 전에 제안 아이템 소유권이 바뀌면 완료할 수 없다")
+    void cannotCompleteWhenOfferedItemOwnershipChanged() {
+        Member other = MemberFixture.createMember(3L);
+        offer.transferTo(other);
+        when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+        when(items.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
+
+        assertThatThrownBy(() -> service.complete(REQUESTER_ID, REQUEST_ID))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.COLLECTION_TRADE_OWNERSHIP_CHANGED));
+
+        assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
+        assertThat(target.getOwner()).isSameAs(owner);
         verify(trades, never()).save(any());
         verify(eventPublisher, never()).publishEvent(any());
     }
