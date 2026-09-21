@@ -51,7 +51,7 @@ public enum ErrorCode {
     // Item
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_NOT_FOUND", "존재하지 않는 상품입니다."),
     ITEM_NOT_OWNER(HttpStatus.FORBIDDEN, "ITEM_NOT_OWNER", "상품 등록자만 변경할 수 있습니다."),
-    ITEM_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ITEM_ALREADY_COMPLETED", "거래 완료된 상품은 수정할 수 없습니다."),
+    ITEM_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ITEM_ALREADY_COMPLETED", "거래 완료된 상품은 수정하거나 삭제할 수 없습니다."),
     ITEM_TRADE_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_IN_PROGRESS", "거래 진행 중인 상품은 삭제할 수 없습니다."),
     ITEM_NOT_AVAILABLE(HttpStatus.CONFLICT, "ITEM_NOT_AVAILABLE", "거래 가능한 상태의 상품이 아닙니다."),
     ITEM_TRADE_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_NOT_IN_PROGRESS", "거래 진행 중인 상품이 아닙니다."),
