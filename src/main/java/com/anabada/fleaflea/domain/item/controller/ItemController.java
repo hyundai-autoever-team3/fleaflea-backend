@@ -124,13 +124,13 @@ public class ItemController {
     }
 
     @DeleteMapping("/items/{itemId}")
-    @Operation(summary = "상품 삭제", description = "등록자만 삭제 가능. 거래 진행 중에는 삭제 불가")
+    @Operation(summary = "상품 삭제", description = "등록자만 삭제 가능. 판매 가능한 상태(AVAILABLE)의 상품만 삭제할 수 있음")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "상품 삭제 성공", content = @Content),
             @ApiResponse(responseCode = "401", description = "인증 필요"),
             @ApiResponse(responseCode = "403", description = "상품 등록자가 아님"),
             @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음"),
-            @ApiResponse(responseCode = "409", description = "거래 진행 중인 상품은 삭제할 수 없음")
+            @ApiResponse(responseCode = "409", description = "거래 진행 중이거나 거래 완료된 상품은 삭제할 수 없음")
     })
     public ResponseEntity<Void> deleteItem(
             @PathVariable Long itemId,

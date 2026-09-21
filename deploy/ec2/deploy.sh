@@ -56,7 +56,7 @@ write_image_env "$IMAGE_URI"
 
 if start_stack; then
   systemctl disable fleaflea 2>/dev/null || true
-  docker image prune -f >/dev/null
+  docker image prune -a -f --filter "until=168h" >/dev/null
   echo "Deployment completed: $IMAGE_URI"
   exit 0
 fi

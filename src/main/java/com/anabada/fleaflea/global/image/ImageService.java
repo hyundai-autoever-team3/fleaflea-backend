@@ -34,7 +34,7 @@ public class ImageService {
     private static final Pattern IMAGE_KEY_PATTERN = Pattern.compile(
             "^(profiles|collection-items|items|markets)/"
                     + "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
-                    + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png)$"
+                    + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$"
     );
 
     private final S3Client s3Client;
@@ -63,9 +63,12 @@ public class ImageService {
 
         byte[] bytes = readBytes(file);
         String extension = detectImageExtension(bytes);
-        String contentType = extension.equals("jpg")
-                ? "image/jpeg"
-                : "image/png";
+        String contentType = switch (extension) {
+            case "jpg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "webp" -> "image/webp";
+            default -> throw new ImageException(ErrorCode.INVALID_IMAGE);
+        };
 
         String imageKey = category.getPrefix()
                 + "/" + UUID.randomUUID() + "." + extension;
@@ -97,6 +100,47 @@ public class ImageService {
         } catch (SdkException e) {
             throw new ImageException(ErrorCode.IMAGE_DELETE_FAILED, e);
         }
+    }
+
+    /**
+     * DB 트랜잭션이 커밋된 경우에만 S3 이미지를 삭제한다.
+     * 롤백되면 DB가 계속 참조하는 이미지이므로 삭제하지 않는다.
+     */
+    public void deleteAfterCommit(String imageKey) {
+        if (imageKey == null) {
+            return;
+        }
+
+        if (!IMAGE_KEY_PATTERN.matcher(imageKey).matches()) {
+            throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
+        }
+
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            return;
+                        }
+
+                        try {
+                            delete(imageKey);
+                        } catch (RuntimeException e) {
+                            log.error(
+                                    "DB 삭제 이후 S3 이미지 정리 실패: 재처리 필요. imageKey={}",
+                                    imageKey,
+                                    e
+                            );
+                        }
+                    }
+                }
+        );
     }
 
     private byte[] readBytes(MultipartFile file) {
@@ -135,6 +179,7 @@ public class ImageService {
                 String extension = switch (format) {
                     case "jpeg", "jpg" -> "jpg";
                     case "png" -> "png";
+                    case "webp" -> "webp";
                     default -> throw new ImageException(
                             ErrorCode.INVALID_IMAGE);
                 };
@@ -196,9 +241,7 @@ public class ImageService {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || !TransactionSynchronizationManager.isSynchronizationActive()
                 || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new IllegalStateException(
-                    "이미지 교체는 쓰기 가능한 DB 트랜잭션 안에서 호출해야 합니다."
-            );
+            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
         }
 
         ImageReplacement replacement =

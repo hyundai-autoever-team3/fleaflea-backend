@@ -130,6 +130,10 @@ public class Item extends BaseTimeEntity {
         if (status == ItemStatus.IN_PROGRESS) {
             throw new ItemTradeInProgressException();
         }
+
+        if (status == ItemStatus.COMPLETED) {
+            throw new ItemAlreadyCompletedException();
+        }
     }
 
     public void startTrade() {

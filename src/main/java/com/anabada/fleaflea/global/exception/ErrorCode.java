@@ -47,11 +47,16 @@ public enum ErrorCode {
     INVALID_IMAGE_KEY(HttpStatus.BAD_REQUEST, "INVALID_IMAGE_KEY", "유효하지 않은 이미지 경로입니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_UPLOAD_FAILED", "이미지 업로드에 실패했습니다."),
     IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_DELETE_FAILED", "이미지 삭제에 실패했습니다."),
+    IMAGE_TRANSACTION_REQUIRED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "IMAGE_TRANSACTION_REQUIRED",
+            "이미지 변경은 쓰기 트랜잭션 안에서 처리해야 합니다."
+    ),
 
     // Item
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_NOT_FOUND", "존재하지 않는 상품입니다."),
     ITEM_NOT_OWNER(HttpStatus.FORBIDDEN, "ITEM_NOT_OWNER", "상품 등록자만 변경할 수 있습니다."),
-    ITEM_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ITEM_ALREADY_COMPLETED", "거래 완료된 상품은 수정할 수 없습니다."),
+    ITEM_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ITEM_ALREADY_COMPLETED", "거래 완료된 상품은 수정하거나 삭제할 수 없습니다."),
     ITEM_TRADE_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_IN_PROGRESS", "거래 진행 중인 상품은 삭제할 수 없습니다."),
     ITEM_NOT_AVAILABLE(HttpStatus.CONFLICT, "ITEM_NOT_AVAILABLE", "거래 가능한 상태의 상품이 아닙니다."),
     ITEM_TRADE_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_NOT_IN_PROGRESS", "거래 진행 중인 상품이 아닙니다."),

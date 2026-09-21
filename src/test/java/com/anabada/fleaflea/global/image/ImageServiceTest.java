@@ -8,12 +8,14 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,6 +82,52 @@ class ImageServiceTest {
     }
 
     @Test
+    void uploadAcceptsWebpAndSetsContentType() {
+        byte[] imageBytes = Base64.getDecoder().decode(
+                "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="
+        );
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.png", "image/png", imageBytes
+        );
+
+        String key = imageService.upload(file, ImageCategory.ITEM);
+
+        assertThat(key).startsWith("items/").endsWith(".webp");
+
+        ArgumentCaptor<Consumer<PutObjectRequest.Builder>> requestCaptor =
+                ArgumentCaptor.captor();
+        verify(s3Client).putObject(
+                requestCaptor.capture(), any(RequestBody.class)
+        );
+
+        PutObjectRequest.Builder builder = PutObjectRequest.builder();
+        requestCaptor.getValue().accept(builder);
+        PutObjectRequest request = builder.build();
+
+        assertThat(request.key()).isEqualTo(key);
+        assertThat(request.contentType()).isEqualTo("image/webp");
+    }
+
+    @Test
+    void uploadRejectsSvg() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "image.svg",
+                "image/svg+xml",
+                "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+                        .getBytes(StandardCharsets.UTF_8)
+        );
+
+        ImageException exception = assertThrows(
+                ImageException.class,
+                () -> imageService.upload(file, ImageCategory.ITEM)
+        );
+
+        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_IMAGE);
+        verifyNoInteractions(s3Client);
+    }
+
+    @Test
     void uploadRejectsTextDisguisedAsImage() {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "fake.png", "image/png",
@@ -142,7 +190,7 @@ class ImageServiceTest {
 
     @Test
     void deleteUsesRequestedKey() {
-        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+        String key = "items/12345678-1234-1234-1234-123456789abc.webp";
 
         imageService.delete(key);
 
@@ -157,6 +205,107 @@ class ImageServiceTest {
 
         assertThat(request.bucket()).isEqualTo("test-bucket");
         assertThat(request.key()).isEqualTo(key);
+    }
+
+    @Test
+    void copyKeepsWebpExtension() {
+        String sourceKey =
+                "items/12345678-1234-1234-1234-123456789abc.webp";
+
+        String targetKey = imageService.copy(
+                sourceKey,
+                ImageCategory.COLLECTION_ITEM
+        );
+
+        assertThat(targetKey)
+                .startsWith("collection-items/")
+                .endsWith(".webp");
+
+        ArgumentCaptor<Consumer<CopyObjectRequest.Builder>> captor =
+                ArgumentCaptor.captor();
+        verify(s3Client).copyObject(captor.capture());
+
+        CopyObjectRequest.Builder builder = CopyObjectRequest.builder();
+        captor.getValue().accept(builder);
+        CopyObjectRequest request = builder.build();
+
+        assertThat(request.sourceBucket()).isEqualTo("test-bucket");
+        assertThat(request.sourceKey()).isEqualTo(sourceKey);
+        assertThat(request.destinationBucket()).isEqualTo("test-bucket");
+        assertThat(request.destinationKey()).isEqualTo(targetKey);
+    }
+
+    @Test
+    void deleteAfterCommitDeletesImageOnlyAfterCommit() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        try {
+            imageService.deleteAfterCommit(key);
+
+            verify(s3Client, never()).deleteObject(
+                    org.mockito.ArgumentMatchers
+                            .<Consumer<DeleteObjectRequest.Builder>>any()
+            );
+
+            var synchronizations =
+                    TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).hasSize(1);
+
+            synchronizations.getFirst().afterCompletion(
+                    TransactionSynchronization.STATUS_COMMITTED
+            );
+
+            ArgumentCaptor<Consumer<DeleteObjectRequest.Builder>> captor =
+                    ArgumentCaptor.captor();
+            verify(s3Client).deleteObject(captor.capture());
+
+            DeleteObjectRequest.Builder builder = DeleteObjectRequest.builder();
+            captor.getValue().accept(builder);
+            assertThat(builder.build().key()).isEqualTo(key);
+        } finally {
+            TransactionSynchronizationManager.clear();
+        }
+    }
+
+    @Test
+    void deleteAfterCommitKeepsImageAfterRollback() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        try {
+            imageService.deleteAfterCommit(key);
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .getFirst()
+                    .afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+
+            verify(s3Client, never()).deleteObject(
+                    org.mockito.ArgumentMatchers
+                            .<Consumer<DeleteObjectRequest.Builder>>any()
+            );
+        } finally {
+            TransactionSynchronizationManager.clear();
+        }
+    }
+
+    @Test
+    void deleteAfterCommitRejectsMissingTransaction() {
+        String key = "items/12345678-1234-1234-1234-123456789abc.png";
+
+        ImageException exception = assertThrows(
+                ImageException.class,
+                () -> imageService.deleteAfterCommit(key)
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
+
+        verifyNoInteractions(s3Client);
     }
 
     @Test
@@ -318,14 +467,17 @@ class ImageServiceTest {
     void replaceRejectsMissingTransaction() throws Exception {
         MockMultipartFile file = createPngFile();
 
-        assertThrows(
-                IllegalStateException.class,
+        ImageException exception = assertThrows(
+                ImageException.class,
                 () -> imageService.replace(
                         "items/12345678-1234-1234-1234-123456789abc.png",
                         file,
                         ImageCategory.ITEM
                 )
         );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
 
         verifyNoInteractions(s3Client);
     }
