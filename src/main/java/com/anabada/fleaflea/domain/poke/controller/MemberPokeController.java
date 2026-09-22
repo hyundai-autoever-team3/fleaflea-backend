@@ -34,7 +34,8 @@ public class MemberPokeController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "콕찌르기 전송 성공"),
             @ApiResponse(responseCode = "400", description = "자기 자신에게 전송할 수 없음"),
-            @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음"),
+            @ApiResponse(responseCode = "429", description = "일일 콕찌르기 횟수 초과")
     })
     public ResponseEntity<Void> send(
             @AuthenticationPrincipal Long senderId,
