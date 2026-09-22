@@ -32,6 +32,7 @@ public enum ErrorCode {
 
     // Poke
     POKE_SELF(HttpStatus.BAD_REQUEST, "POKE_SELF", "자기 자신을 콕 찌를 수 없습니다."),
+    POKE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "POKE_LIMIT_EXCEEDED", "콕찌르기 최대 요청 횟수를 초과했습니다."),
     POKE_NOT_FOUND(HttpStatus.NOT_FOUND, "POKE_NOT_FOUND", "존재하지 않는 콕찌르기입니다."),
     POKE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "POKE_ACCESS_DENIED", "받은 사람만 콕찌르기를 읽을 수 있습니다."),
 

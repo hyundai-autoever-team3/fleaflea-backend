@@ -5,6 +5,7 @@ import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.poke.domain.MemberPoke;
 import com.anabada.fleaflea.domain.poke.dto.MemberPokeResponse;
 import com.anabada.fleaflea.domain.poke.event.MemberPokedEvent;
+import com.anabada.fleaflea.domain.poke.ratelimit.PokeRateLimiter;
 import com.anabada.fleaflea.domain.poke.repository.MemberPokeRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.exception.BusinessException;
@@ -24,6 +25,7 @@ public class MemberPokeService {
     private final MemberRepository memberRepository;
     private final MemberPokeRepository pokeRepository;
     private final PokeNotifier pokeNotifier;
+    private final PokeRateLimiter pokeRateLimiter;
 
     @Transactional
     public void send(Long senderId, Long recipientId) {
@@ -35,6 +37,8 @@ public class MemberPokeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         Member recipient = memberRepository.findById(recipientId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        pokeRateLimiter.acquire(senderId, recipientId);
 
         MemberPoke poke = MemberPoke.create(sender, recipient);
 
