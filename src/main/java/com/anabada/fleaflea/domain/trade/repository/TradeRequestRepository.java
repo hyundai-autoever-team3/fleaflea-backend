@@ -83,6 +83,11 @@ public interface TradeRequestRepository extends JpaRepository<TradeRequest, Long
             TradeRequestStatus status
     );
 
+    boolean existsByItem_CollectionItem_CollectionItemIdAndStatusIn(
+            Long collectionItemId,
+            Collection<TradeRequestStatus> statuses
+    );
+
     @Modifying
     @Query("""
         update TradeRequest tradeRequest

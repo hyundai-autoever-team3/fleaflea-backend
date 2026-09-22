@@ -20,9 +20,18 @@ public class CollectionTradeRequest extends BaseTimeEntity {
     @Column(name = "collection_trade_request_id")
     private Long collectionTradeRequestId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "collection_item_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "collection_item_id")
     private CollectionItem collectionItem;
+
+    @Column(name = "collection_item_snapshot_id", nullable = false)
+    private Long collectionItemSnapshotId;
+
+    @Column(name = "collection_item_title", nullable = false, length = 150)
+    private String collectionItemTitle;
+
+    @Column(name = "collection_item_description", columnDefinition = "TEXT")
+    private String collectionItemDescription;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "requester_id", nullable = false)
@@ -35,6 +44,15 @@ public class CollectionTradeRequest extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offer_collection_item_id")
     private CollectionItem offerCollectionItem;
+
+    @Column(name = "offer_collection_item_snapshot_id")
+    private Long offerCollectionItemSnapshotId;
+
+    @Column(name = "offer_collection_item_title", length = 150)
+    private String offerCollectionItemTitle;
+
+    @Column(name = "offer_collection_item_description", columnDefinition = "TEXT")
+    private String offerCollectionItemDescription;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type", nullable = false, length = 20)
@@ -54,9 +72,18 @@ public class CollectionTradeRequest extends BaseTimeEntity {
             TradeRequestStatus status
     ) {
         this.collectionItem = collectionItem;
+        this.collectionItemSnapshotId = collectionItem.getCollectionItemId();
+        this.collectionItemTitle = collectionItem.getTitle();
+        this.collectionItemDescription = collectionItem.getDescription();
         this.requester = requester;
         this.owner = owner;
         this.offerCollectionItem = offerCollectionItem;
+        this.offerCollectionItemSnapshotId = offerCollectionItem == null
+                ? null : offerCollectionItem.getCollectionItemId();
+        this.offerCollectionItemTitle = offerCollectionItem == null
+                ? null : offerCollectionItem.getTitle();
+        this.offerCollectionItemDescription = offerCollectionItem == null
+                ? null : offerCollectionItem.getDescription();
         this.tradeType = tradeType;
         this.status = status;
     }

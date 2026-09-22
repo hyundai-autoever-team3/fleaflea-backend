@@ -34,7 +34,7 @@ public record BeggingResponse(
     ) {
         return new BeggingResponse(
                 begRequest.getBegRequestId(),
-                begRequest.getCollectionItem().getCollectionItemId(),
+                begRequest.getCollectionItemSnapshotId(),
                 begRequest.getApplicant().getMemberId(),
                 begRequest.getStory(),
                 begRequest.getStatus(),

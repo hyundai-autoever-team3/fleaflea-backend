@@ -52,6 +52,16 @@ public interface CollectionTradeRequestRepository extends JpaRepository<Collecti
             TradeRequestStatus status
     );
 
+    boolean existsByCollectionItem_CollectionItemIdAndStatusIn(
+            Long collectionItemId,
+            Collection<TradeRequestStatus> statuses
+    );
+
+    boolean existsByOfferCollectionItem_CollectionItemIdAndStatusIn(
+            Long collectionItemId,
+            Collection<TradeRequestStatus> statuses
+    );
+
     @EntityGraph(attributePaths = {"collectionItem", "collectionItem.owner", "requester", "owner", "offerCollectionItem", "offerCollectionItem.owner"})
     Optional<CollectionTradeRequest> findWithDetailsByCollectionTradeRequestId(Long collectionTradeRequestId);
 

@@ -21,19 +21,14 @@ public record CollectionTradeRequestResponse(
         LocalDateTime createdAt
 ) {
     public static CollectionTradeRequestResponse from(CollectionTradeRequest request) {
-        Long offerItemId = request.getOfferCollectionItem() != null ? 
-                request.getOfferCollectionItem().getCollectionItemId() : null;
-        String offerItemTitle = request.getOfferCollectionItem() != null ? 
-                request.getOfferCollectionItem().getTitle() : null;
-
         return CollectionTradeRequestResponse.builder()
                 .collectionTradeRequestId(request.getCollectionTradeRequestId())
-                .collectionItemId(request.getCollectionItem().getCollectionItemId())
-                .collectionItemTitle(request.getCollectionItem().getTitle())
+                .collectionItemId(request.getCollectionItemSnapshotId())
+                .collectionItemTitle(request.getCollectionItemTitle())
                 .requesterId(request.getRequester().getMemberId())
                 .requesterNickname(request.getRequester().getNickname())
-                .offerCollectionItemId(offerItemId)
-                .offerCollectionItemTitle(offerItemTitle)
+                .offerCollectionItemId(request.getOfferCollectionItemSnapshotId())
+                .offerCollectionItemTitle(request.getOfferCollectionItemTitle())
                 .tradeType(request.getTradeType())
                 .status(request.getStatus())
                 .createdAt(request.getCreatedAt())

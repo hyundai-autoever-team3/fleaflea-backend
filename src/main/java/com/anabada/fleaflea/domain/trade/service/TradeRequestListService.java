@@ -62,27 +62,31 @@ public class TradeRequestListService {
                     request.getCreatedAt()));
         }
         for (CollectionTradeRequest request : collections) {
+            String imageKey = request.getCollectionItem() == null
+                    ? null : request.getCollectionItem().getImageKey();
             result.add(new TradeRequestListResponse(
                     "COLLECTION", request.getCollectionTradeRequestId(),
-                    request.getCollectionItem().getCollectionItemId(),
-                    request.getCollectionItem().getTitle(), request.getTradeType().name(),
+                    request.getCollectionItemSnapshotId(),
+                    request.getCollectionItemTitle(), request.getTradeType().name(),
                     request.getStatus(), member(request.getOwner()),
                     member(request.getRequester()),
-                    images.getUrl(request.getCollectionItem().getImageKey()),
+                    images.getUrl(imageKey),
                     request.getCreatedAt()));
         }
 
         for (BegRequest request : begs) {
+            String imageKey = request.getCollectionItem() == null
+                    ? null : request.getCollectionItem().getImageKey();
             result.add(new TradeRequestListResponse(
                     "BEG",
                     request.getBegRequestId(),
-                    request.getCollectionItem().getCollectionItemId(),
-                    request.getCollectionItem().getTitle(),
+                    request.getCollectionItemSnapshotId(),
+                    request.getCollectionItemTitle(),
                     null,
                     request.getStatus().toTradeRequestStatus(),
                     member(request.getOwner()),
                     member(request.getApplicant()),
-                    images.getUrl(request.getCollectionItem().getImageKey()),
+                    images.getUrl(imageKey),
                     request.getCreatedAt()
             ));
         }
@@ -164,20 +168,21 @@ public class TradeRequestListService {
 
         CollectionItem offer = request.getOfferCollectionItem();
         TradeRequestHistoryDetailResponse.OfferItem offerResponse =
-                offer == null ? null : new TradeRequestHistoryDetailResponse.OfferItem(
-                        offer.getCollectionItemId(),
-                        offer.getTitle(),
-                        offer.getDescription(),
-                        images.getUrl(offer.getImageKey())
-                );
+                request.getOfferCollectionItemSnapshotId() == null ? null
+                        : new TradeRequestHistoryDetailResponse.OfferItem(
+                                request.getOfferCollectionItemSnapshotId(),
+                                request.getOfferCollectionItemTitle(),
+                                request.getOfferCollectionItemDescription(),
+                                images.getUrl(offer == null ? null : offer.getImageKey())
+                        );
 
         return new TradeRequestHistoryDetailResponse(
                 "COLLECTION",
                 request.getCollectionTradeRequestId(),
-                target.getCollectionItemId(),
-                target.getTitle(),
-                target.getDescription(),
-                images.getUrl(target.getImageKey()),
+                request.getCollectionItemSnapshotId(),
+                request.getCollectionItemTitle(),
+                request.getCollectionItemDescription(),
+                images.getUrl(target == null ? null : target.getImageKey()),
                 request.getTradeType().name(),
                 null,
                 request.getStatus(),
@@ -214,10 +219,10 @@ public class TradeRequestListService {
         return new TradeRequestHistoryDetailResponse(
                 "BEG",
                 request.getBegRequestId(),
-                target.getCollectionItemId(),
-                target.getTitle(),
-                target.getDescription(),
-                images.getUrl(target.getImageKey()),
+                request.getCollectionItemSnapshotId(),
+                request.getCollectionItemTitle(),
+                request.getCollectionItemDescription(),
+                images.getUrl(target == null ? null : target.getImageKey()),
                 null,
                 null,
                 request.getStatus().toTradeRequestStatus(),

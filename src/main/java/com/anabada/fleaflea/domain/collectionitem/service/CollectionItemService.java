@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.anabada.fleaflea.global.exception.BusinessException;
+import com.anabada.fleaflea.global.exception.ErrorCode;
+import java.util.List;
 
 import java.util.List;
 
@@ -37,6 +40,11 @@ import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CollectionItemService {
+
+    private static final List<BegRequestStatus> ACTIVE_BEG_STATUSES =
+            List.of(BegRequestStatus.PENDING, BegRequestStatus.ACCEPTED);
+    private static final List<TradeRequestStatus> ACTIVE_TRADE_STATUSES =
+            List.of(TradeRequestStatus.PENDING, TradeRequestStatus.ACCEPTED);
 
     private final CollectionItemRepository collectionItemRepository;
     private final MemberRepository memberRepository;
@@ -207,6 +215,7 @@ public class CollectionItemService {
                 getCollectionItem(collectionItemId);
 
         validateOwner(collectionItem, memberId);
+        validateDeletable(collectionItemId);
 
         String imageKey = collectionItem.getImageKey();
 
@@ -230,6 +239,25 @@ public class CollectionItemService {
         );
         collectionItemRepository.delete(collectionItem);
         imageService.deleteAfterCommit(imageKey);
+    }
+
+    private void validateDeletable(Long collectionItemId) {
+        boolean active = begRequestRepository
+                .existsByCollectionItem_CollectionItemIdAndStatusIn(
+                        collectionItemId, ACTIVE_BEG_STATUSES)
+                || collectionTradeRequestRepository
+                .existsByCollectionItem_CollectionItemIdAndStatusIn(
+                        collectionItemId, ACTIVE_TRADE_STATUSES)
+                || collectionTradeRequestRepository
+                .existsByOfferCollectionItem_CollectionItemIdAndStatusIn(
+                        collectionItemId, ACTIVE_TRADE_STATUSES)
+                || tradeRequestRepository
+                .existsByItem_CollectionItem_CollectionItemIdAndStatusIn(
+                        collectionItemId, ACTIVE_TRADE_STATUSES);
+
+        if (active) {
+            throw new BusinessException(ErrorCode.COLLECTION_ITEM_TRADE_IN_PROGRESS);
+        }
     }
 
     private Member getMember(Long memberId) {

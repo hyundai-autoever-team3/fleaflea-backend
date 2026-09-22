@@ -19,9 +19,18 @@ public class BegRequest extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long begRequestId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "collection_item_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "collection_item_id")
     private CollectionItem collectionItem;
+
+    @Column(name = "collection_item_snapshot_id", nullable = false)
+    private Long collectionItemSnapshotId;
+
+    @Column(name = "collection_item_title", nullable = false, length = 150)
+    private String collectionItemTitle;
+
+    @Column(name = "collection_item_description", columnDefinition = "TEXT")
+    private String collectionItemDescription;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "applicant_id", nullable = false)
@@ -47,6 +56,9 @@ public class BegRequest extends BaseTimeEntity {
             BegRequestStatus status
     ) {
         this.collectionItem = collectionItem;
+        this.collectionItemSnapshotId = collectionItem.getCollectionItemId();
+        this.collectionItemTitle = collectionItem.getTitle();
+        this.collectionItemDescription = collectionItem.getDescription();
         this.applicant = applicant;
         this.owner = owner;
         this.story = story;

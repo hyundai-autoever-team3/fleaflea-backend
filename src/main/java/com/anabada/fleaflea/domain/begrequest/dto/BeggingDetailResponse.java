@@ -2,7 +2,6 @@ package com.anabada.fleaflea.domain.begrequest.dto;
 
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -50,15 +49,14 @@ public record BeggingDetailResponse(
 
     public static BeggingDetailResponse from(BegRequest begRequest) {
 
-        CollectionItem collectionItem = begRequest.getCollectionItem();
         Member owner = begRequest.getOwner();
         Member applicant = begRequest.getApplicant();
 
         return new BeggingDetailResponse(
                 begRequest.getBegRequestId(),
-                collectionItem.getCollectionItemId(),
-                collectionItem.getTitle(),
-                collectionItem.getDescription(),
+                begRequest.getCollectionItemSnapshotId(),
+                begRequest.getCollectionItemTitle(),
+                begRequest.getCollectionItemDescription(),
                 owner.getMemberId(),
                 owner.getNickname(),
                 applicant.getMemberId(),

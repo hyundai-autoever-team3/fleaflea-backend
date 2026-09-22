@@ -67,6 +67,7 @@ public enum ErrorCode {
     COLLECTION_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_ITEM_NOT_FOUND", "존재하지 않는 도감 아이템입니다."),
     COLLECTION_ITEM_NOT_OWNER(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_OWNER", "자신의 도감 아이템만 상품으로 등록할 수 있습니다."),
     COLLECTION_ITEM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_ACCESS_DENIED", "도감 아이템에 접근할 권한이 없습니다."),
+    COLLECTION_ITEM_TRADE_IN_PROGRESS(HttpStatus.CONFLICT, "COLLECTION_ITEM_TRADE_IN_PROGRESS", "진행 중인 거래가 있는 도감 아이템은 삭제할 수 없습니다."),
 
     // Market
     MARKET_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_NOT_FOUND", "존재하지 않는 플리마켓입니다."),
