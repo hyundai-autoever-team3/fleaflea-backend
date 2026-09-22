@@ -75,6 +75,45 @@ BEGIN
     END LOOP;
 END $$;
 
+-- 기존 운영 데이터에는 과거 삭제 로직으로 인해 실제 도감 아이템이 없는
+-- 참조 ID가 남아 있을 수 있다. 원래 ID는 위 스냅샷 컬럼에 보존하고,
+-- 외래키 컬럼만 NULL로 정리한 뒤 ON DELETE SET NULL 제약을 다시 만든다.
+UPDATE items item
+SET collection_item_id = NULL
+WHERE collection_item_id IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_items collection_item
+      WHERE collection_item.collection_item_id = item.collection_item_id
+  );
+
+UPDATE beg_requests request
+SET collection_item_id = NULL
+WHERE collection_item_id IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_items collection_item
+      WHERE collection_item.collection_item_id = request.collection_item_id
+  );
+
+UPDATE collection_trade_requests request
+SET collection_item_id = NULL
+WHERE collection_item_id IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_items collection_item
+      WHERE collection_item.collection_item_id = request.collection_item_id
+  );
+
+UPDATE collection_trade_requests request
+SET offer_collection_item_id = NULL
+WHERE offer_collection_item_id IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_items collection_item
+      WHERE collection_item.collection_item_id = request.offer_collection_item_id
+  );
+
 ALTER TABLE items
     ADD CONSTRAINT fk_items_collection_item
         FOREIGN KEY (collection_item_id)
