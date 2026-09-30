@@ -16,6 +16,13 @@ public class Member extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long memberId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "oauth2_provider")
+    private OAuth2Provider oAuth2Provider;
+
+    @Column(name = "oauth2_id",unique = true)
+    private String oAuth2Id;
+
     @Column(nullable = false, unique = true)
     private String email;
 
