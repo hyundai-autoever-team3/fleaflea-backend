@@ -44,8 +44,12 @@ public class NotificationSseService {
             Long receiverId,
             NotificationResponse notification
     ) {
-        for (Map.Entry<String, SseEmitter> entry : emitterRepository.findAllByMemberId(receiverId)) {
-            send(receiverId, entry.getKey(), entry.getValue(), EVENT_NOTIFICATION, notification);
+        sendEvent(receiverId, EVENT_NOTIFICATION, notification);
+    }
+
+    public void sendEvent(Long memberId, String eventName, Object payload) {
+        for (Map.Entry<String, SseEmitter> entry : emitterRepository.findAllByMemberId(memberId)) {
+            send(memberId, entry.getKey(), entry.getValue(), eventName, payload);
         }
     }
 
