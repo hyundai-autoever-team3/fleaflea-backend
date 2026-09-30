@@ -35,9 +35,10 @@ public class NotificationController {
     @Operation(summary = "알림 실시간 구독(SSE)", description = """
             서버가 알림을 푸시하는 단방향 스트림.
 
-            - 이벤트: connect(연결 확인), notification(신규 알림), :heartbeat(주석, 무시)
+            - 이벤트: connect(연결 확인), notification(신규 알림), chat-message(새 채팅), chat-read(읽음), :heartbeat(주석, 무시)
             - EventSource는 Authorization 헤더를 못 보내므로 fetch 기반 클라이언트를 사용할 것
             - 재연결 후에는 unread-count를 한 번 조회해 끊겨 있던 동안의 알림을 보정할 것
+            - 채팅은 각 채팅방의 messages API에 afterId를 전달해 누락 메시지를 조회할 것
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "구독 성공(text/event-stream)"),
