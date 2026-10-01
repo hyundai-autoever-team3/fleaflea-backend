@@ -8,6 +8,14 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    // Chat
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."),
+    CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_MESSAGE_NOT_FOUND", "채팅 메시지를 찾을 수 없습니다."),
+    CHAT_NOT_PARTICIPANT(HttpStatus.FORBIDDEN, "CHAT_NOT_PARTICIPANT", "채팅방 참여자만 이용할 수 있습니다."),
+    CHAT_FRIEND_REQUIRED(HttpStatus.FORBIDDEN, "CHAT_FRIEND_REQUIRED", "친구끼리만 메시지를 보낼 수 있습니다."),
+    CHAT_DUPLICATE_MESSAGE_CONFLICT(HttpStatus.CONFLICT, "CHAT_DUPLICATE_MESSAGE_CONFLICT", "같은 메시지 ID에 다른 내용이 전달되었습니다."),
+    CHAT_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "CHAT_RATE_LIMIT_EXCEEDED", "메시지를 너무 자주 보내고 있습니다. 잠시 후 다시 시도해 주세요."),
+
     // Common
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
     DATA_INTEGRITY_VIOLATION(HttpStatus.CONFLICT, "DATA_INTEGRITY_VIOLATION", "요청한 데이터가 기존 데이터와 충돌합니다."),
