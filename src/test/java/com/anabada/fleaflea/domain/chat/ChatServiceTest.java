@@ -11,9 +11,9 @@ import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import com.anabada.fleaflea.global.exception.*;
 import com.anabada.fleaflea.global.image.ImageService;
+import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,12 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @AutoConfigureMockMvc
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:chat;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
-        "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
-        "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.flyway.enabled=false", "aws.s3.bucket=chat-test"
-})
+@PostgresIntegrationTest
 class ChatServiceTest {
     @Autowired ChatService service;
     @Autowired FriendshipService friendshipService;
