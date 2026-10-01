@@ -1,7 +1,12 @@
 package com.anabada.fleaflea.domain.chat.service;
 
 import com.anabada.fleaflea.domain.chat.domain.*;
-import com.anabada.fleaflea.domain.chat.dto.ChatDtos.*;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageListResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
+import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatEvent;
 import com.anabada.fleaflea.domain.chat.repository.*;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
@@ -31,7 +36,7 @@ public class ChatService {
     private final ApplicationEventPublisher events;
 
     @Transactional
-    public Room open(Long memberId, Long friendId) {
+    public ChatRoomResponse open(Long memberId, Long friendId) {
         if (memberId.equals(friendId)) throw new BusinessException(CHAT_FRIEND_REQUIRED);
         long low = Math.min(memberId, friendId), high = Math.max(memberId, friendId);
         // A shared member row serializes concurrent creation before the unique constraint is reached.
@@ -43,9 +48,9 @@ public class ChatService {
         return describe(room, memberId);
     }
 
-    public Rooms list(Long memberId, int page, int size) {
+    public ChatRoomListResponse list(Long memberId, int page, int size) {
         var result = rooms.findForMember(memberId, PageRequest.of(page, size));
-        if (result.isEmpty()) return new Rooms(List.of(), false);
+        if (result.isEmpty()) return new ChatRoomListResponse(List.of(), false);
         Map<Long, Member> friendsById = new HashMap<>();
         members.findAllById(result.stream().map(r -> r.otherMemberId(memberId)).toList())
                 .forEach(m -> friendsById.put(m.getMemberId(), m));
@@ -55,16 +60,16 @@ public class ChatService {
         Map<Long, Long> unread = new HashMap<>();
         messages.unreadCounts(result.stream().map(ChatRoom::getId).toList(), memberId)
                 .forEach(c -> unread.put(c.getRoomId(), c.getUnreadCount()));
-        return new Rooms(result.stream().map(r -> describe(r, memberId, friendsById.get(r.otherMemberId(memberId)),
+        return new ChatRoomListResponse(result.stream().map(r -> describe(r, memberId, friendsById.get(r.otherMemberId(memberId)),
                 friendIds.contains(r.otherMemberId(memberId)), unread.getOrDefault(r.getId(), 0L))).toList(), result.hasNext());
     }
 
-    public Room detail(Long memberId, Long roomId) {
+    public ChatRoomResponse detail(Long memberId, Long roomId) {
         return describe(participant(memberId, roomId, false), memberId);
     }
 
     @Transactional
-    public Message send(Long memberId, Long roomId, SendMessage request) {
+    public ChatMessageResponse send(Long memberId, Long roomId, ChatMessageSendRequest request) {
         // This lock also makes the per-member persisted rate limit safe across concurrent requests.
         members.findLockedById(memberId).orElseThrow(() -> new BusinessException(MEMBER_NOT_FOUND));
         ChatRoom room = participant(memberId, roomId, true);
@@ -76,18 +81,18 @@ public class ChatService {
         var previous = messages.findByRoomIdAndSenderIdAndClientMessageId(roomId, memberId, clientId);
         if (previous.isPresent()) {
             if (!previous.get().getContent().equals(content)) throw new BusinessException(CHAT_DUPLICATE_MESSAGE_CONFLICT);
-            return Message.from(previous.get());
+            return ChatMessageResponse.from(previous.get());
         }
         if (messages.recentCount(memberId, LocalDateTime.now().minusMinutes(1)) >= 60)
             throw new BusinessException(CHAT_RATE_LIMIT_EXCEEDED);
         ChatMessage saved = messages.saveAndFlush(ChatMessage.create(roomId, memberId, content, clientId));
         room.recordMessage(saved);
-        Message response = Message.from(saved);
+        ChatMessageResponse response = ChatMessageResponse.from(saved);
         events.publishEvent(new ChatEvent(memberId, room.otherMemberId(memberId), "chat-message", response));
         return response;
     }
 
-    public Messages history(Long memberId, Long roomId, Long beforeId, Long afterId, int size) {
+    public ChatMessageListResponse history(Long memberId, Long roomId, Long beforeId, Long afterId, int size) {
         participant(memberId, roomId, false);
         if (beforeId != null && afterId != null) throw new BusinessException(INVALID_REQUEST);
         if (size < 1 || size > 100 || (beforeId != null && beforeId <= 0) || (afterId != null && afterId < 0))
@@ -96,17 +101,17 @@ public class ChatService {
                 ? messages.history(roomId, beforeId == null ? Long.MAX_VALUE : beforeId, PageRequest.of(0, size + 1))
                 : messages.catchUp(roomId, afterId, PageRequest.of(0, size + 1));
         boolean hasNext = result.size() > size;
-        List<Message> page = result.stream().limit(size).map(Message::from).toList();
-        return new Messages(page, page.isEmpty() ? null : page.getLast().id(), hasNext);
+        List<ChatMessageResponse> page = result.stream().limit(size).map(ChatMessageResponse::from).toList();
+        return new ChatMessageListResponse(page, page.isEmpty() ? null : page.getLast().id(), hasNext);
     }
 
     @Transactional
-    public ReadReceipt read(Long memberId, Long roomId, Long messageId) {
+    public ChatReadResponse read(Long memberId, Long roomId, Long messageId) {
         ChatRoom room = participant(memberId, roomId, true);
         messages.findByIdAndRoomId(messageId, roomId).orElseThrow(() -> new BusinessException(CHAT_MESSAGE_NOT_FOUND));
         long previous = room.lastReadId(memberId);
         room.read(memberId, messageId);
-        ReadReceipt receipt = new ReadReceipt(roomId, memberId, room.lastReadId(memberId));
+        ChatReadResponse receipt = new ChatReadResponse(roomId, memberId, room.lastReadId(memberId));
         if (previous != receipt.lastReadMessageId())
             events.publishEvent(new ChatEvent(memberId, room.otherMemberId(memberId), "chat-read", receipt));
         return receipt;
@@ -130,16 +135,16 @@ public class ChatService {
                 || friendships.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(b, a, FriendshipStatus.ACCEPTED);
     }
 
-    private Room describe(ChatRoom room, Long memberId) {
+    private ChatRoomResponse describe(ChatRoom room, Long memberId) {
         Long friendId = room.otherMemberId(memberId);
         Member friend = members.findById(friendId).orElse(null);
         return describe(room, memberId, friend, friend != null && areFriends(memberId, friendId),
                 messages.countByRoomIdAndSenderIdNotAndIdGreaterThan(room.getId(), memberId, room.lastReadId(memberId)));
     }
 
-    private Room describe(ChatRoom room, Long memberId, Member friend, boolean canSend, long unreadCount) {
+    private ChatRoomResponse describe(ChatRoom room, Long memberId, Member friend, boolean canSend, long unreadCount) {
         Long friendId = room.otherMemberId(memberId);
-        return new Room(room.getId(), friendId, friend == null ? "탈퇴한 사용자" : friend.getNickname(),
+        return new ChatRoomResponse(room.getId(), friendId, friend == null ? "탈퇴한 사용자" : friend.getNickname(),
                 friend == null ? null : images.getUrl(friend.getProfileImageKey()),
                 friend != null && canSend, room.getLastMessageId(), room.getLastMessageContent(),
                 room.getLastMessageAt(), room.lastReadId(memberId), room.lastReadId(friendId),

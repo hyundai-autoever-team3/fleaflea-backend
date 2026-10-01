@@ -1,6 +1,9 @@
 package com.anabada.fleaflea.domain.chat;
 
-import com.anabada.fleaflea.domain.chat.dto.ChatDtos.*;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageListResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
+import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
 import com.anabada.fleaflea.domain.chat.repository.*;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.friendship.domain.*;
@@ -56,8 +59,9 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("수락된 친구만 채팅을 시작하며 요청 방향이 달라도 같은 방을 사용한다")
     void onlyAcceptedFriendsCanOpenAndReversedPairReusesRoom() {
-        Room room = service.open(a.getMemberId(), b.getMemberId());
+        ChatRoomResponse room = service.open(a.getMemberId(), b.getMemberId());
         assertThat(service.open(b.getMemberId(), a.getMemberId()).id()).isEqualTo(room.id());
         assertThat(rooms.count()).isEqualTo(1);
         forbidden(() -> service.open(a.getMemberId(), outsider.getMemberId()), ErrorCode.CHAT_FRIEND_REQUIRED);
@@ -67,9 +71,10 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("채팅방 참여자가 아니면 조회·전송·읽음 처리를 할 수 없다")
     void outsidersCannotReadSendOrMarkRead() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        Message m = send(a, id, "hello");
+        ChatMessageResponse m = send(a, id, "hello");
         forbidden(() -> service.detail(outsider.getMemberId(), id), ErrorCode.CHAT_NOT_PARTICIPANT);
         forbidden(() -> service.send(outsider.getMemberId(), id, request("hello")), ErrorCode.CHAT_NOT_PARTICIPANT);
         forbidden(() -> service.history(outsider.getMemberId(), id, null, null, 30), ErrorCode.CHAT_NOT_PARTICIPANT);
@@ -77,9 +82,10 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("친구 삭제 후 대화 이력은 보존하고 새 메시지 전송은 차단한다")
     void deletingFriendPreservesHistoryAndBlocksNewMessages() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        Message m = send(a, id, "약속 장소");
+        ChatMessageResponse m = send(a, id, "약속 장소");
         friendshipService.deleteFriend(a.getMemberId(), friendship.getFriendshipId());
         assertThat(service.detail(a.getMemberId(), id).canSend()).isFalse();
         assertThat(service.history(b.getMemberId(), id, null, null, 30).messages()).containsExactly(m);
@@ -88,26 +94,28 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("같은 메시지 재전송은 중복 저장하지 않고 내용이 다르면 거절한다")
     void retryIsIdempotentAndChangedContentIsRejected() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        SendMessage request = request("hello");
-        Message first = service.send(a.getMemberId(), id, request);
+        ChatMessageSendRequest request = request("hello");
+        ChatMessageResponse first = service.send(a.getMemberId(), id, request);
         assertThat(service.send(a.getMemberId(), id, request)).isEqualTo(first);
         assertThat(messages.count()).isEqualTo(1);
-        forbidden(() -> service.send(a.getMemberId(), id, new SendMessage("changed", request.clientMessageId())),
+        forbidden(() -> service.send(a.getMemberId(), id, new ChatMessageSendRequest("changed", request.clientMessageId())),
                 ErrorCode.CHAT_DUPLICATE_MESSAGE_CONFLICT);
     }
 
     @Test
+    @DisplayName("커서로 과거·누락 메시지를 조회하고 읽음 위치는 뒤로 이동하지 않는다")
     void paginationCatchUpAndReadWatermark() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        Message first = send(a, id, "1"); Message second = send(a, id, "2"); Message third = send(a, id, "3");
+        ChatMessageResponse first = send(a, id, "1"); ChatMessageResponse second = send(a, id, "2"); ChatMessageResponse third = send(a, id, "3");
         assertThat(service.list(b.getMemberId(), 0, 20).rooms().getFirst().unreadCount()).isEqualTo(3);
-        Messages newest = service.history(b.getMemberId(), id, null, null, 2);
+        ChatMessageListResponse newest = service.history(b.getMemberId(), id, null, null, 2);
         assertThat(newest.messages()).containsExactly(third, second);
         assertThat(newest.hasNext()).isTrue();
         assertThat(service.history(b.getMemberId(), id, newest.nextCursor(), null, 2).messages()).containsExactly(first);
-        Messages catchUp = service.history(b.getMemberId(), id, null, 0L, 2);
+        ChatMessageListResponse catchUp = service.history(b.getMemberId(), id, null, 0L, 2);
         assertThat(catchUp.messages()).containsExactly(first, second);
         assertThat(service.history(b.getMemberId(), id, null, catchUp.nextCursor(), 2).messages()).containsExactly(third);
         service.read(b.getMemberId(), id, second.id()); service.read(b.getMemberId(), id, first.id());
@@ -119,6 +127,7 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("빈 메시지·길이 초과·분당 전송 횟수 초과를 거절한다")
     void invalidTextAndRateLimit() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
         forbidden(() -> send(a, id, "  "), ErrorCode.INVALID_REQUEST);
@@ -129,6 +138,7 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("동시에 채팅을 시작해도 방은 하나만 생성한다")
     void concurrentOpeningCreatesOneRoom() throws Exception {
         try (var pool = Executors.newFixedThreadPool(2)) {
             CountDownLatch start = new CountDownLatch(1);
@@ -141,9 +151,10 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("같은 메시지를 동시에 재전송해도 하나만 저장한다")
     void concurrentRetriesPersistOnlyOneMessage() throws Exception {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        SendMessage request = request("one message");
+        ChatMessageSendRequest request = request("one message");
         try (var pool = Executors.newFixedThreadPool(2)) {
             CountDownLatch start = new CountDownLatch(1);
             var one = pool.submit(() -> { start.await(); return service.send(a.getMemberId(), id, request); });
@@ -155,17 +166,18 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("메시지 전송과 읽음 처리가 동시에 발생해도 읽음 상태를 보존한다")
     void concurrentSendDoesNotOverwriteReadState() throws Exception {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        Message first = send(a, id, "first");
+        ChatMessageResponse first = send(a, id, "first");
         try (var pool = Executors.newFixedThreadPool(2)) {
             CountDownLatch start = new CountDownLatch(1);
             var sending = pool.submit(() -> { start.await(); return send(a, id, "second"); });
             var reading = pool.submit(() -> { start.await(); return service.read(b.getMemberId(), id, first.id()); });
             start.countDown();
-            Message second = sending.get(10, TimeUnit.SECONDS);
+            ChatMessageResponse second = sending.get(10, TimeUnit.SECONDS);
             reading.get(10, TimeUnit.SECONDS);
-            Room room = service.detail(b.getMemberId(), id);
+            ChatRoomResponse room = service.detail(b.getMemberId(), id);
             assertThat(room.myLastReadId()).isEqualTo(first.id());
             assertThat(room.lastMessageId()).isEqualTo(second.id());
             assertThat(room.unreadCount()).isEqualTo(1);
@@ -173,6 +185,7 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("커밋된 메시지만 참여자에게 SSE로 전달하고 롤백된 메시지는 전달하지 않는다")
     void sendsSseOnlyAfterCommitAndNotAfterRollback() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
@@ -181,13 +194,14 @@ class ChatServiceTest {
             status.setRollbackOnly();
         });
         assertThat(messages.count()).isZero();
-        Message saved = send(a, id, "committed");
+        ChatMessageResponse saved = send(a, id, "committed");
         verify(sse, timeout(3000)).sendEvent(a.getMemberId(), "chat-message", saved);
         verify(sse, timeout(3000)).sendEvent(b.getMemberId(), "chat-message", saved);
         verify(sse, never()).sendEvent(eq(outsider.getMemberId()), anyString(), any());
     }
 
     @Test
+    @DisplayName("채팅 API는 인증·입력값·참여자 권한을 검증한다")
     void apiRequiresAuthenticationAndValidatesInputs() throws Exception {
         mvc.perform(get("/api/v1/chat/rooms")).andExpect(status().isUnauthorized());
         var auth = new UsernamePasswordAuthenticationToken(a.getMemberId(), null, List.of());
@@ -207,16 +221,17 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("다른 채팅방의 메시지로 읽음 처리를 할 수 없다")
     void cannotMarkMessageFromAnotherRoomAsRead() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
         friendships.save(Friendship.create(a, outsider, FriendshipStatus.ACCEPTED));
         Long otherRoom = service.open(a.getMemberId(), outsider.getMemberId()).id();
-        Message otherMessage = send(a, otherRoom, "another room");
+        ChatMessageResponse otherMessage = send(a, otherRoom, "another room");
         forbidden(() -> service.read(b.getMemberId(), id, otherMessage.id()), ErrorCode.CHAT_MESSAGE_NOT_FOUND);
     }
 
-    private SendMessage request(String content) { return new SendMessage(content, UUID.randomUUID()); }
-    private Message send(Member member, Long roomId, String content) { return service.send(member.getMemberId(), roomId, request(content)); }
+    private ChatMessageSendRequest request(String content) { return new ChatMessageSendRequest(content, UUID.randomUUID()); }
+    private ChatMessageResponse send(Member member, Long roomId, String content) { return service.send(member.getMemberId(), roomId, request(content)); }
     private void forbidden(Runnable action, ErrorCode code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(BusinessException.class,
                 e -> assertThat(e.getErrorCode()).isEqualTo(code));

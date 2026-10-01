@@ -11,17 +11,34 @@ import java.time.LocalDateTime;
 @Table(name = "chat_rooms", uniqueConstraints = @UniqueConstraint(columnNames = {"member_low_id", "member_high_id"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatRoom {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false) private Long memberLowId;
-    @Column(nullable = false) private Long memberHighId;
-    @Column(nullable = false) private Long lowLastReadId = 0L;
-    @Column(nullable = false) private Long highLastReadId = 0L;
+
+    @Column(nullable = false)
+    private Long memberLowId;
+
+    @Column(nullable = false)
+    private Long memberHighId;
+
+    @Column(nullable = false)
+    private Long lowLastReadId = 0L;
+
+    @Column(nullable = false)
+    private Long highLastReadId = 0L;
+
     private Long lastMessageId;
-    @Column(length = 2000) private String lastMessageContent;
+
+    @Column(length = 2000)
+    private String lastMessageContent;
+
     private LocalDateTime lastMessageAt;
-    @Column(nullable = false) private LocalDateTime updatedAt;
-    @Column(nullable = false) private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
     public static ChatRoom create(Long a, Long b) {
         ChatRoom room = new ChatRoom();

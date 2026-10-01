@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.chat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -13,6 +14,7 @@ import static org.assertj.core.api.Assertions.*;
 
 class ChatMigrationTest {
     @Test
+    @DisplayName("채팅 마이그레이션으로 테이블을 생성하고 회원 쌍·메시지 중복과 잘못된 방 참조를 막는다")
     void migrationCreatesTablesAndProtectsUniquePairsAndClientIds() throws Exception {
         try (var postgres = new PostgreSQLContainer("postgres:16")) {
             postgres.start();
