@@ -17,10 +17,11 @@ import com.anabada.fleaflea.fixture.ItemFixture;
 import com.anabada.fleaflea.fixture.MarketFixture;
 import com.anabada.fleaflea.fixture.MarketMemberFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
+import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -32,7 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@PostgresIntegrationTest
+@Sql(
+        statements = "TRUNCATE TABLE members RESTART IDENTITY CASCADE",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
+)
 class TradeRequestConcurrencyTest {
 
     @Autowired

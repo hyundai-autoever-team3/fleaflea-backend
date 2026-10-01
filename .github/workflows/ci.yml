@@ -20,26 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: fleaflea_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test_user -d fleaflea_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
-      DB_URL: jdbc:postgresql://localhost:5432/fleaflea_test
-      DB_USERNAME: test_user
-      DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-      DDL_AUTO: validate
       AWS_REGION: ap-northeast-2
       AWS_EC2_METADATA_DISABLED: "true"
       S3_BUCKET: fleaflea-ci-test
