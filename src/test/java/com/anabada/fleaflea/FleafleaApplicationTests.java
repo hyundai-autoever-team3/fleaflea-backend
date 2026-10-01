@@ -1,9 +1,9 @@
 package com.anabada.fleaflea;
 
+import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@PostgresIntegrationTest
 class FleafleaApplicationTests {
 
 	@Test
