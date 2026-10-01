@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.chat.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class ChatRoom {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Builder
     public static ChatRoom create(Long a, Long b) {
         ChatRoom room = new ChatRoom();
         room.memberLowId = Math.min(a, b);

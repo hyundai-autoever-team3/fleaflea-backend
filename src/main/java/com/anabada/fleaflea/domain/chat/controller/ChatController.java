@@ -1,6 +1,5 @@
 package com.anabada.fleaflea.domain.chat.controller;
 
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadRequest;
@@ -9,6 +8,7 @@ import com.anabada.fleaflea.domain.chat.dto.ChatRoomCreateRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
+import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -53,7 +53,7 @@ public class ChatController {
 
     @GetMapping("/{roomId}/messages")
     @Operation(summary = "메시지 조회", description = "기본 최신순. beforeId는 과거 조회(내림차순), afterId는 재연결 후 누락 복구(오름차순, 0부터 가능). 두 커서는 동시에 사용할 수 없습니다. hasNext=true면 nextCursor로 계속 조회합니다.")
-    public ChatMessageListResponse history(@AuthenticationPrincipal Long memberId, @PathVariable @Positive Long roomId,
+    public CursorPageResponse<ChatMessageResponse> history(@AuthenticationPrincipal Long memberId, @PathVariable @Positive Long roomId,
                             @RequestParam(required = false) @Positive Long beforeId,
                             @RequestParam(required = false) @Min(0) Long afterId,
                             @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {

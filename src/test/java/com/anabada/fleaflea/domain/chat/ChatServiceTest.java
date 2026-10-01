@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.domain.chat;
 
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageListResponse;
+import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
@@ -88,7 +88,7 @@ class ChatServiceTest {
         ChatMessageResponse m = send(a, id, "약속 장소");
         friendshipService.deleteFriend(a.getMemberId(), friendship.getFriendshipId());
         assertThat(service.detail(a.getMemberId(), id).canSend()).isFalse();
-        assertThat(service.history(b.getMemberId(), id, null, null, 30).messages()).containsExactly(m);
+        assertThat(service.history(b.getMemberId(), id, null, null, 30).content()).containsExactly(m);
         forbidden(() -> send(a, id, "새 메시지"), ErrorCode.CHAT_FRIEND_REQUIRED);
         service.read(b.getMemberId(), id, m.id());
     }
@@ -111,13 +111,13 @@ class ChatServiceTest {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
         ChatMessageResponse first = send(a, id, "1"); ChatMessageResponse second = send(a, id, "2"); ChatMessageResponse third = send(a, id, "3");
         assertThat(service.list(b.getMemberId(), 0, 20).rooms().getFirst().unreadCount()).isEqualTo(3);
-        ChatMessageListResponse newest = service.history(b.getMemberId(), id, null, null, 2);
-        assertThat(newest.messages()).containsExactly(third, second);
+        CursorPageResponse<ChatMessageResponse> newest = service.history(b.getMemberId(), id, null, null, 2);
+        assertThat(newest.content()).containsExactly(third, second);
         assertThat(newest.hasNext()).isTrue();
-        assertThat(service.history(b.getMemberId(), id, newest.nextCursor(), null, 2).messages()).containsExactly(first);
-        ChatMessageListResponse catchUp = service.history(b.getMemberId(), id, null, 0L, 2);
-        assertThat(catchUp.messages()).containsExactly(first, second);
-        assertThat(service.history(b.getMemberId(), id, null, catchUp.nextCursor(), 2).messages()).containsExactly(third);
+        assertThat(service.history(b.getMemberId(), id, newest.nextCursor(), null, 2).content()).containsExactly(first);
+        CursorPageResponse<ChatMessageResponse> catchUp = service.history(b.getMemberId(), id, null, 0L, 2);
+        assertThat(catchUp.content()).containsExactly(first, second);
+        assertThat(service.history(b.getMemberId(), id, null, catchUp.nextCursor(), 2).content()).containsExactly(third);
         service.read(b.getMemberId(), id, second.id()); service.read(b.getMemberId(), id, first.id());
         assertThat(service.detail(b.getMemberId(), id).myLastReadId()).isEqualTo(second.id());
         assertThat(service.list(b.getMemberId(), 0, 20).rooms().getFirst().unreadCount()).isEqualTo(1);

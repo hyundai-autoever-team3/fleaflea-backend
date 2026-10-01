@@ -1,7 +1,6 @@
 package com.anabada.fleaflea.domain.chat.service;
 
 import com.anabada.fleaflea.domain.chat.domain.*;
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
@@ -12,7 +11,9 @@ import com.anabada.fleaflea.domain.chat.repository.*;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.global.exception.*;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +41,8 @@ public class ChatService {
         if (memberId.equals(friendId)) throw new BusinessException(CHAT_FRIEND_REQUIRED);
         long low = Math.min(memberId, friendId), high = Math.max(memberId, friendId);
         // A shared member row serializes concurrent creation before the unique constraint is reached.
-        members.findLockedById(low).orElseThrow(() -> new BusinessException(MEMBER_NOT_FOUND));
-        if (!members.existsById(high)) throw new BusinessException(MEMBER_NOT_FOUND);
+        members.findLockedById(low).orElseThrow(MemberNotFoundException::new);
+        if (!members.existsById(high)) throw new MemberNotFoundException();
         requireFriend(memberId, friendId);
         ChatRoom room = rooms.findByMemberLowIdAndMemberHighId(low, high)
                 .orElseGet(() -> rooms.saveAndFlush(ChatRoom.create(low, high)));
@@ -71,7 +72,7 @@ public class ChatService {
     @Transactional
     public ChatMessageResponse send(Long memberId, Long roomId, ChatMessageSendRequest request) {
         // This lock also makes the per-member persisted rate limit safe across concurrent requests.
-        members.findLockedById(memberId).orElseThrow(() -> new BusinessException(MEMBER_NOT_FOUND));
+        members.findLockedById(memberId).orElseThrow(MemberNotFoundException::new);
         ChatRoom room = participant(memberId, roomId, true);
         requireFriend(memberId, room.otherMemberId(memberId));
         String content = request.content();
@@ -92,7 +93,7 @@ public class ChatService {
         return response;
     }
 
-    public ChatMessageListResponse history(Long memberId, Long roomId, Long beforeId, Long afterId, int size) {
+    public CursorPageResponse<ChatMessageResponse> history(Long memberId, Long roomId, Long beforeId, Long afterId, int size) {
         participant(memberId, roomId, false);
         if (beforeId != null && afterId != null) throw new BusinessException(INVALID_REQUEST);
         if (size < 1 || size > 100 || (beforeId != null && beforeId <= 0) || (afterId != null && afterId < 0))
@@ -102,7 +103,7 @@ public class ChatService {
                 : messages.catchUp(roomId, afterId, PageRequest.of(0, size + 1));
         boolean hasNext = result.size() > size;
         List<ChatMessageResponse> page = result.stream().limit(size).map(ChatMessageResponse::from).toList();
-        return new ChatMessageListResponse(page, page.isEmpty() ? null : page.getLast().id(), hasNext);
+        return new CursorPageResponse<>(page, page.isEmpty() ? null : page.getLast().id(), hasNext);
     }
 
     @Transactional
