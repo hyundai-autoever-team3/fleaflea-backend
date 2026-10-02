@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Positive;
 @Schema(description = "친구 채팅방 생성 요청")
 public record ChatRoomCreateRequest(
         @Schema(description = "대화할 친구의 회원 ID", example = "2")
-        @NotNull
-        @Positive
+        @NotNull(message = "친구 ID는 필수입니다.")
+        @Positive(message = "친구 ID는 양수여야 합니다.")
         Long friendId
 ) {
 }

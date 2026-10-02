@@ -1,17 +1,30 @@
 package com.anabada.fleaflea.domain.chat.domain;
 
-import jakarta.persistence.*;
+import com.anabada.fleaflea.domain.chat.exception.ChatNotParticipantException;
+import com.anabada.fleaflea.global.entity.BaseTimeEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "chat_rooms", uniqueConstraints = @UniqueConstraint(columnNames = {"member_low_id", "member_high_id"}))
+@Table(
+        name = "chat_rooms",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"member_low_id", "member_high_id"})
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ChatRoom {
+public class ChatRoom extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,12 +48,6 @@ public class ChatRoom {
 
     private LocalDateTime lastMessageAt;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @Builder
     private ChatRoom(
             Long memberLowId,
@@ -48,36 +55,50 @@ public class ChatRoom {
     ) {
         this.memberLowId = memberLowId;
         this.memberHighId = memberHighId;
-        this.createdAt = this.updatedAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
-    public static ChatRoom create(Long a, Long b) {
+    public static ChatRoom create(Long memberId, Long friendId) {
         return ChatRoom.builder()
-                .memberLowId(Math.min(a, b))
-                .memberHighId(Math.max(a, b))
+                .memberLowId(Math.min(memberId, friendId))
+                .memberHighId(Math.max(memberId, friendId))
                 .build();
     }
 
-    public boolean hasMember(Long memberId) {
+    public boolean isParticipant(Long memberId) {
         return memberLowId.equals(memberId) || memberHighId.equals(memberId);
     }
 
-    public Long otherMemberId(Long memberId) {
+    public Long getOtherMemberId(Long memberId) {
+        validateParticipant(memberId);
+
         return memberLowId.equals(memberId) ? memberHighId : memberLowId;
     }
 
-    public long lastReadId(Long memberId) {
+    public long getLastReadMessageId(Long memberId) {
+        validateParticipant(memberId);
+
         return memberLowId.equals(memberId) ? lowLastReadId : highLastReadId;
     }
 
-    public void read(Long memberId, long messageId) {
-        if (memberLowId.equals(memberId)) lowLastReadId = Math.max(lowLastReadId, messageId);
-        else highLastReadId = Math.max(highLastReadId, messageId);
+    public void markMessagesAsRead(Long memberId, long messageId) {
+        validateParticipant(memberId);
+
+        if (memberLowId.equals(memberId)) {
+            lowLastReadId = Math.max(lowLastReadId, messageId);
+        } else {
+            highLastReadId = Math.max(highLastReadId, messageId);
+        }
     }
 
     public void recordMessage(ChatMessage message) {
         lastMessageId = message.getId();
         lastMessageContent = message.getContent();
-        lastMessageAt = updatedAt = message.getCreatedAt();
+        lastMessageAt = message.getCreatedAt();
+    }
+
+    private void validateParticipant(Long memberId) {
+        if (!isParticipant(memberId)) {
+            throw new ChatNotParticipantException();
+        }
     }
 }

@@ -1,35 +1,53 @@
 package com.anabada.fleaflea.domain.chat.service;
 
-import com.anabada.fleaflea.domain.chat.domain.*;
-import com.anabada.fleaflea.domain.chat.exception.*;
+import com.anabada.fleaflea.domain.chat.domain.ChatMessage;
+import com.anabada.fleaflea.domain.chat.domain.ChatRoom;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatEvent;
-import com.anabada.fleaflea.domain.chat.repository.*;
+import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
+import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
+import com.anabada.fleaflea.domain.chat.exception.ChatMessageNotFoundException;
+import com.anabada.fleaflea.domain.chat.exception.ChatNotParticipantException;
+import com.anabada.fleaflea.domain.chat.exception.ChatRateLimitExceededException;
+import com.anabada.fleaflea.domain.chat.exception.ChatRoomNotFoundException;
+import com.anabada.fleaflea.domain.chat.exception.InvalidChatMessageCursorException;
+import com.anabada.fleaflea.domain.chat.repository.ChatMessageRepository;
+import com.anabada.fleaflea.domain.chat.repository.ChatRoomRepository;
+import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.dto.CursorPageResponse;
-import com.anabada.fleaflea.global.exception.*;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
-import java.util.*;
-import static com.anabada.fleaflea.global.exception.ErrorCode.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatService {
+
+    private static final int MESSAGE_LIMIT_PER_MINUTE = 60;
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final FriendshipRepository friendshipRepository;
@@ -38,116 +56,272 @@ public class ChatService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public ChatRoomResponse open(Long memberId, Long friendId) {
-        if (memberId.equals(friendId)) throw new ChatFriendRequiredException();
-        long low = Math.min(memberId, friendId), high = Math.max(memberId, friendId);
-        // A shared member row serializes concurrent creation before the unique constraint is reached.
-        memberRepository.findLockedById(low).orElseThrow(MemberNotFoundException::new);
-        if (!memberRepository.existsById(high)) throw new MemberNotFoundException();
-        requireFriend(memberId, friendId);
-        ChatRoom room = chatRoomRepository.findByMemberLowIdAndMemberHighId(low, high)
-                .orElseGet(() -> chatRoomRepository.saveAndFlush(ChatRoom.create(low, high)));
-        return describe(room, memberId);
+    public ChatRoomResponse getOrCreateChatRoom(Long memberId, Long friendId) {
+        if (memberId.equals(friendId)) {
+            throw new ChatFriendRequiredException();
+        }
+
+        long memberLowId = Math.min(memberId, friendId);
+        long memberHighId = Math.max(memberId, friendId);
+
+        // 같은 회원 쌍의 생성 요청을 직렬화한다. DB 유니크 제약도 함께 유지한다.
+        memberRepository.findLockedById(memberLowId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (!memberRepository.existsById(memberHighId)) {
+            throw new MemberNotFoundException();
+        }
+
+        validateAcceptedFriendship(memberId, friendId);
+
+        ChatRoom chatRoom = chatRoomRepository
+                .findByMemberLowIdAndMemberHighId(memberLowId, memberHighId)
+                .orElseGet(() -> chatRoomRepository.save(ChatRoom.create(memberId, friendId)));
+
+        return toChatRoomResponse(chatRoom, memberId);
     }
 
-    public ChatRoomListResponse list(Long memberId, int page, int size) {
-        var result = chatRoomRepository.findForMember(memberId, PageRequest.of(page, size));
-        if (result.isEmpty()) return new ChatRoomListResponse(List.of(), false);
+    public ChatRoomListResponse getChatRooms(Long memberId, int page, int size) {
+        Slice<ChatRoom> chatRooms = chatRoomRepository.findChatRoomsByMemberId(
+                memberId,
+                PageRequest.of(page, size)
+        );
+
+        if (chatRooms.isEmpty()) {
+            return ChatRoomListResponse.from(List.of(), false);
+        }
+
+        List<Long> friendIds = chatRooms.stream()
+                .map(chatRoom -> chatRoom.getOtherMemberId(memberId))
+                .toList();
+        List<Long> roomIds = chatRooms.stream()
+                .map(ChatRoom::getId)
+                .toList();
+
         Map<Long, Member> friendsById = new HashMap<>();
-        memberRepository.findAllById(result.stream().map(r -> r.otherMemberId(memberId)).toList())
-                .forEach(m -> friendsById.put(m.getMemberId(), m));
-        Set<Long> friendIds = new HashSet<>();
-        friendshipRepository.findFriends(memberId).forEach(f -> friendIds.add(
-                f.getRequester().getMemberId().equals(memberId) ? f.getAddressee().getMemberId() : f.getRequester().getMemberId()));
-        Map<Long, Long> unread = new HashMap<>();
-        chatMessageRepository.unreadCounts(result.stream().map(ChatRoom::getId).toList(), memberId)
-                .forEach(c -> unread.put(c.getRoomId(), c.getUnreadCount()));
-        return new ChatRoomListResponse(result.stream().map(r -> describe(r, memberId, friendsById.get(r.otherMemberId(memberId)),
-                friendIds.contains(r.otherMemberId(memberId)), unread.getOrDefault(r.getId(), 0L))).toList(), result.hasNext());
+        memberRepository.findAllById(friendIds)
+                .forEach(friend -> friendsById.put(friend.getMemberId(), friend));
+
+        Set<Long> acceptedFriendIds = getAcceptedFriendIds(memberId, friendIds);
+        Map<Long, Long> unreadCountsByRoomId = new HashMap<>();
+        chatMessageRepository.countUnreadMessagesByRoomIds(roomIds, memberId)
+                .forEach(count -> unreadCountsByRoomId.put(count.getRoomId(), count.getUnreadCount()));
+
+        List<ChatRoomResponse> responses = chatRooms.stream()
+                .map(chatRoom -> {
+                    Long friendId = chatRoom.getOtherMemberId(memberId);
+
+                    return toChatRoomResponse(
+                            chatRoom,
+                            memberId,
+                            friendsById.get(friendId),
+                            acceptedFriendIds.contains(friendId),
+                            unreadCountsByRoomId.getOrDefault(chatRoom.getId(), 0L)
+                    );
+                })
+                .toList();
+
+        return ChatRoomListResponse.from(responses, chatRooms.hasNext());
     }
 
-    public ChatRoomResponse detail(Long memberId, Long roomId) {
-        return describe(participant(memberId, roomId, false), memberId);
+    public ChatRoomResponse getChatRoom(Long memberId, Long roomId) {
+        ChatRoom chatRoom = getChatRoomForParticipant(memberId, roomId);
+
+        return toChatRoomResponse(chatRoom, memberId);
     }
 
     @Transactional
-    public ChatMessageResponse send(Long memberId, Long roomId, ChatMessageSendRequest request) {
-        // This lock also makes the per-member persisted rate limit safe across concurrent requests.
-        memberRepository.findLockedById(memberId).orElseThrow(MemberNotFoundException::new);
-        ChatRoom room = participant(memberId, roomId, true);
-        requireFriend(memberId, room.otherMemberId(memberId));
+    public ChatMessageResponse sendMessage(
+            Long memberId,
+            Long roomId,
+            ChatMessageSendRequest request
+    ) {
+        // 회원별 전송 제한과 재전송 검증이 동시 요청에서도 동일하게 적용되도록 잠근다.
+        memberRepository.findLockedById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        ChatRoom chatRoom = getChatRoomForParticipantWithLock(memberId, roomId);
+        Long friendId = chatRoom.getOtherMemberId(memberId);
+        validateAcceptedFriendship(memberId, friendId);
+
         String content = request.content();
-        String clientId = request.clientMessageId().toString();
-        var previous = chatMessageRepository.findByRoomIdAndSenderIdAndClientMessageId(roomId, memberId, clientId);
-        if (previous.isPresent()) {
-            if (!previous.get().getContent().equals(content)) throw new ChatDuplicateMessageConflictException();
-            return ChatMessageResponse.from(previous.get());
+        String clientMessageId = request.clientMessageId().toString();
+        Optional<ChatMessage> existingMessage = chatMessageRepository
+                .findByRoomIdAndSenderIdAndClientMessageId(roomId, memberId, clientMessageId);
+
+        if (existingMessage.isPresent()) {
+            ChatMessage chatMessage = existingMessage.get();
+
+            if (!chatMessage.getContent().equals(content)) {
+                throw new ChatDuplicateMessageConflictException();
+            }
+
+            return ChatMessageResponse.from(chatMessage);
         }
-        if (chatMessageRepository.recentCount(memberId, LocalDateTime.now().minusMinutes(1)) >= 60)
+
+        long recentMessageCount = chatMessageRepository.countRecentMessagesBySenderId(
+                memberId,
+                LocalDateTime.now().minusMinutes(1)
+        );
+
+        if (recentMessageCount >= MESSAGE_LIMIT_PER_MINUTE) {
             throw new ChatRateLimitExceededException();
-        ChatMessage saved = chatMessageRepository.saveAndFlush(ChatMessage.create(roomId, memberId, content, clientId));
-        room.recordMessage(saved);
-        ChatMessageResponse response = ChatMessageResponse.from(saved);
-        eventPublisher.publishEvent(new ChatEvent(memberId, room.otherMemberId(memberId), "chat-message", response));
+        }
+
+        ChatMessage chatMessage = chatMessageRepository.save(
+                ChatMessage.create(roomId, memberId, content, clientMessageId)
+        );
+        chatRoom.recordMessage(chatMessage);
+
+        ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
+        eventPublisher.publishEvent(
+                new ChatEvent(memberId, friendId, ChatEvent.MESSAGE_SENT, response)
+        );
+
         return response;
     }
 
-    public CursorPageResponse<ChatMessageResponse> history(Long memberId, Long roomId, Long beforeId, Long afterId, int size) {
-        participant(memberId, roomId, false);
-        if (beforeId != null && afterId != null) throw new BusinessException(INVALID_REQUEST);
-        if (size < 1 || size > 100 || (beforeId != null && beforeId <= 0) || (afterId != null && afterId < 0))
-            throw new BusinessException(INVALID_REQUEST);
-        List<ChatMessage> result = afterId == null
-                ? chatMessageRepository.history(roomId, beforeId == null ? Long.MAX_VALUE : beforeId, PageRequest.of(0, size + 1))
-                : chatMessageRepository.catchUp(roomId, afterId, PageRequest.of(0, size + 1));
-        boolean hasNext = result.size() > size;
-        List<ChatMessageResponse> page = result.stream().limit(size).map(ChatMessageResponse::from).toList();
-        return new CursorPageResponse<>(page, page.isEmpty() ? null : page.getLast().id(), hasNext);
+    public CursorPageResponse<ChatMessageResponse> getMessages(
+            Long memberId,
+            Long roomId,
+            Long beforeId,
+            Long afterId,
+            int size
+    ) {
+        getChatRoomForParticipant(memberId, roomId);
+        validateMessageCursor(beforeId, afterId, size);
+
+        List<ChatMessage> chatMessages;
+        PageRequest pageRequest = PageRequest.of(0, size + 1);
+
+        if (afterId == null) {
+            long beforeMessageId = beforeId == null ? Long.MAX_VALUE : beforeId;
+            chatMessages = chatMessageRepository.findMessagesBeforeId(roomId, beforeMessageId, pageRequest);
+        } else {
+            chatMessages = chatMessageRepository.findMessagesAfterId(roomId, afterId, pageRequest);
+        }
+
+        boolean hasNext = chatMessages.size() > size;
+        List<ChatMessageResponse> responses = chatMessages.stream()
+                .limit(size)
+                .map(ChatMessageResponse::from)
+                .toList();
+        Long nextCursor = responses.isEmpty() ? null : responses.getLast().id();
+
+        return CursorPageResponse.from(responses, nextCursor, hasNext);
     }
 
     @Transactional
-    public ChatReadResponse read(Long memberId, Long roomId, Long messageId) {
-        ChatRoom room = participant(memberId, roomId, true);
-        chatMessageRepository.findByIdAndRoomId(messageId, roomId).orElseThrow(ChatMessageNotFoundException::new);
-        long previous = room.lastReadId(memberId);
-        room.read(memberId, messageId);
-        ChatReadResponse receipt = new ChatReadResponse(roomId, memberId, room.lastReadId(memberId));
-        if (previous != receipt.lastReadMessageId())
-            eventPublisher.publishEvent(new ChatEvent(memberId, room.otherMemberId(memberId), "chat-read", receipt));
-        return receipt;
+    public ChatReadResponse markMessagesAsRead(Long memberId, Long roomId, Long messageId) {
+        ChatRoom chatRoom = getChatRoomForParticipantWithLock(memberId, roomId);
+        chatMessageRepository.findByIdAndRoomId(messageId, roomId)
+                .orElseThrow(ChatMessageNotFoundException::new);
+
+        long previousReadMessageId = chatRoom.getLastReadMessageId(memberId);
+        chatRoom.markMessagesAsRead(memberId, messageId);
+
+        ChatReadResponse response = ChatReadResponse.from(chatRoom, memberId);
+
+        if (previousReadMessageId != response.lastReadMessageId()) {
+            eventPublisher.publishEvent(
+                    new ChatEvent(memberId, chatRoom.getOtherMemberId(memberId), ChatEvent.MESSAGES_READ, response)
+            );
+        }
+
+        return response;
     }
 
-    private ChatRoom participant(Long memberId, Long roomId, boolean lock) {
-        ChatRoom room = (lock ? chatRoomRepository.findLockedById(roomId) : chatRoomRepository.findById(roomId))
+    private ChatRoom getChatRoomForParticipant(Long memberId, Long roomId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(ChatRoomNotFoundException::new);
-        if (!room.hasMember(memberId)) throw new ChatNotParticipantException();
-        return room;
+
+        validateParticipant(chatRoom, memberId);
+
+        return chatRoom;
     }
 
-    private void requireFriend(Long a, Long b) {
-        // Friend deletion locks the same relationship row, so it cannot pass a message midway through removal.
-        if (friendshipRepository.lockRelationship(a, b, FriendshipStatus.ACCEPTED).isEmpty())
+    private ChatRoom getChatRoomForParticipantWithLock(Long memberId, Long roomId) {
+        ChatRoom chatRoom = chatRoomRepository.findLockedById(roomId)
+                .orElseThrow(ChatRoomNotFoundException::new);
+
+        validateParticipant(chatRoom, memberId);
+
+        return chatRoom;
+    }
+
+    private void validateParticipant(ChatRoom chatRoom, Long memberId) {
+        if (!chatRoom.isParticipant(memberId)) {
+            throw new ChatNotParticipantException();
+        }
+    }
+
+    private void validateAcceptedFriendship(Long memberId, Long friendId) {
+        // 친구 삭제와 같은 관계 행을 잠가 삭제 도중 새 메시지가 저장되지 않도록 한다.
+        if (friendshipRepository.lockRelationship(memberId, friendId, FriendshipStatus.ACCEPTED).isEmpty()) {
             throw new ChatFriendRequiredException();
+        }
     }
 
-    private boolean areFriends(Long a, Long b) {
-        return friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(a, b, FriendshipStatus.ACCEPTED)
-                || friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(b, a, FriendshipStatus.ACCEPTED);
+    private Set<Long> getAcceptedFriendIds(Long memberId, List<Long> friendIds) {
+        Set<Long> acceptedFriendIds = new HashSet<>();
+        List<Friendship> relationships = friendshipRepository.findActiveRelationships(memberId, friendIds);
+
+        for (Friendship friendship : relationships) {
+            if (friendship.getStatus() != FriendshipStatus.ACCEPTED) {
+                continue;
+            }
+
+            Long requesterId = friendship.getRequester().getMemberId();
+            Long friendId = requesterId.equals(memberId)
+                    ? friendship.getAddressee().getMemberId()
+                    : requesterId;
+            acceptedFriendIds.add(friendId);
+        }
+
+        return acceptedFriendIds;
     }
 
-    private ChatRoomResponse describe(ChatRoom room, Long memberId) {
-        Long friendId = room.otherMemberId(memberId);
+    private boolean isAcceptedFriendship(Long memberId, Long friendId) {
+        return friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                memberId, friendId, FriendshipStatus.ACCEPTED
+        ) || friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                friendId, memberId, FriendshipStatus.ACCEPTED
+        );
+    }
+
+    private void validateMessageCursor(Long beforeId, Long afterId, int size) {
+        boolean conflictingCursors = beforeId != null && afterId != null;
+        boolean invalidBeforeId = beforeId != null && beforeId <= 0;
+        boolean invalidAfterId = afterId != null && afterId < 0;
+        boolean invalidSize = size < 1 || size > MAX_PAGE_SIZE;
+
+        if (conflictingCursors || invalidBeforeId || invalidAfterId || invalidSize) {
+            throw new InvalidChatMessageCursorException();
+        }
+    }
+
+    private ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId) {
+        Long friendId = chatRoom.getOtherMemberId(memberId);
         Member friend = memberRepository.findById(friendId).orElse(null);
-        return describe(room, memberId, friend, friend != null && areFriends(memberId, friendId),
-                chatMessageRepository.countByRoomIdAndSenderIdNotAndIdGreaterThan(room.getId(), memberId, room.lastReadId(memberId)));
+        boolean canSend = friend != null && isAcceptedFriendship(memberId, friendId);
+        long unreadCount = chatMessageRepository.countByRoomIdAndSenderIdNotAndIdGreaterThan(
+                chatRoom.getId(),
+                memberId,
+                chatRoom.getLastReadMessageId(memberId)
+        );
+
+        return toChatRoomResponse(chatRoom, memberId, friend, canSend, unreadCount);
     }
 
-    private ChatRoomResponse describe(ChatRoom room, Long memberId, Member friend, boolean canSend, long unreadCount) {
-        Long friendId = room.otherMemberId(memberId);
-        return new ChatRoomResponse(room.getId(), friendId, friend == null ? "탈퇴한 사용자" : friend.getNickname(),
-                friend == null ? null : imageService.getUrl(friend.getProfileImageKey()),
-                friend != null && canSend, room.getLastMessageId(), room.getLastMessageContent(),
-                room.getLastMessageAt(), room.lastReadId(memberId), room.lastReadId(friendId),
-                unreadCount);
+    private ChatRoomResponse toChatRoomResponse(
+            ChatRoom chatRoom,
+            Long memberId,
+            Member friend,
+            boolean canSend,
+            long unreadCount
+    ) {
+        String profileImageUrl = friend == null ? null : imageService.getUrl(friend.getProfileImageKey());
+
+        return ChatRoomResponse.from(chatRoom, memberId, friend, profileImageUrl, canSend, unreadCount);
     }
 }

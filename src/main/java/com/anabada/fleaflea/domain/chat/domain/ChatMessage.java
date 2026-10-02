@@ -1,17 +1,27 @@
 package com.anabada.fleaflea.domain.chat.domain;
 
-import jakarta.persistence.*;
+import com.anabada.fleaflea.global.entity.BaseCreatedTimeEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "chat_messages", uniqueConstraints = @UniqueConstraint(columnNames = {"room_id", "sender_id", "client_message_id"}))
+@Table(
+        name = "chat_messages",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"room_id", "sender_id", "client_message_id"})
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ChatMessage {
+public class ChatMessage extends BaseCreatedTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,9 +38,6 @@ public class ChatMessage {
     @Column(nullable = false, length = 36)
     private String clientMessageId;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @Builder
     private ChatMessage(
             Long roomId,
@@ -42,7 +49,6 @@ public class ChatMessage {
         this.senderId = senderId;
         this.content = content;
         this.clientMessageId = clientMessageId;
-        this.createdAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
     public static ChatMessage create(

@@ -1,6 +1,9 @@
 package com.anabada.fleaflea.domain.chat.dto;
 
+import com.anabada.fleaflea.domain.chat.domain.ChatRoom;
+import com.anabada.fleaflea.domain.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 
 @Schema(description = "채팅방 응답")
@@ -38,4 +41,30 @@ public record ChatRoomResponse(
         @Schema(description = "읽지 않은 메시지 수", example = "2")
         long unreadCount
 ) {
+
+    public static ChatRoomResponse from(
+            ChatRoom chatRoom,
+            Long memberId,
+            Member friend,
+            String profileImageUrl,
+            boolean canSend,
+            long unreadCount
+    ) {
+        Long friendId = chatRoom.getOtherMemberId(memberId);
+        String nickname = friend == null ? "탈퇴한 사용자" : friend.getNickname();
+
+        return new ChatRoomResponse(
+                chatRoom.getId(),
+                friendId,
+                nickname,
+                profileImageUrl,
+                friend != null && canSend,
+                chatRoom.getLastMessageId(),
+                chatRoom.getLastMessageContent(),
+                chatRoom.getLastMessageAt(),
+                chatRoom.getLastReadMessageId(memberId),
+                chatRoom.getLastReadMessageId(friendId),
+                unreadCount
+        );
+    }
 }

@@ -25,6 +25,7 @@ public record ChatMessageResponse(
         @Schema(description = "메시지 생성 시각")
         LocalDateTime createdAt
 ) {
+
     public static ChatMessageResponse from(ChatMessage message) {
         return new ChatMessageResponse(
                 message.getId(),
