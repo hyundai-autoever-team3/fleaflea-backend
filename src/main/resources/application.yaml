@@ -38,6 +38,7 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             client-name: Kakao
@@ -89,4 +90,3 @@ jwt:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5175}
-

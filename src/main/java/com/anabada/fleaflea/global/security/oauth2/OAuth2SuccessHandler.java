@@ -1,13 +1,12 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
 import com.anabada.fleaflea.domain.member.dto.TokenPair;
-import com.anabada.fleaflea.domain.member.service.MemberAuthService;
+import com.anabada.fleaflea.domain.member.service.TokenIssueService;
 import com.anabada.fleaflea.global.security.RefreshTokenCookieProvider;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -18,20 +17,20 @@ import org.springframework.http.HttpHeaders;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private final MemberAuthService memberAuthService;
+    private final TokenIssueService tokenIssueService;
     private final RefreshTokenCookieProvider refreshTokenCookieProvider;
     private final PendingOAuth2SignupStore pendingOAuth2SignupStore;
     private final OAuth2SignupCookieProvider oAuth2SignupCookieProvider;
     private final String frontendUrl;
 
     public OAuth2SuccessHandler(
-            MemberAuthService memberAuthService,
+            TokenIssueService tokenIssueService,
             RefreshTokenCookieProvider refreshTokenCookieProvider,
             PendingOAuth2SignupStore pendingOAuth2SignupStore,
             OAuth2SignupCookieProvider oAuth2SignupCookieProvider,
             @Value("${app.frontend-url}") String frontendUrl
     ) {
-        this.memberAuthService = memberAuthService;
+        this.tokenIssueService = tokenIssueService;
         this.refreshTokenCookieProvider =
                 refreshTokenCookieProvider;
         this.pendingOAuth2SignupStore =
@@ -63,7 +62,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             HttpServletResponse response,
             CustomOAuth2User principal
     ) throws IOException {
-        TokenPair tokenPair = memberAuthService.issueTokenPair(
+        TokenPair tokenPair = tokenIssueService.issueTokenPair(
                 principal.memberId()
         );
         response.addHeader(

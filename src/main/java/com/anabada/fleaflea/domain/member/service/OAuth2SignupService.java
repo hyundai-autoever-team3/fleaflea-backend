@@ -24,7 +24,7 @@ public class OAuth2SignupService {
     private final PendingOAuth2SignupStore pendingOAuth2SignupStore;
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final MemberAuthService memberAuthService;
+    private final TokenIssueService tokenIssueService;
 
     @Transactional
     public TokenPair signup(
@@ -68,7 +68,7 @@ public class OAuth2SignupService {
                         request.nickname()
                 )
         );
-        return memberAuthService.issueTokenPair(
+        return tokenIssueService.issueTokenPair(
                 member.getMemberId()
         );
     }
