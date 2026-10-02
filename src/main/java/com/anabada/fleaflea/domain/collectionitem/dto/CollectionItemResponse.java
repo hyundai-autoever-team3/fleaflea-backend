@@ -1,9 +1,8 @@
 package com.anabada.fleaflea.domain.collectionitem.dto;
 
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItemStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItemStatus;
-
 import java.time.LocalDateTime;
 
 public record CollectionItemResponse(

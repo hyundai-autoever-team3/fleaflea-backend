@@ -2,6 +2,9 @@ package com.anabada.fleaflea.domain.market.service;
 
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.market.dto.*;
+import com.anabada.fleaflea.domain.market.exception.MarketHostCannotLeaveException;
+import com.anabada.fleaflea.domain.market.exception.MarketHostOnlyException;
+import com.anabada.fleaflea.domain.market.exception.MarketMembershipNotFoundException;
 import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
@@ -9,15 +12,12 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +43,7 @@ public class MarketService {
 
         if (request.coverImage() != null
                 && !request.coverImage().isEmpty()) {
-            coverImageKey = imageService.upload(
+            coverImageKey = imageService.uploadInTransaction(
                     request.coverImage(),
                     ImageCategory.MARKET
             );
@@ -105,7 +105,7 @@ public class MarketService {
         if (request.coverImage() != null
                 && !request.coverImage().isEmpty()) {
             if (coverImageKey == null) {
-                coverImageKey = imageService.upload(
+                coverImageKey = imageService.uploadInTransaction(
                         request.coverImage(),
                         ImageCategory.MARKET
                 );
@@ -141,10 +141,7 @@ public class MarketService {
 
         validateHost(market, memberId);
 
-        return new MarketInvitationResponse(
-                market.getMarketId(),
-                market.getInviteCode()
-        );
+        return MarketInvitationResponse.from(market);
     }
 
     @Transactional
@@ -159,10 +156,7 @@ public class MarketService {
         String inviteCode = generateUniqueInviteCode();
         market.changeInviteCode(inviteCode);
 
-        return new MarketInvitationResponse(
-                market.getMarketId(),
-                inviteCode
-        );
+        return MarketInvitationResponse.from(market);
     }
 
     @Transactional
@@ -176,16 +170,12 @@ public class MarketService {
         Market market = getMarket(marketId);
 
         if (market.getHost().getMemberId().equals(memberId)) {
-            throw new BusinessException(
-                    ErrorCode.MARKET_HOST_CANNOT_LEAVE
-            );
+            throw new MarketHostCannotLeaveException();
         }
 
         MarketMember membership = marketMemberRepository
                 .findByMarketAndMember(market, member)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.MARKET_MEMBERSHIP_NOT_FOUND
-                ));
+                .orElseThrow(() -> new MarketMembershipNotFoundException());
 
         marketMemberRepository.delete(membership);
     }
@@ -216,9 +206,7 @@ public class MarketService {
             Long memberId
     ) {
         if (!market.getHost().getMemberId().equals(memberId)) {
-            throw new BusinessException(
-                    ErrorCode.MARKET_HOST_ONLY
-            );
+            throw new MarketHostOnlyException();
         }
     }
 }

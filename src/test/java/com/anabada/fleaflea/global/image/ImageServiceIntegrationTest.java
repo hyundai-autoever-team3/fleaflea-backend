@@ -2,6 +2,9 @@ package com.anabada.fleaflea.global.image;
 
 import com.anabada.fleaflea.global.config.S3Config;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.mock.web.MockMultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -22,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ImageServiceIntegrationTest {
 
     @Test
+    @DisplayName("실제 S3에 업로드한 이미지를 내려받고 삭제할 수 있다")
     void uploadDownloadAndDeleteImage() throws Exception {
         String bucket = System.getenv("S3_BUCKET");
         String region = System.getenv("AWS_REGION");
@@ -49,7 +53,7 @@ class ImageServiceIntegrationTest {
             try {
                 assertThat(key).startsWith("items/").endsWith(".png");
 
-                var downloaded = s3.getObjectAsBytes(
+                ResponseBytes<GetObjectResponse> downloaded = s3.getObjectAsBytes(
                         request -> request.bucket(bucket).key(key)
                 );
 

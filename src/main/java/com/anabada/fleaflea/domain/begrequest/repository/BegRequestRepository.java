@@ -2,7 +2,7 @@ package com.anabada.fleaflea.domain.begrequest.repository;
 
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -19,7 +19,7 @@ public interface BegRequestRepository extends JpaRepository<BegRequest, Long> {
     @EntityGraph(attributePaths = {"collectionItem", "owner", "applicant"})
     Optional<BegRequest> findWithDetailsByBegRequestId(Long begRequestId);
 
-    @Modifying(flushAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             delete from BegRequest request
             where request.collectionItem.collectionItemId = :collectionItemId

@@ -37,23 +37,23 @@ public class MemberPokeController {
             @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음"),
             @ApiResponse(responseCode = "429", description = "일일 콕찌르기 횟수 초과")
     })
-    public ResponseEntity<Void> send(
+    public ResponseEntity<Void> sendPoke(
             @AuthenticationPrincipal Long senderId,
             @PathVariable @Positive Long memberId
     ) {
-        pokeService.send(senderId, memberId);
+        pokeService.sendPoke(senderId, memberId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/members/me/pokes")
     @Operation(summary = "받은 콕찌르기 목록", description = "최신순으로 조회합니다. page는 0부터, size는 1~100입니다.")
     @ApiResponse(responseCode = "200", description = "목록 조회 성공")
-    public ResponseEntity<PageResponse<MemberPokeResponse>> received(
+    public ResponseEntity<PageResponse<MemberPokeResponse>> getReceivedPokes(
             @AuthenticationPrincipal Long memberId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        return ResponseEntity.ok(pokeService.received(memberId, page, size));
+        return ResponseEntity.ok(pokeService.getReceivedPokes(memberId, page, size));
     }
 
     @PatchMapping("/pokes/{pokeId}/read")
@@ -63,11 +63,11 @@ public class MemberPokeController {
             @ApiResponse(responseCode = "403", description = "받은 회원이 아님"),
             @ApiResponse(responseCode = "404", description = "콕찌르기를 찾을 수 없음")
     })
-    public ResponseEntity<Void> markRead(
+    public ResponseEntity<Void> markPokeAsRead(
             @AuthenticationPrincipal Long memberId,
             @PathVariable @Positive Long pokeId
     ) {
-        pokeService.markRead(memberId, pokeId);
+        pokeService.markPokeAsRead(memberId, pokeId);
         return ResponseEntity.noContent().build();
     }
 }

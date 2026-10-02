@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.collectionitem.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,7 +27,13 @@ public record CollectionItemCreateRequest(
                 type = "string",
                 format = "binary"
         )
-        @NotNull
+        @NotNull(message = "도감 아이템 이미지는 필수입니다.")
         MultipartFile image
 ) {
+
+    @AssertTrue(message = "도감 아이템 이미지는 빈 파일일 수 없습니다.")
+    @Schema(hidden = true)
+    public boolean isImageNotEmpty() {
+        return image == null || !image.isEmpty();
+    }
 }

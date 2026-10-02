@@ -1,6 +1,6 @@
-package com.anabada.fleaflea.domain.collection.repository;
+package com.anabada.fleaflea.domain.collectionitem.repository;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

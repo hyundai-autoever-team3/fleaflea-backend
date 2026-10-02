@@ -13,13 +13,12 @@ import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.image.ImageService;
-import lombok.RequiredArgsConstructor;
 import com.anabada.fleaflea.domain.notification.notifier.FriendNotifier;
+import com.anabada.fleaflea.global.image.ImageService;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -118,12 +117,14 @@ public class FriendshipService {
             throw new SelfFriendRequestException();
         }
 
-        Member requester = memberRepository.findById(memberId)
+        Long firstMemberId = Math.min(memberId, targetMemberId);
+        Long secondMemberId = Math.max(memberId, targetMemberId);
+        Member firstMember = memberRepository.findLockedById(firstMemberId)
                 .orElseThrow(MemberNotFoundException::new);
-
-        Member addressee =
-                memberRepository.findById(targetMemberId)
-                        .orElseThrow(MemberNotFoundException::new);
+        Member secondMember = memberRepository.findLockedById(secondMemberId)
+                .orElseThrow(MemberNotFoundException::new);
+        Member requester = memberId.equals(firstMemberId) ? firstMember : secondMember;
+        Member addressee = memberId.equals(firstMemberId) ? secondMember : firstMember;
 
         List<FriendshipStatus> activeStatuses =
                 List.of(

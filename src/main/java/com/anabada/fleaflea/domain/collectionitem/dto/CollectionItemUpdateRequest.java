@@ -1,11 +1,13 @@
 package com.anabada.fleaflea.domain.collectionitem.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.multipart.MultipartFile;
 
 public record CollectionItemUpdateRequest(
 
+        @Pattern(regexp = "(?s).*\\S.*", message = "도감 아이템 이름은 공백만 입력할 수 없습니다.")
         @Size(
                 min = 1,
                 max = 150,

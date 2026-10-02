@@ -3,8 +3,11 @@ package com.anabada.fleaflea.domain.market.controller;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
-import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
+import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
 import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 import com.anabada.fleaflea.domain.market.service.MarketService;
 import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
@@ -15,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +28,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
-import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
-import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(
         name = "플리마켓",
@@ -123,7 +131,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable Long marketId
+            @PathVariable @Positive Long marketId
     ) {
         MarketDetailResponse response =
                 marketQueryService.getMarket(memberId, marketId);
@@ -146,7 +154,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable Long marketId,
+            @PathVariable @Positive Long marketId,
 
             @ParameterObject
             @PageableDefault(
@@ -174,7 +182,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable Long marketId,
+            @PathVariable @Positive Long marketId,
 
             @Valid @ModelAttribute MarketUpdateRequest request
     ) {
@@ -194,7 +202,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable Long marketId
+            @PathVariable @Positive Long marketId
     ) {
         return ResponseEntity.ok(
                 marketService.reissueInvitation(memberId, marketId)
@@ -207,7 +215,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable Long marketId
+            @PathVariable @Positive Long marketId
     ) {
         marketService.leaveMarket(memberId, marketId);
 
@@ -220,7 +228,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable Long marketId
+            @PathVariable @Positive Long marketId
     ) {
         marketService.deleteMarket(memberId, marketId);
 
@@ -242,7 +250,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable Long marketId
+            @PathVariable @Positive Long marketId
     ) {
         MarketInvitationResponse response =
                 marketService.getInvitation(memberId, marketId);

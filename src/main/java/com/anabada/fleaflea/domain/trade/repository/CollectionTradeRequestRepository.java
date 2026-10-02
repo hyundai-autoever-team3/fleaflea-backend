@@ -1,25 +1,24 @@
 package com.anabada.fleaflea.domain.trade.repository;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
+import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import jakarta.persistence.LockModeType;
-import java.util.Collection;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface CollectionTradeRequestRepository extends JpaRepository<CollectionTradeRequest, Long> {
 
-    @Modifying(flushAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             delete from CollectionTradeRequest request
             where (
@@ -46,6 +45,8 @@ public interface CollectionTradeRequestRepository extends JpaRepository<Collecti
             CollectionItem collectionItem,
             Collection<TradeRequestStatus> statuses
     );
+
+    boolean existsByOfferCollectionItem_CollectionItemIdAndStatus(Long collectionItemId, TradeRequestStatus status);
 
     boolean existsByCollectionItem_CollectionItemIdAndStatus(
             Long collectionItemId,

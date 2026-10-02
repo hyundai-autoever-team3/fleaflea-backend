@@ -9,7 +9,8 @@ import com.anabada.fleaflea.domain.poke.exception.PokeLimitExceededException;
 import com.anabada.fleaflea.domain.poke.ratelimit.PokeRateLimiter;
 import com.anabada.fleaflea.domain.poke.repository.MemberPokeRepository;
 import com.anabada.fleaflea.fixture.MemberFixture;
-import com.anabada.fleaflea.global.exception.BusinessException;
+import com.anabada.fleaflea.domain.poke.exception.PokeSelfRequestException;
+import com.anabada.fleaflea.domain.poke.exception.PokeAccessDeniedException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class MemberPokeServiceTest {
     private MemberRepository memberRepository;
 
     @Mock
-    private MemberPokeRepository pokeRepository;
+    private MemberPokeRepository memberPokeRepository;
 
     @Mock
     private PokeNotifier pokeNotifier;
@@ -50,7 +51,7 @@ class MemberPokeServiceTest {
     private PokeRateLimiter pokeRateLimiter;
 
     @InjectMocks
-    private MemberPokeService service;
+    private MemberPokeService memberPokeService;
 
     @Test
     @DisplayName("콕찌르기를 저장하고 수신자에게 알림을 전송한다")
@@ -60,10 +61,10 @@ class MemberPokeServiceTest {
         when(memberRepository.findById(SENDER_ID)).thenReturn(Optional.of(sender));
         when(memberRepository.findById(RECIPIENT_ID)).thenReturn(Optional.of(recipient));
 
-        service.send(SENDER_ID, RECIPIENT_ID);
+        memberPokeService.sendPoke(SENDER_ID, RECIPIENT_ID);
 
         ArgumentCaptor<MemberPoke> pokeCaptor = ArgumentCaptor.forClass(MemberPoke.class);
-        verify(pokeRepository).save(pokeCaptor.capture());
+        verify(memberPokeRepository).save(pokeCaptor.capture());
         verify(pokeRateLimiter).acquire(SENDER_ID, RECIPIENT_ID);
         verify(pokeNotifier).notifyOf(any(MemberPokedEvent.class));
 
@@ -76,11 +77,11 @@ class MemberPokeServiceTest {
     @Test
     @DisplayName("자기 자신에게는 콕찌르기를 보낼 수 없다")
     void cannotPokeSelf() {
-        assertThatThrownBy(() -> service.send(SENDER_ID, SENDER_ID))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
+        assertThatThrownBy(() -> memberPokeService.sendPoke(SENDER_ID, SENDER_ID))
+                .isInstanceOfSatisfying(PokeSelfRequestException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.POKE_SELF));
 
-        verifyNoInteractions(memberRepository, pokeRepository, pokeNotifier, pokeRateLimiter);
+        verifyNoInteractions(memberRepository, memberPokeRepository, pokeNotifier, pokeRateLimiter);
     }
 
     @Test
@@ -93,10 +94,10 @@ class MemberPokeServiceTest {
         doThrow(new PokeLimitExceededException())
                 .when(pokeRateLimiter).acquire(SENDER_ID, RECIPIENT_ID);
 
-        assertThatThrownBy(() -> service.send(SENDER_ID, RECIPIENT_ID))
+        assertThatThrownBy(() -> memberPokeService.sendPoke(SENDER_ID, RECIPIENT_ID))
                 .isInstanceOf(PokeLimitExceededException.class);
 
-        verify(pokeRepository, never()).save(any());
+        verify(memberPokeRepository, never()).save(any());
         verifyNoInteractions(pokeNotifier);
     }
 
@@ -104,9 +105,9 @@ class MemberPokeServiceTest {
     @DisplayName("수신자는 콕찌르기를 읽음 처리할 수 있다")
     void recipientMarksPokeAsRead() {
         MemberPoke poke = createPoke();
-        when(pokeRepository.findById(POKE_ID)).thenReturn(Optional.of(poke));
+        when(memberPokeRepository.findById(POKE_ID)).thenReturn(Optional.of(poke));
 
-        service.markRead(RECIPIENT_ID, POKE_ID);
+        memberPokeService.markPokeAsRead(RECIPIENT_ID, POKE_ID);
 
         assertThat(poke.isRead()).isTrue();
     }
@@ -115,10 +116,10 @@ class MemberPokeServiceTest {
     @DisplayName("수신자가 아닌 회원은 콕찌르기를 읽음 처리할 수 없다")
     void nonRecipientCannotMarkPokeAsRead() {
         MemberPoke poke = createPoke();
-        when(pokeRepository.findById(POKE_ID)).thenReturn(Optional.of(poke));
+        when(memberPokeRepository.findById(POKE_ID)).thenReturn(Optional.of(poke));
 
-        assertThatThrownBy(() -> service.markRead(SENDER_ID, POKE_ID))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
+        assertThatThrownBy(() -> memberPokeService.markPokeAsRead(SENDER_ID, POKE_ID))
+                .isInstanceOfSatisfying(PokeAccessDeniedException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.POKE_ACCESS_DENIED));
 
