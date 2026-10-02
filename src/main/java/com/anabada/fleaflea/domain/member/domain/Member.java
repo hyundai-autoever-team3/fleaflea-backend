@@ -18,10 +18,9 @@ public class Member extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "oauth2_provider")
-    private OAuth2Provider oAuth2Provider;
+    private OAuth2Provider oauth2Provider;
 
-    @Column(name = "oauth2_id",unique = true)
-    private String oAuth2Id;
+    private String oauth2Id;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -39,11 +38,15 @@ public class Member extends BaseTimeEntity {
     private Member(
             String email,
             String password,
-            String nickname
+            String nickname,
+            OAuth2Provider oauth2Provider,
+            String oauth2Id
     ) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
+        this.oauth2Provider = oauth2Provider;
+        this.oauth2Id = oauth2Id;
     }
 
     public static Member create(
@@ -52,6 +55,22 @@ public class Member extends BaseTimeEntity {
             String nickname
     ) {
         return Member.builder()
+                .email(email)
+                .password(password)
+                .nickname(nickname)
+                .build();
+    }
+
+    public static Member createOAuth2(
+            OAuth2Provider provider,
+            String oauth2Id,
+            String email,
+            String password,
+            String nickname
+    ) {
+        return Member.builder()
+                .oauth2Provider(provider)
+                .oauth2Id(oauth2Id)
                 .email(email)
                 .password(password)
                 .nickname(nickname)
