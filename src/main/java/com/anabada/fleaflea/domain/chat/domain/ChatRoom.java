@@ -42,12 +42,20 @@ public class ChatRoom {
     private LocalDateTime createdAt;
 
     @Builder
+    private ChatRoom(
+            Long memberLowId,
+            Long memberHighId
+    ) {
+        this.memberLowId = memberLowId;
+        this.memberHighId = memberHighId;
+        this.createdAt = this.updatedAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+    }
+
     public static ChatRoom create(Long a, Long b) {
-        ChatRoom room = new ChatRoom();
-        room.memberLowId = Math.min(a, b);
-        room.memberHighId = Math.max(a, b);
-        room.createdAt = room.updatedAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
-        return room;
+        return ChatRoom.builder()
+                .memberLowId(Math.min(a, b))
+                .memberHighId(Math.max(a, b))
+                .build();
     }
 
     public boolean hasMember(Long memberId) {

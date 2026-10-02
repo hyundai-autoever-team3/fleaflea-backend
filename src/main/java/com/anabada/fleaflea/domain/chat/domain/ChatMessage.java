@@ -32,13 +32,30 @@ public class ChatMessage {
     private LocalDateTime createdAt;
 
     @Builder
-    public static ChatMessage create(Long roomId, Long senderId, String content, String clientMessageId) {
-        ChatMessage message = new ChatMessage();
-        message.roomId = roomId;
-        message.senderId = senderId;
-        message.content = content;
-        message.clientMessageId = clientMessageId;
-        message.createdAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
-        return message;
+    private ChatMessage(
+            Long roomId,
+            Long senderId,
+            String content,
+            String clientMessageId
+    ) {
+        this.roomId = roomId;
+        this.senderId = senderId;
+        this.content = content;
+        this.clientMessageId = clientMessageId;
+        this.createdAt = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+    }
+
+    public static ChatMessage create(
+            Long roomId,
+            Long senderId,
+            String content,
+            String clientMessageId
+    ) {
+        return ChatMessage.builder()
+                .roomId(roomId)
+                .senderId(senderId)
+                .content(content)
+                .clientMessageId(clientMessageId)
+                .build();
     }
 }

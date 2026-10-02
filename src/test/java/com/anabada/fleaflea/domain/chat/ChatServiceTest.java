@@ -4,6 +4,7 @@ import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
+import com.anabada.fleaflea.domain.chat.exception.ChatRateLimitExceededException;
 import com.anabada.fleaflea.domain.chat.repository.*;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.friendship.domain.*;
@@ -127,14 +128,43 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("빈 메시지·길이 초과·분당 전송 횟수 초과를 거절한다")
-    void invalidTextAndRateLimit() {
+    @DisplayName("분당 전송 횟수를 초과하면 채팅 전용 예외로 거절한다")
+    void rateLimitRejectsExcessMessages() {
         Long id = service.open(a.getMemberId(), b.getMemberId()).id();
-        forbidden(() -> send(a, id, "  "), ErrorCode.INVALID_REQUEST);
-        forbidden(() -> send(a, id, "a".repeat(2001)), ErrorCode.INVALID_REQUEST);
         for (int i = 0; i < 60; i++) send(a, id, "message " + i);
-        forbidden(() -> send(a, id, "61"), ErrorCode.CHAT_RATE_LIMIT_EXCEEDED);
+        assertThatThrownBy(() -> send(a, id, "61"))
+                .isInstanceOfSatisfying(ChatRateLimitExceededException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CHAT_RATE_LIMIT_EXCEEDED));
         assertThat(messages.count()).isEqualTo(60);
+    }
+
+    @Test
+    @DisplayName("메시지 API는 잘못된 입력을 저장 전에 거절하고 2000자는 허용한다")
+    void messageApiValidatesRequestBeforeSaving() throws Exception {
+        Long id = service.open(a.getMemberId(), b.getMemberId()).id();
+        var auth = new UsernamePasswordAuthenticationToken(a.getMemberId(), null, List.of());
+        String clientId = UUID.randomUUID().toString();
+        List<String> invalidBodies = List.of(
+                "{\"content\":null,\"clientMessageId\":\"%s\"}".formatted(clientId),
+                "{\"clientMessageId\":\"%s\"}".formatted(clientId),
+                "{\"content\":\"\",\"clientMessageId\":\"%s\"}".formatted(clientId),
+                "{\"content\":\"   \",\"clientMessageId\":\"%s\"}".formatted(clientId),
+                "{\"content\":\"%s\",\"clientMessageId\":\"%s\"}".formatted("a".repeat(2001), clientId),
+                "{\"content\":\"hello\",\"clientMessageId\":null}",
+                "{\"content\":\"hello\"}"
+        );
+        for (String body : invalidBodies) {
+            mvc.perform(post("/api/v1/chat/rooms/" + id + "/messages").with(authentication(auth))
+                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        assertThat(messages.count()).isZero();
+        mvc.perform(post("/api/v1/chat/rooms/" + id + "/messages").with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"%s\",\"clientMessageId\":\"%s\"}".formatted("a".repeat(2000), clientId)))
+                .andExpect(status().isOk());
+        assertThat(messages.findAll()).singleElement()
+                .satisfies(message -> assertThat(message.getContent()).hasSize(2000));
     }
 
     @Test
