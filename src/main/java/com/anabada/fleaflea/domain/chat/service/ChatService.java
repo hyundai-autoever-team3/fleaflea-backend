@@ -1,22 +1,26 @@
 package com.anabada.fleaflea.domain.chat.service;
 
-import com.anabada.fleaflea.domain.chat.domain.*;
+import com.anabada.fleaflea.domain.chat.domain.ChatMessage;
+import com.anabada.fleaflea.domain.chat.domain.ChatRoom;
 import com.anabada.fleaflea.domain.chat.dto.ChatDtos.*;
 import com.anabada.fleaflea.domain.chat.event.ChatEvent;
-import com.anabada.fleaflea.domain.chat.repository.*;
+import com.anabada.fleaflea.domain.chat.repository.ChatMessageRepository;
+import com.anabada.fleaflea.domain.chat.repository.ChatRoomRepository;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.exception.*;
+import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.*;
+
 import static com.anabada.fleaflea.global.exception.ErrorCode.*;
 
 @Service
@@ -75,7 +79,8 @@ public class ChatService {
         String clientId = request.clientMessageId().toString();
         var previous = messages.findByRoomIdAndSenderIdAndClientMessageId(roomId, memberId, clientId);
         if (previous.isPresent()) {
-            if (!previous.get().getContent().equals(content)) throw new BusinessException(CHAT_DUPLICATE_MESSAGE_CONFLICT);
+            if (!previous.get().getContent().equals(content))
+                throw new BusinessException(CHAT_DUPLICATE_MESSAGE_CONFLICT);
             return Message.from(previous.get());
         }
         if (messages.recentCount(memberId, LocalDateTime.now().minusMinutes(1)) >= 60)

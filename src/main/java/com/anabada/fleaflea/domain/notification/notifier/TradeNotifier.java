@@ -11,6 +11,7 @@ import com.anabada.fleaflea.domain.trade.event.TradeCompletedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeKind;
 import com.anabada.fleaflea.domain.trade.event.TradeRejectedEvent;
 import com.anabada.fleaflea.domain.trade.event.TradeRequestedEvent;
+import com.anabada.fleaflea.domain.trade.observability.TradeObservability;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 public class TradeNotifier {
 
     private final NotificationService notificationService;
+    private final TradeObservability tradeObservability;
 
     public void notifyOf(
             TradeRequestedEvent event
@@ -30,6 +32,7 @@ public class TradeNotifier {
                 event.requestId(),
                 requestedMessage(event)
         );
+        tradeObservability.recordAfterCommit("requested", event.target().kind());
     }
 
     public void notifyOf(
@@ -42,6 +45,7 @@ public class TradeNotifier {
                 event.requestId(),
                 acceptedMessage(event)
         );
+        tradeObservability.recordAfterCommit("accepted", event.target().kind());
     }
 
     public void notifyOf(
@@ -54,6 +58,7 @@ public class TradeNotifier {
                 event.requestId(),
                 rejectedMessage(event)
         );
+        tradeObservability.recordAfterCommit("rejected", event.target().kind());
     }
 
     public void notifyOf(
@@ -66,6 +71,7 @@ public class TradeNotifier {
                 event.requestId(),
                 autoRejectedMessage(event)
         );
+        tradeObservability.recordAfterCommit("auto_rejected", event.target().kind());
     }
 
     public void notifyOf(
@@ -78,6 +84,7 @@ public class TradeNotifier {
                 event.requestId(),
                 cancelledMessage(event)
         );
+        tradeObservability.recordAfterCommit("cancelled", event.target().kind());
     }
 
     public void notifyOf(
@@ -90,6 +97,7 @@ public class TradeNotifier {
                 event.requestId(),
                 completedMessage(event)
         );
+        tradeObservability.recordAfterCommit("completed", event.target().kind());
     }
 
     private NotificationReferenceType referenceType(

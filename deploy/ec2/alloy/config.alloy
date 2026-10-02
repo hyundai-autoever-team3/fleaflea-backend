@@ -1,0 +1,241 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.remote_write "central" {
+  endpoint {
+    url = sys.env("PROMETHEUS_REMOTE_WRITE_URL")
+
+    queue_config {
+      capacity             = 10000
+      max_samples_per_send = 2000
+      batch_send_deadline  = "5s"
+      min_backoff          = "100ms"
+      max_backoff          = "10s"
+    }
+  }
+
+  external_labels = {
+    environment = sys.env("APP_ENV"),
+  }
+
+  wal {
+    truncate_frequency = "2h"
+    min_keepalive_time = "5m"
+    max_keepalive_time = "8h"
+  }
+
+}
+
+prometheus.scrape "application" {
+  targets = [{
+    __address__ = "app:8081",
+    instance    = sys.env("INSTANCE_NAME"),
+    service     = "fleaflea",
+  }]
+  job_name        = "fleaflea-app"
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "node" {
+  targets = [{
+    __address__ = "node-exporter:9100",
+    instance    = sys.env("INSTANCE_NAME"),
+    service     = "node",
+  }]
+  job_name        = "fleaflea-node"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "cadvisor" {
+  targets = [{
+    __address__ = "cadvisor:8080",
+    instance    = sys.env("INSTANCE_NAME"),
+    service     = "containers",
+  }]
+  job_name        = "fleaflea-cadvisor"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "postgres" {
+  targets = [{
+    __address__ = "postgres-exporter:9187",
+    instance    = sys.env("INSTANCE_NAME"),
+    service     = "postgres",
+  }]
+  job_name        = "fleaflea-postgres"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "alloy" {
+  targets = [{
+    __address__ = "127.0.0.1:12345",
+    instance    = sys.env("INSTANCE_NAME"),
+    service     = "alloy",
+  }]
+  job_name        = "fleaflea-alloy"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+discovery.docker "containers" {
+  host             = "tcp://docker-socket-proxy:2375"
+  refresh_interval = "10s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "fleaflea"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "app"
+    replacement   = "fleaflea"
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    replacement   = "$1"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "tcp://docker-socket-proxy:2375"
+  targets    = discovery.relabel.containers.output
+  labels     = { source = "docker" }
+  forward_to = [loki.process.containers.receiver]
+}
+
+loki.process "containers" {
+  stage.static_labels {
+    values = {
+      environment = sys.env("APP_ENV"),
+      instance    = sys.env("INSTANCE_NAME"),
+    }
+  }
+
+  forward_to = [loki.write.central.receiver]
+}
+
+local.file_match "nginx" {
+  path_targets = [{
+    __path__ = "/var/log/nginx/*.log",
+    service  = "nginx",
+  }]
+}
+
+loki.source.file "nginx" {
+  targets    = local.file_match.nginx.targets
+  forward_to = [loki.process.nginx.receiver]
+}
+
+loki.process "nginx" {
+  stage.static_labels {
+    values = {
+      environment = sys.env("APP_ENV"),
+      instance    = sys.env("INSTANCE_NAME"),
+      source      = "file",
+    }
+  }
+
+  forward_to = [loki.write.central.receiver]
+}
+
+loki.write "central" {
+  endpoint {
+    url = sys.env("LOKI_WRITE_URL")
+  }
+
+  wal {
+    enabled = true
+  }
+}
+
+otelcol.receiver.otlp "application" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.resourcedetection.host.input]
+  }
+}
+
+otelcol.processor.resourcedetection "host" {
+  detectors = ["env", "system"]
+  override  = false
+
+  system {
+    hostname_sources = ["os"]
+  }
+
+  output {
+    traces = [otelcol.processor.batch.traces.input]
+  }
+}
+
+otelcol.processor.batch "traces" {
+  timeout         = "5s"
+  send_batch_size = 512
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.storage.file "queue" {
+  directory = "/var/lib/alloy/otel-queue"
+  fsync     = true
+
+  compaction {
+    on_start = true
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = sys.env("TEMPO_OTLP_ENDPOINT")
+
+    tls {
+      insecure = true
+    }
+  }
+
+  retry_on_failure {
+    enabled          = true
+    initial_interval = "1s"
+    max_interval     = "30s"
+    max_elapsed_time = "5m"
+  }
+
+  sending_queue {
+    enabled       = true
+    queue_size    = 1000
+    num_consumers = 4
+    storage       = otelcol.storage.file.queue.handler
+  }
+}

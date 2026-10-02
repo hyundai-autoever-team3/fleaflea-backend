@@ -1,8 +1,9 @@
 package com.anabada.fleaflea.domain.chat.event;
 
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
+import com.anabada.fleaflea.global.observability.SseTaskDispatcher;
+import com.anabada.fleaflea.global.observability.SseTaskType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.*;
 
@@ -10,11 +11,13 @@ import org.springframework.transaction.event.*;
 @RequiredArgsConstructor
 public class ChatEventListener {
     private final NotificationSseService sseService;
+    private final SseTaskDispatcher taskDispatcher;
 
-    @Async("notificationSseExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onChatEvent(ChatEvent event) {
-        sseService.sendEvent(event.firstMemberId(), event.name(), event.payload());
-        sseService.sendEvent(event.secondMemberId(), event.name(), event.payload());
+        taskDispatcher.submit(SseTaskType.CHAT, () -> {
+            sseService.sendEvent(event.firstMemberId(), event.name(), event.payload());
+            sseService.sendEvent(event.secondMemberId(), event.name(), event.payload());
+        });
     }
 }

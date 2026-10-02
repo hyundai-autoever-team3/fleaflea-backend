@@ -1,0 +1,137 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{service=\"fleaflea\"}[5m]))", "legendFormat": "requests"}],
+      "title": "Request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.05}]}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{service=\"fleaflea\"}[5m])), 0.001)", "legendFormat": "5xx ratio"}],
+      "title": "5xx ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{service=\"fleaflea\",uri!=\"/api/v1/notifications/subscribe\"}[5m])))", "legendFormat": "p95 {{uri}}"}, {"expr": "histogram_quantile(0.99, sum by (le, uri) (rate(http_server_requests_seconds_bucket{service=\"fleaflea\",uri!=\"/api/v1/notifications/subscribe\"}[5m])))", "legendFormat": "p99 {{uri}}"}],
+      "title": "Route latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "id": 4,
+      "targets": [{"expr": "sum(jvm_memory_used_bytes{service=\"fleaflea\",area=\"heap\"})", "legendFormat": "used"}, {"expr": "sum(jvm_memory_max_bytes{service=\"fleaflea\",area=\"heap\"})", "legendFormat": "max"}],
+      "title": "JVM heap",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "id": 5,
+      "targets": [{"expr": "hikaricp_connections_active{service=\"fleaflea\"}", "legendFormat": "active"}, {"expr": "hikaricp_connections_pending{service=\"fleaflea\"}", "legendFormat": "pending"}, {"expr": "hikaricp_connections_idle{service=\"fleaflea\"}", "legendFormat": "idle"}],
+      "title": "Database pool",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "id": 6,
+      "targets": [{"expr": "fleaflea_sse_connections{service=\"fleaflea\"}", "legendFormat": "connections"}, {"expr": "increase(fleaflea_sse_tasks_total{service=\"fleaflea\",outcome=~\"failed|rejected\"}[5m])", "legendFormat": "{{type}} {{outcome}}"}],
+      "title": "SSE health",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "id": 7,
+      "targets": [{"expr": "increase(fleaflea_trade_committed_total{service=\"fleaflea\"}[1h])", "legendFormat": "{{kind}} {{action}}"}],
+      "title": "Committed trade transitions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "id": 8,
+      "targets": [{"expr": "increase(fleaflea_image_operations_total{service=\"fleaflea\"}[1h])", "legendFormat": "{{operation}} {{outcome}}"}],
+      "title": "Image operations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "id": 9,
+      "targets": [{"expr": "probe_success{job=\"blackbox-http\"}", "legendFormat": "{{instance}}"}, {"expr": "up{job=~\"fleaflea-.*\"}", "legendFormat": "{{job}}"}],
+      "title": "Availability and collection",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 40},
+      "id": 10,
+      "options": {"showTime": true, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending"},
+      "targets": [{"expr": "{service=\"fleaflea\"} | json", "refId": "A"}],
+      "title": "Application logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "id": 11,
+      "targets": [{"expr": "sum by (name) (rate(container_cpu_usage_seconds_total{job=\"fleaflea-cadvisor\",image!=\"\"}[5m]))", "legendFormat": "{{name}}"}],
+      "title": "Container CPU",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "id": 12,
+      "targets": [{"expr": "container_memory_working_set_bytes{job=\"fleaflea-cadvisor\",image!=\"\"}", "legendFormat": "{{name}}"}],
+      "title": "Container memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 32},
+      "id": 13,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "name_and_value"},
+      "targets": [{"expr": "fleaflea_build_info{service=\"fleaflea\"}", "legendFormat": "{{environment}} / {{instance}} / {{version}}"}],
+      "title": "Deployed version",
+      "type": "stat"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["fleaflea", "observability"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "Fleaflea Overview",
+  "uid": "fleaflea-overview",
+  "version": 1
+}

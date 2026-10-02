@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Repository
 public class SseEmitterRepository {
@@ -28,14 +29,16 @@ public class SseEmitterRepository {
         });
     }
 
-    public void delete(
+    public boolean delete(
             Long memberId,
             String emitterId
     ) {
+        AtomicBoolean removed = new AtomicBoolean(false);
         emitters.computeIfPresent(memberId, (key, memberEmitters) -> {
-            memberEmitters.remove(emitterId);
+            removed.set(memberEmitters.remove(emitterId) != null);
             return memberEmitters.isEmpty() ? null : memberEmitters;
         });
+        return removed.get();
     }
 
     public Collection<Map.Entry<String, SseEmitter>> findAllByMemberId(Long memberId) {

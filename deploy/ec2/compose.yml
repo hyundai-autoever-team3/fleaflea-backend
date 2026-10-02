@@ -2,7 +2,7 @@ name: fleaflea
 
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16.10
     container_name: fleaflea-postgres
     restart: unless-stopped
     env_file:
@@ -18,6 +18,11 @@ services:
       retries: 5
       start_period: 10s
     stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   app:
     image: ${APP_IMAGE:?APP_IMAGE must be set}
@@ -27,20 +32,158 @@ services:
       - /etc/fleaflea/fleaflea.env
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/fleaflea_db
+      APP_ENV: production
+      APP_VERSION: ${APP_VERSION:-unknown}
+      LOG_FORMAT_CONSOLE: ecs
+      OTLP_TRACES_ENABLED: ${OTLP_TRACES_ENABLED:-false}
+      OTLP_TRACES_ENDPOINT: http://alloy:4318/v1/traces
     ports:
       - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      test: [
+        "CMD-SHELL",
+        "curl -fsS http://localhost:8080/readyz >/dev/null || curl -fsS http://localhost:8080/actuator/health >/dev/null"
+      ]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 30s
     stop_grace_period: 30s
     mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2
+    container_name: fleaflea-docker-socket-proxy
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+      INFO: 1
+      PING: 1
+      VERSION: 1
+      POST: 0
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - monitoring_internal
+    read_only: true
+    tmpfs:
+      - /run
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: fleaflea-node-exporter
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    networks:
+      - monitoring_internal
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    container_name: fleaflea-cadvisor
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - monitoring_internal
+    mem_limit: 256m
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: fleaflea-postgres-exporter
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    env_file:
+      - /etc/fleaflea/monitoring.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+      - monitoring_internal
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+  alloy:
+    image: grafana/alloy:v1.19.2
+    container_name: fleaflea-alloy
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    user: "0:0"
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy
+      - --stability.level=public-preview
+      - /etc/alloy/config.alloy
+    env_file:
+      - /etc/fleaflea/monitoring.env
+    volumes:
+      - /opt/fleaflea/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      - alloy_data:/var/lib/alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on:
+      - docker-socket-proxy
+      - node-exporter
+      - cadvisor
+      - postgres-exporter
+    networks:
+      - default
+      - monitoring_internal
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
   postgres_data:
     name: fleaflea_postgres_data
+  alloy_data:
+    name: fleaflea_alloy_data
+
+networks:
+  monitoring_internal:
+    internal: true

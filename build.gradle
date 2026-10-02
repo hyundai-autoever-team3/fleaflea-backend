@@ -7,6 +7,10 @@ plugins {
 group = 'com.anabada'
 version = '0.0.1-SNAPSHOT'
 
+springBoot {
+	buildInfo()
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
@@ -55,6 +59,8 @@ dependencies {
 
 	// Actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 	// QueryDSL
 	implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.6'

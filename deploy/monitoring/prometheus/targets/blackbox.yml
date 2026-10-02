@@ -1,0 +1,5 @@
+- targets:
+    - https://api.fleaflea.app/readyz
+  labels:
+    service: fleaflea
+    environment: production

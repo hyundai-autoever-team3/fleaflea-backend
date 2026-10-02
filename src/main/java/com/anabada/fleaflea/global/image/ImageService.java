@@ -2,6 +2,12 @@ package com.anabada.fleaflea.global.image;
 
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.exception.ImageException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +25,7 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -39,16 +46,31 @@ public class ImageService {
 
     private final S3Client s3Client;
     private final String bucket;
+    private final ObservationRegistry observationRegistry;
+    private final MeterRegistry meterRegistry;
 
+    @Autowired
     public ImageService(
             S3Client s3Client,
-            @Value("${aws.s3.bucket}") String bucket
+            @Value("${aws.s3.bucket}") String bucket,
+            ObservationRegistry observationRegistry,
+            MeterRegistry meterRegistry
     ) {
         this.s3Client = s3Client;
         this.bucket = bucket;
+        this.observationRegistry = observationRegistry;
+        this.meterRegistry = meterRegistry;
+    }
+
+    ImageService(S3Client s3Client, String bucket) {
+        this(s3Client, bucket, ObservationRegistry.NOOP, Metrics.globalRegistry);
     }
 
     public String upload(MultipartFile file, ImageCategory category) {
+        return instrumentOperation("upload", () -> uploadInternal(file, category));
+    }
+
+    private String uploadInternal(MultipartFile file, ImageCategory category) {
         if (category == null) {
             throw new ImageException(ErrorCode.INVALID_IMAGE_CATEGORY);
         }
@@ -62,7 +84,11 @@ public class ImageService {
         }
 
         byte[] bytes = readBytes(file);
-        String extension = detectImageExtension(bytes);
+        String extension = observe(
+                "fleaflea.image.validation",
+                "validate",
+                () -> detectImageExtension(bytes)
+        );
         String contentType = switch (extension) {
             case "jpg" -> "image/jpeg";
             case "png" -> "image/png";
@@ -74,11 +100,15 @@ public class ImageService {
                 + "/" + UUID.randomUUID() + "." + extension;
 
         try {
-            s3Client.putObject(
-                    request -> request.bucket(bucket)
-                            .key(imageKey)
-                            .contentType(contentType),
-                    RequestBody.fromBytes(bytes)
+            observe(
+                    "fleaflea.image.s3",
+                    "upload",
+                    () -> s3Client.putObject(
+                            request -> request.bucket(bucket)
+                                    .key(imageKey)
+                                    .contentType(contentType),
+                            RequestBody.fromBytes(bytes)
+                    )
             );
 
             return imageKey;
@@ -88,14 +118,25 @@ public class ImageService {
     }
 
     public void delete(String imageKey) {
+        instrumentOperation("delete", () -> {
+            deleteInternal(imageKey);
+            return null;
+        });
+    }
+
+    private void deleteInternal(String imageKey) {
         if (imageKey == null
                 || !IMAGE_KEY_PATTERN.matcher(imageKey).matches()) {
             throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
         }
 
         try {
-            s3Client.deleteObject(
-                    request -> request.bucket(bucket).key(imageKey)
+            observe(
+                    "fleaflea.image.s3",
+                    "delete",
+                    () -> s3Client.deleteObject(
+                            request -> request.bucket(bucket).key(imageKey)
+                    )
             );
         } catch (SdkException e) {
             throw new ImageException(ErrorCode.IMAGE_DELETE_FAILED, e);
@@ -297,6 +338,16 @@ public class ImageService {
             String sourceKey,
             ImageCategory targetCategory
     ) {
+        return instrumentOperation(
+                "copy",
+                () -> copyInternal(sourceKey, targetCategory)
+        );
+    }
+
+    private String copyInternal(
+            String sourceKey,
+            ImageCategory targetCategory
+    ) {
         if (sourceKey == null
                 || !IMAGE_KEY_PATTERN.matcher(sourceKey).matches()) {
             throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
@@ -315,11 +366,15 @@ public class ImageService {
                 + "." + extension;
 
         try {
-            s3Client.copyObject(request -> request
-                    .sourceBucket(bucket)
-                    .sourceKey(sourceKey)
-                    .destinationBucket(bucket)
-                    .destinationKey(targetKey)
+            observe(
+                    "fleaflea.image.s3",
+                    "copy",
+                    () -> s3Client.copyObject(request -> request
+                            .sourceBucket(bucket)
+                            .sourceKey(sourceKey)
+                            .destinationBucket(bucket)
+                            .destinationKey(targetKey)
+                    )
             );
 
             return targetKey;
@@ -328,6 +383,35 @@ public class ImageService {
                     ErrorCode.IMAGE_UPLOAD_FAILED,
                     e
             );
+        }
+    }
+
+    private <T> T observe(String name, String operation, Supplier<T> supplier) {
+        return Observation.createNotStarted(name, observationRegistry)
+                .lowCardinalityKeyValue("operation", operation)
+                .observe(supplier);
+    }
+
+    private <T> T instrumentOperation(String operation, Supplier<T> supplier) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String outcome = "success";
+
+        try {
+            return supplier.get();
+        } catch (RuntimeException e) {
+            outcome = "failure";
+            throw e;
+        } finally {
+            meterRegistry.counter(
+                    "fleaflea.image.operations",
+                    "operation", operation,
+                    "outcome", outcome
+            ).increment();
+            sample.stop(Timer.builder("fleaflea.image.operation.duration")
+                    .description("Image operation duration")
+                    .tag("operation", operation)
+                    .tag("outcome", outcome)
+                    .register(meterRegistry));
         }
     }
 }

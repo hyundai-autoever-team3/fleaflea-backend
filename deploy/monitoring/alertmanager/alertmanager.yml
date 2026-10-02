@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: unconfigured
+  group_by: [alertname, service, environment]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity="critical"
+      repeat_interval: 1h
+
+# Replace this receiver with the team's Slack, email, PagerDuty, or webhook
+# receiver before production. Keeping an empty receiver makes missing channel
+# configuration visible without committing a secret URL to the repository.
+receivers:
+  - name: unconfigured

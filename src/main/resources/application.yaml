@@ -7,6 +7,8 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
 
   servlet:
     multipart:
@@ -31,6 +33,10 @@ spring:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
+app:
+  environment: ${APP_ENV:local}
+  version: ${APP_VERSION:local}
+
 server:
   port: 8080
   forward-headers-strategy: framework
@@ -42,6 +48,14 @@ swagger:
   server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
 
 logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT_CONSOLE:}
+    ecs:
+      service:
+        name: fleaflea
+        version: ${APP_VERSION:local}
+        environment: ${APP_ENV:local}
   level:
     root: ${LOG_LEVEL_ROOT:WARN}
     com.anabada.fleaflea: ${LOG_LEVEL_APP:INFO}
@@ -53,13 +67,47 @@ aws:
     bucket: ${S3_BUCKET}
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      service: ${spring.application.name}
+      environment: ${APP_ENV:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${TRACE_SAMPLING_PROBABILITY:0.1}
+    export:
+      otlp:
+        enabled: ${OTLP_TRACES_ENABLED:false}
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+      service.version: ${APP_VERSION:local}
+      deployment.environment.name: ${APP_ENV:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
 
 jwt:
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}

@@ -7,9 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
 
-import java.util.Arrays;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
@@ -18,13 +17,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class NotificationAsyncConfig implements AsyncConfigurer {
 
     @Bean("notificationSseExecutor")
-    public Executor notificationSseExecutor() {
+    public ThreadPoolTaskExecutor notificationSseExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(8);
         executor.setQueueCapacity(1000);
         executor.setThreadNamePrefix("notification-sse-");
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+        executor.setTaskDecorator(new ContextPropagatingTaskDecorator());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
@@ -34,9 +34,8 @@ public class NotificationAsyncConfig implements AsyncConfigurer {
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (throwable, method, params) -> log.error(
-                "비동기 작업 실패 - method={}, params={}",
+                "비동기 작업 실패 - method={}",
                 method.getName(),
-                Arrays.toString(params),
                 throwable
         );
     }

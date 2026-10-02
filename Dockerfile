@@ -14,7 +14,7 @@ COPY --chown=fleaflea:fleaflea build/deploy/fleaflea.jar /app/fleaflea.jar
 
 USER fleaflea
 
-EXPOSE 8080
+EXPOSE 8080 8081
 
 ENV JAVA_OPTS="-Xms256m -Xmx768m"
 

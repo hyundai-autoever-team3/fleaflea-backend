@@ -1,0 +1,106 @@
+groups:
+  - name: fleaflea-service
+    rules:
+      - alert: FleafleaExternalDown
+        expr: probe_success{job="blackbox-http", service="fleaflea"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fleaflea public readiness endpoint is unavailable
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#external-down
+
+      - alert: FleafleaHigh5xxRate
+        expr: |
+          (
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", status=~"5.."}[5m]))
+            /
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea"}[5m]))
+          ) > 0.05
+          and
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea"}[5m])) >= 100
+          or
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", status=~"5.."}[5m])) >= 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fleaflea server errors are above the initial threshold
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#high-5xx
+
+      - alert: FleafleaRouteP95Slow
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, uri, environment) (
+              rate(http_server_requests_seconds_bucket{service="fleaflea", uri!="/api/v1/notifications/subscribe"}[5m])
+            )
+          ) > 1
+          and
+          sum by (uri, environment) (
+            increase(http_server_requests_seconds_count{service="fleaflea", uri!="/api/v1/notifications/subscribe"}[5m])
+          ) >= 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fleaflea route p95 is above one second
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#slow-api
+
+      - alert: FleafleaDatabaseConnectionPending
+        expr: hikaricp_connections_pending{service="fleaflea"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fleaflea requests are waiting for a database connection
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#database-pool
+
+      - alert: FleafleaSseTaskRejected
+        expr: increase(fleaflea_sse_tasks_total{service="fleaflea", outcome="rejected"}[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: An SSE notification, chat, or heartbeat task was rejected
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#sse-rejected
+
+      - alert: FleafleaTelemetryMissing
+        expr: absent_over_time(up{job="fleaflea-app"}[3m])
+        labels:
+          severity: warning
+        annotations:
+          summary: Application telemetry has not reached Prometheus for three minutes
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#telemetry-missing
+
+  - name: infrastructure
+    rules:
+      - alert: HostDiskSpaceLow
+        expr: |
+          100 * node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host filesystem has less than 20 percent free space
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#disk-space
+
+      - alert: HostDiskSpaceCritical
+        expr: |
+          100 * node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Host filesystem has less than 10 percent free space
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#disk-space
+
+      - alert: MonitoringTargetDown
+        expr: up{job=~"prometheus|loki|tempo|monitoring-node"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: A central monitoring target is down
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md#monitoring-target-down

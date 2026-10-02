@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Slf4j
 @RestControllerAdvice
@@ -21,7 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         ErrorCode errorCode = e.getErrorCode();
-        log.warn("[BusinessException]: code={}, message={}", errorCode.getCode(), e.getMessage());
+        log.warn("[BusinessException]: code={}", errorCode.getCode());
 
         return toResponse(errorCode);
     }
@@ -68,6 +71,12 @@ public class GlobalExceptionHandler {
         return toResponse(ErrorCode.INVALID_REQUEST);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("[HttpRequestMethodNotSupportedException]: code={}", ErrorCode.METHOD_NOT_ALLOWED.getCode());
+        return toResponse(ErrorCode.METHOD_NOT_ALLOWED);
+    }
+
     // DB 유니크, 외래키, NOT NULL 등의 무결성 제약 조건 위반
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
@@ -99,12 +108,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-        log.error("[Exception]: code={}, message={}", errorCode.getCode(), e.getMessage(), e);
+        log.error("[Exception]: code={}, type={}", errorCode.getCode(), e.getClass().getSimpleName(), e);
 
         return toResponse(errorCode);
     }
 
     private ResponseEntity<ErrorResponse> toResponse(ErrorCode errorCode) {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+            attributes.getRequest().setAttribute("fleaflea.errorCode", errorCode.getCode());
+        }
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ErrorResponse.of(errorCode.getCode(), errorCode.getMessage()));

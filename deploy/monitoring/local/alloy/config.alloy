@@ -1,0 +1,91 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.remote_write "central" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+
+  external_labels = {
+    environment = "local",
+  }
+}
+
+prometheus.scrape "application" {
+  targets = [{
+    __address__ = "host.docker.internal:8081",
+    instance    = "local-app",
+    service     = "fleaflea",
+  }]
+  job_name        = "fleaflea-app"
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "5s"
+  scrape_timeout  = "3s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "postgres" {
+  targets = [{
+    __address__ = "postgres-exporter-local:9187",
+    instance    = "local-app",
+    service     = "postgres",
+  }]
+  job_name        = "fleaflea-postgres"
+  scrape_interval = "10s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+local.file_match "application" {
+  path_targets = [{
+    __path__    = "/var/log/fleaflea/*.json",
+    environment = "local",
+    instance    = "local-app",
+    service     = "fleaflea",
+  }]
+}
+
+loki.source.file "application" {
+  targets    = local.file_match.application.targets
+  forward_to = [loki.write.central.receiver]
+}
+
+loki.write "central" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+
+  wal {
+    enabled = true
+  }
+}
+
+otelcol.receiver.otlp "application" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.traces.input]
+  }
+}
+
+otelcol.processor.batch "traces" {
+  timeout         = "2s"
+  send_batch_size = 256
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+}
