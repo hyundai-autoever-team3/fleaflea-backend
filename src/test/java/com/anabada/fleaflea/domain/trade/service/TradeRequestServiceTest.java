@@ -22,11 +22,11 @@ import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.fixture.ItemFixture;
 import com.anabada.fleaflea.fixture.MarketFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
+import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@PostgresIntegrationTest
 @Transactional
 class TradeRequestServiceTest {
     // 비관적 락, 트랜잭션, 상태 전이를 함께 검증하기 위해 서비스 통합 테스트로 진행

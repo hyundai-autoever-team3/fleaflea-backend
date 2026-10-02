@@ -6,16 +6,16 @@ import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType
 import com.anabada.fleaflea.domain.notification.domain.NotificationType;
 import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import com.anabada.fleaflea.fixture.MemberFixture;
+import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-@SpringBootTest
+@PostgresIntegrationTest
 @Transactional
 class NotificationTypeConstraintTest {
 

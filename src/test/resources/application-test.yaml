@@ -1,0 +1,8 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+aws:
+  s3:
+    bucket: fleaflea-test
