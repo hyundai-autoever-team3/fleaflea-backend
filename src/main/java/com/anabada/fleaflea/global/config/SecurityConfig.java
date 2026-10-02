@@ -5,6 +5,7 @@ import com.anabada.fleaflea.global.security.oauth2.CustomOAuth2UserService;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -39,6 +40,8 @@ public class SecurityConfig {
     private final CorsProperties corsProperties;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
@@ -68,6 +71,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/signup",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/reissue",
+                                "/api/v1/auth/oauth2/signup",
+                                "/oauth2/authorization/**",
                                 "/login/oauth2/code/**"
                         ).permitAll()
                         .requestMatchers(
