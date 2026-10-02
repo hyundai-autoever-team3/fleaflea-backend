@@ -27,6 +27,15 @@ public enum ErrorCode {
     // Refresh Token
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다."),
 
+    // OAuth2
+    UNSUPPORTED_OAUTH2_PROVIDER(HttpStatus.BAD_REQUEST, "UNSUPPORTED_OAUTH2_PROVIDER", "지원하지 않는 OAuth2 제공자입니다."),
+    OAUTH2_PROVIDER_ID_NOT_FOUND(HttpStatus.UNAUTHORIZED, "OAUTH2_PROVIDER_ID_NOT_FOUND", "OAuth2 사용자 식별 정보를 확인할 수 없습니다."),
+    OAUTH2_ACCOUNT_NOT_FOUND(HttpStatus.UNAUTHORIZED, "OAUTH2_ACCOUNT_NOT_FOUND", "OAuth2 계정 정보를 확인할 수 없습니다."),
+    OAUTH2_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "OAUTH2_EMAIL_NOT_FOUND", "OAuth2 계정에서 이메일을 제공하지 않았습니다."),
+    OAUTH2_EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "OAUTH2_EMAIL_NOT_VERIFIED", "인증되지 않은 OAuth2 이메일입니다."),
+    OAUTH2_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "OAUTH2_LOGIN_FAILED", "소셜 로그인에 실패했습니다."),
+    OAUTH2_SIGNUP_EXPIRED(HttpStatus.UNAUTHORIZED, "OAUTH2_SIGNUP_EXPIRED", "소셜 회원가입 요청이 만료되었습니다. 다시 로그인해주세요."),
+
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
 
