@@ -68,28 +68,7 @@ public class MemberAuthService {
         Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(MemberNotFoundException::new);
 
-        String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
-
-        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
-
-        RefreshToken existing = refreshTokenRepository.findByMemberId(member.getMemberId()).orElse(null);
-        if (existing != null) {
-            existing.update(refreshToken, expiresAt);
-        }else {
-            refreshTokenRepository.save(
-                    RefreshToken.create(
-                            member.getMemberId(),
-                            refreshToken,
-                            expiresAt
-                    )
-            );
-        }
-
-        return new TokenPair(
-                accessToken,
-                refreshToken
-        );
+        return issueTokenPair(member.getMemberId());
     }
 
     @Transactional
@@ -115,7 +94,30 @@ public class MemberAuthService {
         refreshTokenRepository.deleteByMemberId(memberId);
     }
 
+    @Transactional
+    public TokenPair issueTokenPair(Long memberId) {
+        if (!memberRepository.existsById(memberId)) {
+            throw new MemberNotFoundException();
+        }
 
+        String accessToken = jwtTokenProvider.createAccessToken(memberId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(memberId);
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
+        RefreshToken savedRefreshToken = refreshTokenRepository.findByMemberId(memberId).orElse(null);
+        if (savedRefreshToken != null) {
+            savedRefreshToken.update(refreshToken, expiresAt);
+        } else {
+            refreshTokenRepository.save(
+                    RefreshToken.create(
+                            memberId,
+                            refreshToken,
+                            expiresAt
+                    )
+            );
+        }
+
+        return new TokenPair(accessToken, refreshToken);
+    }
 
 
 
