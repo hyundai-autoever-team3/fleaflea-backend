@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.trade.service;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -13,7 +13,10 @@ import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestReposi
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.domain.notification.notifier.TradeNotifier;
 import com.anabada.fleaflea.fixture.MemberFixture;
-import com.anabada.fleaflea.global.exception.BusinessException;
+import com.anabada.fleaflea.fixture.CollectionItemFixture;
+import com.anabada.fleaflea.fixture.CollectionTradeFixture;
+import com.anabada.fleaflea.domain.trade.exception.CollectionTradeAccessDeniedException;
+import com.anabada.fleaflea.domain.trade.exception.CollectionTradeOwnershipChangedException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +26,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import java.util.List;
@@ -44,20 +46,20 @@ class CollectionTradeServiceTest {
     private static final Long REQUESTER_ID = 2L;
 
     @Mock
-    private CollectionTradeRequestRepository requests;
+    private CollectionTradeRequestRepository collectionTradeRequestRepository;
     @Mock
-    private CollectionItemRepository items;
+    private CollectionItemRepository collectionItemRepository;
     @Mock
-    private MemberRepository members;
+    private MemberRepository memberRepository;
     @Mock
-    private FriendshipRepository friendships;
+    private FriendshipRepository friendshipRepository;
     @Mock
-    private TradeRepository trades;
+    private TradeRepository tradeRepository;
     @Mock
     private TradeNotifier tradeNotifier;
 
     @InjectMocks
-    private CollectionTradeService service;
+    private CollectionTradeService collectionTradeService;
 
     private CollectionTradeRequest request;
     private Member owner;
@@ -70,48 +72,26 @@ class CollectionTradeServiceTest {
         owner = MemberFixture.createMember(OWNER_ID);
         requester = MemberFixture.createMember(REQUESTER_ID);
 
-        target = CollectionItem.create(
-                owner,
-                "교환 대상",
-                "교환할 도감 아이템",
-                null,
-                true
-        );
-        offer = CollectionItem.create(
-                requester,
-                "제안 아이템",
-                "요청자가 제안한 도감 아이템",
-                null,
-                true
-        );
-        ReflectionTestUtils.setField(target, "collectionItemId", 10L);
-        ReflectionTestUtils.setField(offer, "collectionItemId", 20L);
+        target = CollectionItemFixture.createCollectionItemWithId(10L, owner, "교환 대상", true);
+        offer = CollectionItemFixture.createCollectionItemWithId(20L, requester, "제안 아이템", true);
+        request = CollectionTradeFixture.createAcceptedRequestWithId(REQUEST_ID, target, requester, offer, CollectionTradeType.EXCHANGE);
 
-        request = CollectionTradeRequest.create(
-                target,
-                requester,
-                offer,
-                CollectionTradeType.EXCHANGE
-        );
-        ReflectionTestUtils.setField(request, "collectionTradeRequestId", REQUEST_ID);
-        request.accept();
-
-        when(requests.findLockedByCollectionTradeRequestId(REQUEST_ID))
+        when(collectionTradeRequestRepository.findLockedByCollectionTradeRequestId(REQUEST_ID))
                 .thenReturn(Optional.of(request));
     }
 
     @Test
     @DisplayName("도감 교환 요청자는 수락된 거래를 완료할 수 있다")
     void requesterCompletesAcceptedCollectionTrade() {
-        when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
-        when(items.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
+        when(tradeRepository.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+        when(collectionItemRepository.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
 
-        service.complete(REQUESTER_ID, REQUEST_ID);
+        collectionTradeService.completeCollectionTradeRequest(REQUESTER_ID, REQUEST_ID);
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
         assertThat(target.getOwner()).isSameAs(requester);
         assertThat(offer.getOwner()).isSameAs(owner);
-        verify(trades).save(any());
+        verify(tradeRepository).save(any());
 
         ArgumentCaptor<TradeCompletedEvent> eventCaptor =
                 ArgumentCaptor.forClass(TradeCompletedEvent.class);
@@ -126,36 +106,30 @@ class CollectionTradeServiceTest {
     @Test
     @DisplayName("도감 아이템 소유자는 거래 완료를 처리할 수 없다")
     void ownerCannotCompleteCollectionTrade() {
-        assertThatThrownBy(() -> service.complete(OWNER_ID, REQUEST_ID))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
+        assertThatThrownBy(() -> collectionTradeService.completeCollectionTradeRequest(OWNER_ID, REQUEST_ID))
+                .isInstanceOfSatisfying(CollectionTradeAccessDeniedException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED));
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
-        verify(trades, never()).save(any());
+        verify(tradeRepository, never()).save(any());
         verifyNoInteractions(tradeNotifier);
     }
 
     @Test
     @DisplayName("도감 대여 거래를 완료해도 아이템 소유권은 유지된다")
     void rentalCompletionKeepsOwnership() {
-        CollectionTradeRequest rentalRequest = CollectionTradeRequest.create(
-                target,
-                requester,
-                null,
-                CollectionTradeType.RENTAL
-        );
-        ReflectionTestUtils.setField(rentalRequest, "collectionTradeRequestId", REQUEST_ID);
-        rentalRequest.accept();
-        when(requests.findLockedByCollectionTradeRequestId(REQUEST_ID))
+        CollectionTradeRequest rentalRequest = CollectionTradeFixture.createAcceptedRequestWithId(
+                REQUEST_ID, target, requester, null, CollectionTradeType.RENTAL);
+        when(collectionTradeRequestRepository.findLockedByCollectionTradeRequestId(REQUEST_ID))
                 .thenReturn(Optional.of(rentalRequest));
-        when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+        when(tradeRepository.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
 
-        service.complete(REQUESTER_ID, REQUEST_ID);
+        collectionTradeService.completeCollectionTradeRequest(REQUESTER_ID, REQUEST_ID);
 
         assertThat(rentalRequest.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
         assertThat(target.getOwner()).isSameAs(owner);
-        verify(items, never()).findAllByIdForUpdate(any());
+        verify(collectionItemRepository, never()).findAllByIdForUpdate(any());
     }
 
     @Test
@@ -163,17 +137,17 @@ class CollectionTradeServiceTest {
     void cannotCompleteWhenOfferedItemOwnershipChanged() {
         Member other = MemberFixture.createMember(3L);
         offer.transferTo(other);
-        when(trades.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
-        when(items.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
+        when(tradeRepository.existsByCollectionTradeRequestId(REQUEST_ID)).thenReturn(false);
+        when(collectionItemRepository.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(target, offer));
 
-        assertThatThrownBy(() -> service.complete(REQUESTER_ID, REQUEST_ID))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
+        assertThatThrownBy(() -> collectionTradeService.completeCollectionTradeRequest(REQUESTER_ID, REQUEST_ID))
+                .isInstanceOfSatisfying(CollectionTradeOwnershipChangedException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.COLLECTION_TRADE_OWNERSHIP_CHANGED));
 
         assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
         assertThat(target.getOwner()).isSameAs(owner);
-        verify(trades, never()).save(any());
+        verify(tradeRepository, never()).save(any());
         verifyNoInteractions(tradeNotifier);
     }
 }

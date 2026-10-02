@@ -6,8 +6,9 @@ import com.anabada.fleaflea.domain.friendship.domain.RelationshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
-import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
+import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.exception.InvalidMarketScopeException;
 import com.anabada.fleaflea.domain.market.exception.MarketAccessDeniedException;
 import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
@@ -18,18 +19,15 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +47,7 @@ public class MarketQueryService {
             Pageable pageable
     ) {
         if (!"joined".equals(scope)) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+            throw new InvalidMarketScopeException();
         }
 
         Member member = memberRepository.findById(memberId)

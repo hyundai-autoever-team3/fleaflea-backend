@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.domain.item.domain;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.item.exception.*;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.member.domain.Member;

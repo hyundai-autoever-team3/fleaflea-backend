@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.collection.exception;
+package com.anabada.fleaflea.domain.collectionitem.exception;
 
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;

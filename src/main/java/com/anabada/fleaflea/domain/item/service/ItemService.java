@@ -1,9 +1,9 @@
 package com.anabada.fleaflea.domain.item.service;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.exception.CollectionItemNotFoundException;
-import com.anabada.fleaflea.domain.collection.exception.CollectionItemNotOwnerException;
-import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
+import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotOwnerException;
+import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.item.domain.Item;
 import com.anabada.fleaflea.domain.item.domain.ItemStatus;
 import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
@@ -63,7 +63,7 @@ public class ItemService {
         CollectionItem collectionItem = null;
 
         if (request.collectionItemId() != null) {
-            collectionItem = collectionItemRepository.findById(request.collectionItemId())
+            collectionItem = collectionItemRepository.findLockedById(request.collectionItemId())
                     .orElseThrow(CollectionItemNotFoundException::new);
 
             validateCollectionItemOwner(collectionItem, memberId);

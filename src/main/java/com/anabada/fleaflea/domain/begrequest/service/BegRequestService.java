@@ -16,9 +16,9 @@ import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotPendingExce
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestSelfItemException;
 import com.anabada.fleaflea.domain.begrequest.exception.CollectionItemNotPublicException;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.exception.CollectionItemNotFoundException;
-import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
+import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -56,7 +56,7 @@ public class BegRequestService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        CollectionItem collectionItem = collectionItemRepository.findById(collectionItemId)
+        CollectionItem collectionItem = collectionItemRepository.findLockedById(collectionItemId)
                 .orElseThrow(CollectionItemNotFoundException::new);
 
         if (memberId.equals(collectionItem.getOwner().getMemberId())) {
