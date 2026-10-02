@@ -5,6 +5,10 @@ import com.anabada.fleaflea.global.exception.ErrorCode;
 public class OAuth2EmailAlreadyRegisteredException
         extends OAuth2LoginException {
 
+    public OAuth2EmailAlreadyRegisteredException() {
+        super(ErrorCode.DUPLICATE_EMAIL);
+    }
+
     public OAuth2EmailAlreadyRegisteredException(
             Throwable cause
     ) {

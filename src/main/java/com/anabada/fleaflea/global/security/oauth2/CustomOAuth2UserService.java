@@ -5,6 +5,7 @@ import com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
+import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailAlreadyRegisteredException;
 import com.anabada.fleaflea.global.security.oauth2.exception.UnsupportedOAuth2ProviderException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -49,7 +50,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                                 oAuth2User
                         ))
                 .orElseGet(() ->
-                        createSignupPrinciple(
+                        createSignupPrincipal(
                                 memberInfo,
                                 oAuth2User
                         ));
@@ -68,12 +69,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
-    private CustomOAuth2User createSignupPrinciple(
+    private CustomOAuth2User createSignupPrincipal(
             OAuth2MemberInfo memberInfo,
             OAuth2User oAuth2User
     ) {
         if (memberRepository.existsByEmail(memberInfo.email())) {
-            throw new MemberEmailDuplicateException();
+            throw new OAuth2EmailAlreadyRegisteredException();
         }
 
         return CustomOAuth2User.signupRequired(

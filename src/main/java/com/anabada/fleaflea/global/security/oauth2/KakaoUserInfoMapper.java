@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.member.domain.OAuth2Provider;
 import com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2AccountNotFoundException;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotFoundException;
+import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotVerifiedException;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2ProviderIdNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -51,7 +52,7 @@ public class KakaoUserInfoMapper {
         Object emailVerified = account.get("is_email_verified");
 
         if (Boolean.FALSE.equals(emailValid) || Boolean.FALSE.equals(emailVerified)) {
-            throw new OAuth2AccountNotFoundException();
+            throw new OAuth2EmailNotVerifiedException();
         }
     }
 
