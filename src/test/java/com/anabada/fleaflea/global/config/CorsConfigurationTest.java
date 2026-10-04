@@ -5,6 +5,7 @@ import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
 import com.anabada.fleaflea.global.security.oauth2.CustomOAuth2UserService;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,8 @@ class CorsConfigurationTest {
                 properties,
                 mock(CustomOAuth2UserService.class),
                 mock(OAuth2SuccessHandler.class),
-                mock(OAuth2FailureHandler.class)
+                mock(OAuth2FailureHandler.class),
+                mock(CustomOidcUserService.class)
         );
 
         CorsConfigurationSource source =

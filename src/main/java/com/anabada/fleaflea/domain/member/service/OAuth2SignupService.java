@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
-import com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo;
+import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.domain.member.dto.OAuth2SignupRequest;
 import com.anabada.fleaflea.domain.member.dto.TokenPair;
 import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;

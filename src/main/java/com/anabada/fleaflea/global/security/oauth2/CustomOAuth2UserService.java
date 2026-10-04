@@ -1,8 +1,7 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
-import com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo;
-import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
+import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailAlreadyRegisteredException;
@@ -17,8 +16,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
-    private final MemberRepository memberRepository;
     private final KakaoUserInfoMapper kakaoUserInfoMapper;
+    private final OAuth2PrincipalFactory principalFactory;
 
     @Override
     public OAuth2User loadUser(
@@ -38,50 +37,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         oAuth2User
                 );
 
-        return memberRepository
-                .findByOauth2ProviderAndOauth2Id(
-                        memberInfo.provider(),
-                        memberInfo.providerId()
-                )
-                .map(member ->
-                        createRegisteredPrincipal(
-                                member,
-                                memberInfo,
-                                oAuth2User
-                        ))
-                .orElseGet(() ->
-                        createSignupPrincipal(
-                                memberInfo,
-                                oAuth2User
-                        ));
-
-    }
-
-    private CustomOAuth2User createRegisteredPrincipal(
-            Member member,
-            OAuth2MemberInfo memberInfo,
-            OAuth2User oAuth2User
-    ) {
-        return CustomOAuth2User.registered(
-                member.getMemberId(),
+        return principalFactory.create(
                 memberInfo,
                 oAuth2User.getAttributes()
         );
+
     }
 
-    private CustomOAuth2User createSignupPrincipal(
-            OAuth2MemberInfo memberInfo,
-            OAuth2User oAuth2User
-    ) {
-        if (memberRepository.existsByEmail(memberInfo.email())) {
-            throw new OAuth2EmailAlreadyRegisteredException();
-        }
 
-        return CustomOAuth2User.signupRequired(
-                memberInfo,
-                oAuth2User.getAttributes()
-        );
-    }
 
     private OAuth2MemberInfo mapUserInfo(
             String registrationId,

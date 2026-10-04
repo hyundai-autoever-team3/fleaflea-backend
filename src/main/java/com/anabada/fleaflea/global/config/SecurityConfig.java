@@ -5,6 +5,7 @@ import com.anabada.fleaflea.global.security.oauth2.CustomOAuth2UserService;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
+    private final CustomOidcUserService customOidcUserService;
 
 
     @Bean
@@ -85,7 +87,8 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo ->
-                                userInfo.userService(customOAuth2UserService))
+                                userInfo.userService(customOAuth2UserService)
+                                        .oidcUserService(customOidcUserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )

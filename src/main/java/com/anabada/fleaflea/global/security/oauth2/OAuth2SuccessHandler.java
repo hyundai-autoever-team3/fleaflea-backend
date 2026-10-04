@@ -4,6 +4,9 @@ import com.anabada.fleaflea.domain.member.dto.TokenPair;
 import com.anabada.fleaflea.domain.member.service.TokenIssueService;
 import com.anabada.fleaflea.global.security.RefreshTokenCookieProvider;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
+import com.anabada.fleaflea.global.security.oauth2.dto.CustomOidcUser;
+import com.anabada.fleaflea.global.security.oauth2.exception.UnsupportedOAuth2PrincipalException;
+import com.anabada.fleaflea.global.security.oauth2.exception.UnsupportedOAuth2ProviderException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,7 +50,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             Authentication authentication
     ) throws IOException, ServletException {
 
-        CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
+        Object authenticatedPrincipal = authentication.getPrincipal();
+        CustomOAuth2User principal;
+
+        if (authenticatedPrincipal instanceof CustomOidcUser oidcUser) {
+            principal = oidcUser.memberPrincipal();
+        } else if (authenticatedPrincipal instanceof CustomOAuth2User oauth2User) {
+            principal = oauth2User;
+        } else {
+            throw new UnsupportedOAuth2PrincipalException();
+        }
 
         if (principal.isRegistered()) {
             loginRegisteredMember(request, response, principal);

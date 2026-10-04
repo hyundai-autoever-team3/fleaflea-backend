@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.member.dto;
+package com.anabada.fleaflea.global.security.oauth2.dto;
 
 import com.anabada.fleaflea.domain.member.domain.OAuth2Provider;
 

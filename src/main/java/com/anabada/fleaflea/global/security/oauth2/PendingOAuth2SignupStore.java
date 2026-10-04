@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
+import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.global.security.oauth2.dto.PendingOAuth2Signup;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -23,7 +24,7 @@ public class PendingOAuth2SignupStore {
                     .build();
 
     public String save(
-            com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo memberInfo
+            OAuth2MemberInfo memberInfo
     ) {
         String ticket = UUID.randomUUID().toString();
 

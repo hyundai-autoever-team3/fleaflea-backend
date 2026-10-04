@@ -1,6 +1,5 @@
 package com.anabada.fleaflea.global.security.oauth2.dto;
 
-import com.anabada.fleaflea.domain.member.dto.OAuth2MemberInfo;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
