@@ -8,6 +8,7 @@ import com.anabada.fleaflea.domain.member.service.MemberAuthService;
 import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.global.security.RefreshTokenCookieProvider;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -66,13 +67,19 @@ public class MemberAuthController {
     }
 
     @PostMapping("/reissue")
-    @Operation(summary = "Access Token 재발급", description = "HttpOnly Cookie의 Refresh Token을 사용해 새로운 Access Token을 발급합니다.")
+    @Operation(summary = "Access Token 재발급", description = """
+            HttpOnly 쿠키의 Refresh Token으로 새로운 Access Token을 발급합니다.
+            카카오·구글 기존 회원 로그인 후 /oauth/success로 이동했다면 이 API를 호출하세요.
+            같은 브라우저에서 호출하면 refresh_token 쿠키가 자동 전송되므로 직접 입력하지 않습니다.
+            Access Token 없이 호출할 수 있으며, Refresh Token은 이 응답에서 갱신하지 않습니다.
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Access Token 재발급 성공",
                     content = @Content(schema = @Schema(implementation = ReissueResponse.class))),
             @ApiResponse(responseCode = "401", description = "Refresh Token이 유효하지 않음")
     })
     public ResponseEntity<ReissueResponse> reissue(
+            @Parameter(hidden = true)
             @CookieValue(
             name = "refresh_token",
             required = false

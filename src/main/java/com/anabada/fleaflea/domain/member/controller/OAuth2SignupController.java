@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Parameter;
 
-@Tag(name = "OAuth 인증", description = "카카오 인증 후 추가 회원가입")
+@Tag(name = "OAuth 인증", description = "카카오·구글 인증 후 추가 회원가입")
 @RestController
 @RequestMapping("/api/v1/auth/oauth2")
 @RequiredArgsConstructor
@@ -30,13 +30,13 @@ public class OAuth2SignupController {
 
     @PostMapping("/signup")
     @Operation(
-            summary = "카카오 회원가입 완료",
+            summary = "소셜 회원가입 완료",
             description = """
-                카카오 인증을 완료한 신규 사용자가 닉네임을 등록합니다.
+                카카오 또는 구글 인증을 완료한 신규 사용자가 닉네임을 등록합니다.
 
                 사전 조건:
-                1. 같은 브라우저에서 /oauth2/authorization/kakao에 접속합니다.
-                2. 카카오 로그인과 동의를 완료합니다.
+                1. 같은 브라우저에서 백엔드의 /oauth2/authorization/kakao 또는 /oauth2/authorization/google에 접속합니다.
+                2. 선택한 제공자의 로그인과 동의를 완료합니다.
                 3. /oauth/signup으로 이동했다면 이 API를 호출합니다.
 
                 브라우저에 저장된 oauth2_signup_ticket 쿠키를 사용합니다.
@@ -48,7 +48,8 @@ public class OAuth2SignupController {
                 사용한 가입 티켓 쿠키는 삭제합니다.
 
                 현재 구현에서는 닉네임 중복 등으로 가입에 실패해도
-                티켓이 이미 소비될 수 있으므로 카카오 로그인을 다시 진행하세요.
+                티켓이 이미 소비될 수 있으므로 소셜 로그인을 다시 진행하세요.
+                서버가 재시작되면 기존 가입 티켓은 사라집니다.
                 """,
             security = {}
     )
@@ -59,7 +60,7 @@ public class OAuth2SignupController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "닉네임 입력 오류 또는 가입 티켓 쿠키 누락"
+                    description = "닉네임 입력 오류"
             ),
             @ApiResponse(
                     responseCode = "401",
