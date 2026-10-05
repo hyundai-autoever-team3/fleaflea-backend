@@ -14,8 +14,8 @@ public record ChatMessageSendRequest(
         @Size(max = 2000, message = "메시지는 2000자 이하로 입력해주세요.")
         String content,
 
-        @Schema(description = "재시도 시 동일하게 유지할 클라이언트 메시지 UUID", example = "550e8400-e29b-41d4-a716-446655440000")
-        @NotNull(message = "클라이언트 메시지 ID는 필수입니다.")
+        @Schema(description = "클라이언트 메시지 UUID. 필수 입력값이며 재시도 시 동일한 값을 유지합니다.", example = "550e8400-e29b-41d4-a716-446655440000")
+        @NotNull
         UUID clientMessageId
 ) {
 }

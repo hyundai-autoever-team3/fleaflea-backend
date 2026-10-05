@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -66,7 +65,7 @@ public class ChatController {
     )
     public ChatRoomResponse getChatRoom(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long roomId
+            @PathVariable Long roomId
     ) {
         return chatService.getChatRoom(memberId, roomId);
     }
@@ -78,7 +77,7 @@ public class ChatController {
     )
     public ChatMessageResponse sendMessage(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long roomId,
+            @PathVariable Long roomId,
             @Valid @RequestBody ChatMessageSendRequest request
     ) {
         return chatService.sendMessage(memberId, roomId, request);
@@ -92,8 +91,8 @@ public class ChatController {
     )
     public CursorPageResponse<ChatMessageResponse> getMessages(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long roomId,
-            @RequestParam(required = false) @Positive Long beforeId,
+            @PathVariable Long roomId,
+            @RequestParam(required = false) Long beforeId,
             @RequestParam(required = false) @Min(0) Long afterId,
             @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size
     ) {
@@ -107,7 +106,7 @@ public class ChatController {
     )
     public ChatReadResponse markMessagesAsRead(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long roomId,
+            @PathVariable Long roomId,
             @Valid @RequestBody ChatReadRequest request
     ) {
         return chatService.markMessagesAsRead(memberId, roomId, request.messageId());

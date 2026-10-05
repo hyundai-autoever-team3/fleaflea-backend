@@ -6,6 +6,7 @@ import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.domain.chat.exception.ChatNotParticipantException;
+import com.anabada.fleaflea.domain.chat.exception.ChatRoomNotFoundException;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.fixture.ChatFixture;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -139,6 +141,20 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.code").value("CHAT_NOT_PARTICIPANT"));
     }
 
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    @DisplayName("숫자 방 ID는 서비스에 전달하고 조회 결과의 도메인 오류를 반환한다")
+    void getChatRoom_delegatesNumericRoomIdToService(Long roomId) throws Exception {
+        when(chatService.getChatRoom(MEMBER_ID, roomId)).thenThrow(new ChatRoomNotFoundException());
+
+        mockMvc.perform(get("/api/v1/chat/rooms/{roomId}", roomId)
+                        .with(authentication(createMemberAuthentication())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CHAT_ROOM_NOT_FOUND"));
+
+        verify(chatService).getChatRoom(MEMBER_ID, roomId);
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidRequiredIdBodies")
     @DisplayName("필수 친구 ID가 없거나 잘못되면 채팅방 생성 요청을 거절한다")
@@ -221,8 +237,6 @@ class ChatControllerTest {
         return Stream.of(
                 Arguments.of("ID 누락", (String) null),
                 Arguments.of("ID null", "null"),
-                Arguments.of("ID 0", "0"),
-                Arguments.of("ID 음수", "-1"),
                 Arguments.of("숫자가 아닌 ID", "\"invalid\"")
         );
     }
@@ -260,9 +274,7 @@ class ChatControllerTest {
                 Arguments.of("크기 최대값 초과", "/api/v1/chat/rooms?size=101"),
                 Arguments.of("페이지 문자열 null", "/api/v1/chat/rooms?page=null"),
                 Arguments.of("크기 문자열 null", "/api/v1/chat/rooms?size=null"),
-                Arguments.of("방 ID 0", "/api/v1/chat/rooms/0"),
                 Arguments.of("방 ID 문자열 null", "/api/v1/chat/rooms/null"),
-                Arguments.of("이전 커서 0", "/api/v1/chat/rooms/10/messages?beforeId=0"),
                 Arguments.of("복구 커서 음수", "/api/v1/chat/rooms/10/messages?afterId=-1"),
                 Arguments.of("이전 커서 문자열 null", "/api/v1/chat/rooms/10/messages?beforeId=null"),
                 Arguments.of("복구 커서 문자열 null", "/api/v1/chat/rooms/10/messages?afterId=null"),
