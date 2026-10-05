@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -80,7 +79,7 @@ public class FriendshipController {
     @PostMapping("/members/{memberId}/friend-requests")
     public ResponseEntity<Void> requestFollow(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable("memberId") @Positive Long targetMemberId
+            @PathVariable("memberId") Long targetMemberId
     ) {
         friendshipService.requestFollow(memberId, targetMemberId);
         return ResponseEntity.noContent().build();
@@ -95,7 +94,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{requesterId}/accept")
     public ResponseEntity<Void> acceptFollow(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long requesterId
+            @PathVariable Long requesterId
     ) {
         friendshipService.acceptFollow(memberId, requesterId);
         return ResponseEntity.noContent().build();
@@ -110,7 +109,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{requesterId}/reject")
     public ResponseEntity<Void> rejectFollow(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long requesterId
+            @PathVariable Long requesterId
     ) {
         friendshipService.rejectFollow(memberId, requesterId);
         return ResponseEntity.noContent().build();
@@ -125,7 +124,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{addresseeId}/cancel")
     public ResponseEntity<Void> cancelFollow(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long addresseeId
+            @PathVariable Long addresseeId
     ) {
         friendshipService.cancelFollow(memberId, addresseeId);
         return ResponseEntity.noContent().build();
@@ -140,7 +139,7 @@ public class FriendshipController {
     @DeleteMapping("/friendships/{friendshipId}")
     public ResponseEntity<Void> deleteFriend(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long friendshipId
+            @PathVariable Long friendshipId
     ) {
         friendshipService.deleteFriend(memberId, friendshipId);
         return ResponseEntity.noContent().build();

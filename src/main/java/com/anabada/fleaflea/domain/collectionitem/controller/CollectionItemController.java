@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
@@ -96,7 +95,7 @@ public class CollectionItemController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long requesterId,
 
-            @PathVariable @Positive Long ownerId,
+            @PathVariable Long ownerId,
 
             @ParameterObject CollectionItemSearchCondition condition,
 
@@ -124,7 +123,7 @@ public class CollectionItemController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long collectionItemId
+            @PathVariable Long collectionItemId
     ) {
         return ResponseEntity.ok(
                 collectionItemService.getCollectionItem(
@@ -143,7 +142,7 @@ public class CollectionItemController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long collectionItemId,
+            @PathVariable Long collectionItemId,
 
             @Valid @ModelAttribute
             CollectionItemUpdateRequest request
@@ -163,7 +162,7 @@ public class CollectionItemController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long collectionItemId
+            @PathVariable Long collectionItemId
     ) {
         collectionItemService.deleteCollectionItem(
                 memberId,

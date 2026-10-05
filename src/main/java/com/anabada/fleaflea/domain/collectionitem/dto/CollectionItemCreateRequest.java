@@ -18,16 +18,16 @@ public record CollectionItemCreateRequest(
         @Schema(description = "도감 아이템 설명")
         String description,
 
-        @NotNull(message = "공개 여부는 필수입니다.")
-        @Schema(description = "공개 여부", example = "true")
+        @NotNull
+        @Schema(description = "공개 여부. 필수 입력값입니다.", example = "true")
         Boolean isPublic,
 
         @Schema(
-                description = "도감 아이템 이미지",
+                description = "도감 아이템 이미지. 필수 입력값이며 빈 파일은 허용하지 않습니다.",
                 type = "string",
                 format = "binary"
         )
-        @NotNull(message = "도감 아이템 이미지는 필수입니다.")
+        @NotNull
         MultipartFile image
 ) {
 

@@ -18,7 +18,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
@@ -131,7 +130,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable @Positive Long marketId
+            @PathVariable Long marketId
     ) {
         MarketDetailResponse response =
                 marketQueryService.getMarket(memberId, marketId);
@@ -154,7 +153,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable @Positive Long marketId,
+            @PathVariable Long marketId,
 
             @ParameterObject
             @PageableDefault(
@@ -182,7 +181,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long marketId,
+            @PathVariable Long marketId,
 
             @Valid @ModelAttribute MarketUpdateRequest request
     ) {
@@ -202,7 +201,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long marketId
+            @PathVariable Long marketId
     ) {
         return ResponseEntity.ok(
                 marketService.reissueInvitation(memberId, marketId)
@@ -215,7 +214,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long marketId
+            @PathVariable Long marketId
     ) {
         marketService.leaveMarket(memberId, marketId);
 
@@ -228,7 +227,7 @@ public class MarketController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
-            @PathVariable @Positive Long marketId
+            @PathVariable Long marketId
     ) {
         marketService.deleteMarket(memberId, marketId);
 
@@ -250,7 +249,7 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(description = "플리마켓 ID", example = "1")
-            @PathVariable @Positive Long marketId
+            @PathVariable Long marketId
     ) {
         MarketInvitationResponse response =
                 marketService.getInvitation(memberId, marketId);

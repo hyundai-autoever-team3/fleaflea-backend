@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,7 +38,7 @@ public class MemberPokeController {
     })
     public ResponseEntity<Void> sendPoke(
             @AuthenticationPrincipal Long senderId,
-            @PathVariable @Positive Long memberId
+            @PathVariable Long memberId
     ) {
         pokeService.sendPoke(senderId, memberId);
         return ResponseEntity.noContent().build();
@@ -65,7 +64,7 @@ public class MemberPokeController {
     })
     public ResponseEntity<Void> markPokeAsRead(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable @Positive Long pokeId
+            @PathVariable Long pokeId
     ) {
         pokeService.markPokeAsRead(memberId, pokeId);
         return ResponseEntity.noContent().build();
