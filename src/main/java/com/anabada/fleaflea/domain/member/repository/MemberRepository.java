@@ -19,17 +19,17 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);
 
-    boolean existsByOauth2ProviderAndOauth2Id(
-            SocialProvider oauth2Provider,
-            String oauth2Id
+    boolean existsBySocialProviderAndProviderId(
+            SocialProvider socialProvider,
+            String providerId
     );
 
     Optional<Member> findByEmail(String email);
 
     Optional<Member> findByNickname(String nickname);
 
-    Optional<Member> findByOauth2ProviderAndOauth2Id(
-            SocialProvider oauth2Provider,
-            String oauth2Id
+    Optional<Member> findBySocialProviderAndProviderId(
+            SocialProvider socialProvider,
+            String providerId
     );
 }

@@ -20,7 +20,7 @@ public class OAuth2PrincipalFactory {
             Map<String, Object> attributes
     ) {
         return memberRepository
-                .findByOauth2ProviderAndOauth2Id(
+                .findBySocialProviderAndProviderId(
                         memberInfo.provider(),
                         memberInfo.providerId()
                 )

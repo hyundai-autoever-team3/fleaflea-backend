@@ -25,7 +25,13 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("FleaFlea API")
-                        .description("FleaFlea API 문서")
+                        .description("""
+                                FleaFlea API 문서
+
+                                소셜 로그인 시작 경로:
+                                - 카카오: /oauth2/authorization/kakao
+                                - 구글: /oauth2/authorization/google
+                                """)
                         .version("v1"))
                 .addServersItem(new Server().url(serverUrl))
                 .components(new Components()

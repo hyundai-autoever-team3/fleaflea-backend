@@ -40,7 +40,7 @@ public class OAuth2SignupService {
         OAuth2MemberInfo memberInfo =
                 pendingOAuth2Signup.memberInfo();
 
-        if (memberRepository.existsByOauth2ProviderAndOauth2Id(
+        if (memberRepository.existsBySocialProviderAndProviderId(
                 memberInfo.provider(),
                 memberInfo.providerId()
         )) {
