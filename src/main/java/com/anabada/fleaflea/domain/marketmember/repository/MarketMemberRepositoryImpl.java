@@ -2,9 +2,9 @@ package com.anabada.fleaflea.domain.marketmember.repository;
 
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryProjection;
+import com.anabada.fleaflea.domain.market.dto.QMarketSummaryProjection;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +33,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
             Pageable pageable
     ) {
         List<MarketSummaryProjection> content = queryFactory
-                .select(Projections.constructor(
-                        MarketSummaryProjection.class,
+                .select(new QMarketSummaryProjection(
                         market.marketId,
                         member.memberId,
                         member.nickname,
