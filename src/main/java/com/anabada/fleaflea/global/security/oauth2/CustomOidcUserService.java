@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
-import com.anabada.fleaflea.domain.member.domain.OAuth2Provider;
+import com.anabada.fleaflea.domain.member.domain.SocialProvider;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOidcUser;
 import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
@@ -47,7 +47,7 @@ public class CustomOidcUserService extends OidcUserService {
         }
 
         OAuth2MemberInfo memberInfo = new OAuth2MemberInfo(
-                OAuth2Provider.GOOGLE,
+                SocialProvider.GOOGLE,
                 providerId,
                 email,
                 oidcUser.getFullName()

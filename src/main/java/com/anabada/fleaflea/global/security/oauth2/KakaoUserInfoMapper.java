@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
-import com.anabada.fleaflea.domain.member.domain.OAuth2Provider;
+import com.anabada.fleaflea.domain.member.domain.SocialProvider;
 import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2AccountNotFoundException;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotFoundException;
@@ -22,7 +22,7 @@ public class KakaoUserInfoMapper {
         }
         validateEmail(account);
         return new OAuth2MemberInfo(
-                OAuth2Provider.KAKAO,
+                SocialProvider.KAKAO,
                 providerId,
                 email,
                 extractNickname(account)
