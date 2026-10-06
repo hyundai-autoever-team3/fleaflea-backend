@@ -3,7 +3,7 @@ package com.anabada.fleaflea.domain.trade.service;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.item.domain.Item;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.member.domain.Member;
@@ -11,15 +11,19 @@ import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequest;
 import com.anabada.fleaflea.domain.trade.dto.TradeRequestHistoryDetailResponse;
+import com.anabada.fleaflea.domain.trade.exception.InvalidTradeRequestTypeException;
+import com.anabada.fleaflea.domain.trade.exception.TradeRequestAccessDeniedException;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
-import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
+import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
+import com.anabada.fleaflea.fixture.CollectionItemFixture;
 import com.anabada.fleaflea.fixture.ItemFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
-import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,13 +31,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TradeRequestHistoryDetailServiceTest {
@@ -42,18 +44,18 @@ class TradeRequestHistoryDetailServiceTest {
     private static final Long REQUESTER_ID = 2L;
 
     @Mock
-    private TradeRequestRepository itemRequests;
+    private TradeRequestRepository tradeRequestRepository;
     @Mock
-    private CollectionTradeRequestRepository collectionRequests;
+    private CollectionTradeRequestRepository collectionTradeRequestRepository;
     @Mock
     private BegRequestRepository begRequestRepository;
     @Mock
-    private TradeRepository trades;
+    private TradeRepository tradeRepository;
     @Mock
-    private ImageService images;
+    private ImageService imageService;
 
     @InjectMocks
-    private TradeRequestListService service;
+    private TradeRequestListService tradeRequestListService;
 
     private Member owner;
     private Member requester;
@@ -62,11 +64,12 @@ class TradeRequestHistoryDetailServiceTest {
     void setUp() {
         owner = MemberFixture.createMember(OWNER_ID);
         requester = MemberFixture.createMember(REQUESTER_ID);
-        lenient().when(images.getUrl(anyString()))
+        lenient().when(imageService.getUrl(anyString()))
                 .thenAnswer(invocation -> "https://image/" + invocation.getArgument(0));
     }
 
     @Test
+    @DisplayName("판매 거래 요청의 상세 이력을 조회한다")
     void returnsItemRequestDetail() {
         Market market = Market.create(
                 owner, "플리마켓", "설명", null, "invite"
@@ -82,11 +85,11 @@ class TradeRequestHistoryDetailServiceTest {
                 null
         );
         ReflectionTestUtils.setField(request, "tradeRequestId", 100L);
-        when(itemRequests.findWithDetailsByTradeRequestId(100L))
+        when(tradeRequestRepository.findWithDetailsByTradeRequestId(100L))
                 .thenReturn(Optional.of(request));
 
         TradeRequestHistoryDetailResponse result =
-                service.detail(OWNER_ID, "ITEM", 100L);
+                tradeRequestListService.getTradeRequestHistoryDetail(OWNER_ID, "ITEM", 100L);
 
         assertThat(result.requestType()).isEqualTo("ITEM");
         assertThat(result.targetItemTitle()).isEqualTo("판매 물건");
@@ -96,6 +99,7 @@ class TradeRequestHistoryDetailServiceTest {
     }
 
     @Test
+    @DisplayName("교환 거래 이력에 제안한 물건을 포함한다")
     void returnsCollectionExchangeDetailWithOffer() {
         CollectionItem target = collectionItem(
                 20L, owner, "노트북 케이스", "대여할 물건", "target.png"
@@ -114,11 +118,11 @@ class TradeRequestHistoryDetailServiceTest {
                 "collectionTradeRequestId",
                 200L
         );
-        when(collectionRequests.findWithDetailsByCollectionTradeRequestId(200L))
+        when(collectionTradeRequestRepository.findWithDetailsByCollectionTradeRequestId(200L))
                 .thenReturn(Optional.of(request));
 
         TradeRequestHistoryDetailResponse result =
-                service.detail(REQUESTER_ID, "collection", 200L);
+                tradeRequestListService.getTradeRequestHistoryDetail(REQUESTER_ID, "collection", 200L);
 
         assertThat(result.requestType()).isEqualTo("COLLECTION");
         assertThat(result.targetItemDescription()).isEqualTo("대여할 물건");
@@ -130,6 +134,7 @@ class TradeRequestHistoryDetailServiceTest {
     }
 
     @Test
+    @DisplayName("나눔 요청의 상세 이력을 조회한다")
     void returnsBegRequestDetail() {
         CollectionItem target = collectionItem(
                 30L, owner, "텀블러", "구걸 대상", "beg.png"
@@ -145,7 +150,7 @@ class TradeRequestHistoryDetailServiceTest {
                 .thenReturn(Optional.of(request));
 
         TradeRequestHistoryDetailResponse result =
-                service.detail(OWNER_ID, "BEG", 300L);
+                tradeRequestListService.getTradeRequestHistoryDetail(OWNER_ID, "BEG", 300L);
 
         assertThat(result.requestType()).isEqualTo("BEG");
         assertThat(result.targetItemTitle()).isEqualTo("텀블러");
@@ -154,6 +159,7 @@ class TradeRequestHistoryDetailServiceTest {
     }
 
     @Test
+    @DisplayName("거래 당사자가 아니면 이력 조회를 거절한다")
     void rejectsMemberWhoIsNotParty() {
         CollectionItem target = collectionItem(
                 40L, owner, "도감 물건", "설명", "item.png"
@@ -168,16 +174,17 @@ class TradeRequestHistoryDetailServiceTest {
         when(begRequestRepository.findWithDetailsByBegRequestId(400L))
                 .thenReturn(Optional.of(request));
 
-        assertThatThrownBy(() -> service.detail(99L, "BEG", 400L))
-                .isInstanceOf(BusinessException.class)
+        assertThatThrownBy(() -> tradeRequestListService.getTradeRequestHistoryDetail(99L, "BEG", 400L))
+                .isInstanceOf(TradeRequestAccessDeniedException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.TRADE_REQUEST_ACCESS_DENIED);
     }
 
     @Test
+    @DisplayName("지원하지 않는 거래 유형이면 조회를 거절한다")
     void rejectsUnsupportedRequestType() {
-        assertThatThrownBy(() -> service.detail(OWNER_ID, "UNKNOWN", 1L))
-                .isInstanceOf(BusinessException.class)
+        assertThatThrownBy(() -> tradeRequestListService.getTradeRequestHistoryDetail(OWNER_ID, "UNKNOWN", 1L))
+                .isInstanceOf(InvalidTradeRequestTypeException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.TRADE_REQUEST_INVALID_TYPE);
     }
@@ -189,14 +196,9 @@ class TradeRequestHistoryDetailServiceTest {
             String description,
             String imageKey
     ) {
-        CollectionItem item = CollectionItem.create(
-                itemOwner,
-                title,
-                description,
-                imageKey,
-                true
-        );
-        ReflectionTestUtils.setField(item, "collectionItemId", id);
+        CollectionItem item = CollectionItemFixture.createCollectionItemWithId(id, itemOwner, title, true);
+        item.update(null, description, null);
+        item.updateImageKey(imageKey);
         return item;
     }
 }

@@ -6,15 +6,15 @@ import com.anabada.fleaflea.domain.market.dto.QMarketSummaryProjection;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.ArrayList;
 
 import static com.anabada.fleaflea.domain.market.domain.QMarket.market;
 import static com.anabada.fleaflea.domain.marketmember.domain.QMarketMember.marketMember;
@@ -54,7 +54,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        var countQuery = queryFactory
+        JPAQuery<Long> countQuery = queryFactory
                 .select(marketMember.count())
                 .from(marketMember)
                 .join(marketMember.market, market)
@@ -101,8 +101,10 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
         }
 
         if (orders.isEmpty()) {
-            return new OrderSpecifier<?>[]{marketMember.joinedAt.desc()};
+            return new OrderSpecifier<?>[]{marketMember.joinedAt.desc(), marketMember.marketMemberId.desc()};
         }
+
+        orders.add(marketMember.marketMemberId.desc());
 
         return orders.toArray(OrderSpecifier[]::new);
     }
