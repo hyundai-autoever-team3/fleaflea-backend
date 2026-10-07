@@ -17,6 +17,7 @@ import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -41,21 +42,22 @@ class MarketQueryServiceTest {
     private static final Long MARKET_ID = 10L;
 
     @Mock
-    private MarketMemberRepository marketMembers;
+    private MarketMemberRepository marketMemberRepository;
     @Mock
-    private MemberRepository members;
+    private MemberRepository memberRepository;
     @Mock
-    private MarketRepository markets;
+    private MarketRepository marketRepository;
     @Mock
-    private FriendshipRepository friendships;
+    private FriendshipRepository friendshipRepository;
     @Mock
-    private ImageService images;
+    private ImageService imageService;
 
     @InjectMocks
-    private MarketQueryService service;
+    private MarketQueryService marketQueryService;
 
     @Test
-    void returnsRelationshipStatusForEachMarketMember() {
+    @DisplayName("마켓 참여자마다 자신·친구·요청 방향에 맞는 관계 상태를 반환한다")
+    void getMarketMembers_returnsRelationshipStatusForEachMember() {
         Member requester = MemberFixture.createMember(REQUESTER_ID);
         Member friend = MemberFixture.createMember(2L);
         Member requested = MemberFixture.createMember(3L);
@@ -89,18 +91,18 @@ class MarketQueryServiceTest {
         );
 
         PageRequest pageable = PageRequest.of(0, 20);
-        when(members.findById(REQUESTER_ID)).thenReturn(Optional.of(requester));
-        when(markets.findById(MARKET_ID)).thenReturn(Optional.of(market));
-        when(marketMembers.existsByMarketAndMember(market, requester)).thenReturn(true);
-        when(marketMembers.findAllByMarket(market, pageable))
+        when(memberRepository.findById(REQUESTER_ID)).thenReturn(Optional.of(requester));
+        when(marketRepository.findById(MARKET_ID)).thenReturn(Optional.of(market));
+        when(marketMemberRepository.existsByMarketAndMember(market, requester)).thenReturn(true);
+        when(marketMemberRepository.findAllByMarket(market, pageable))
                 .thenReturn(new PageImpl<>(participants, pageable, participants.size()));
-        when(friendships.findActiveRelationships(
+        when(friendshipRepository.findActiveRelationships(
                 REQUESTER_ID,
                 List.of(2L, 3L, 4L, 5L)
         )).thenReturn(List.of(accepted, sent, received));
 
         PageResponse<MarketMemberResponse> response =
-                service.getMarketMembers(REQUESTER_ID, MARKET_ID, pageable);
+                marketQueryService.getMarketMembers(REQUESTER_ID, MARKET_ID, pageable);
 
         Map<Long, MarketMemberResponse> byMemberId = response.content().stream()
                 .collect(Collectors.toMap(
@@ -119,7 +121,7 @@ class MarketQueryServiceTest {
         assertThat(byMemberId.get(5L).relationshipStatus())
                 .isEqualTo(RelationshipStatus.NONE);
 
-        verify(friendships).findActiveRelationships(
+        verify(friendshipRepository).findActiveRelationships(
                 REQUESTER_ID,
                 List.of(2L, 3L, 4L, 5L)
         );

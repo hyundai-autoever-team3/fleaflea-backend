@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.collection.domain;
+package com.anabada.fleaflea.domain.collectionitem.domain;
 
 public enum CollectionItemStatus {
     AVAILABLE,

@@ -87,6 +87,40 @@ public class ImageService {
         }
     }
 
+    public String uploadInTransaction(MultipartFile file, ImageCategory category) {
+        validateWritableTransaction();
+        String imageKey = upload(file, category);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    deleteSafely(imageKey);
+                } else if (status == STATUS_UNKNOWN) {
+                    log.warn("트랜잭션 결과 불명확: 이미지 정리 보류. imageKey={}", imageKey);
+                }
+            }
+        });
+
+        return imageKey;
+    }
+
+    private void validateWritableTransaction() {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
+        }
+    }
+
+    private void deleteSafely(String imageKey) {
+        try {
+            delete(imageKey);
+        } catch (RuntimeException exception) {
+            log.error("이미지 정리 실패: 재처리 필요. imageKey={}", imageKey, exception);
+        }
+    }
+
     public void delete(String imageKey) {
         if (imageKey == null
                 || !IMAGE_KEY_PATTERN.matcher(imageKey).matches()) {

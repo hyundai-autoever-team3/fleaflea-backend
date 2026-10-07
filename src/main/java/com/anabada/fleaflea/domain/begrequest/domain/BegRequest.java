@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.domain.begrequest.domain;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;

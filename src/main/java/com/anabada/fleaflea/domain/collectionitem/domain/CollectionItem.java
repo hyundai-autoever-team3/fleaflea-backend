@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.domain.collection.domain;
+package com.anabada.fleaflea.domain.collectionitem.domain;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;

@@ -2,19 +2,19 @@ package com.anabada.fleaflea.domain.marketmember.repository;
 
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
 import com.anabada.fleaflea.domain.market.dto.MarketSummaryProjection;
+import com.anabada.fleaflea.domain.market.dto.QMarketSummaryProjection;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.ArrayList;
 
 import static com.anabada.fleaflea.domain.market.domain.QMarket.market;
 import static com.anabada.fleaflea.domain.marketmember.domain.QMarketMember.marketMember;
@@ -33,8 +33,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
             Pageable pageable
     ) {
         List<MarketSummaryProjection> content = queryFactory
-                .select(Projections.constructor(
-                        MarketSummaryProjection.class,
+                .select(new QMarketSummaryProjection(
                         market.marketId,
                         member.memberId,
                         member.nickname,
@@ -55,7 +54,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        var countQuery = queryFactory
+        JPAQuery<Long> countQuery = queryFactory
                 .select(marketMember.count())
                 .from(marketMember)
                 .join(marketMember.market, market)
@@ -102,8 +101,10 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
         }
 
         if (orders.isEmpty()) {
-            return new OrderSpecifier<?>[]{marketMember.joinedAt.desc()};
+            return new OrderSpecifier<?>[]{marketMember.joinedAt.desc(), marketMember.marketMemberId.desc()};
         }
+
+        orders.add(marketMember.marketMemberId.desc());
 
         return orders.toArray(OrderSpecifier[]::new);
     }
