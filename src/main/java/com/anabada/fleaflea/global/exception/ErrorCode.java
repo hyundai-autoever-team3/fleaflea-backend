@@ -34,6 +34,7 @@ public enum ErrorCode {
 
     // Refresh Token
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+    REFRESH_TOKEN_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "REFRESH_TOKEN_STORAGE_UNAVAILABLE", "인증 세션 저장소를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."),
 
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),

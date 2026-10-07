@@ -9,10 +9,9 @@ import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateExceptio
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
 import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
-import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepository;
+import com.anabada.fleaflea.domain.refreshtoken.service.RefreshTokenService;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,68 +22,53 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 public class MemberAuthService {
+
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenRepository refreshTokenRepository;
-
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public void signUp(SignUpRequest request) {
-        if (memberRepository.existsByNickname(request.nickname())) {
+    public void signUp(SignUpRequest signUpRequest) {
+        if (memberRepository.existsByNickname(signUpRequest.nickname())) {
             throw new MemberNicknameDuplicateException();
         }
-        if (memberRepository.existsByEmail(request.email())) {
+        if (memberRepository.existsByEmail(signUpRequest.email())) {
             throw new MemberEmailDuplicateException();
         }
 
-        String encodedPassword = passwordEncoder.encode(request.password());
+        String encodedPassword = passwordEncoder.encode(signUpRequest.password());
         Member newMember = Member.create(
-                request.email(),
+                signUpRequest.email(),
                 encodedPassword,
-                request.nickname()
+                signUpRequest.nickname()
         );
         memberRepository.save(newMember);
     }
 
     @Transactional
-    public TokenPair login(LoginRequest request) {
+    public TokenPair login(LoginRequest loginRequest) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.email(),
-                            request.password()
+                            loginRequest.email(),
+                            loginRequest.password()
                     )
             );
         } catch (BadCredentialsException | InternalAuthenticationServiceException e) {
             throw new InvalidLoginException();
         }
-        Member member = memberRepository.findByEmail(request.email())
+        Member member = memberRepository.findByEmail(loginRequest.email())
                 .orElseThrow(MemberNotFoundException::new);
 
         String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
 
-        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
-
-        RefreshToken existing = refreshTokenRepository.findByMemberId(member.getMemberId()).orElse(null);
-        if (existing != null) {
-            existing.update(refreshToken, expiresAt);
-        }else {
-            refreshTokenRepository.save(
-                    RefreshToken.create(
-                            member.getMemberId(),
-                            refreshToken,
-                            expiresAt
-                    )
-            );
-        }
+        refreshTokenService.saveRefreshToken(member.getMemberId(), refreshToken);
 
         return new TokenPair(
                 accessToken,
@@ -92,31 +76,22 @@ public class MemberAuthService {
         );
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ReissueResponse reissue(String refreshToken) {
-        if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
+        Long memberId = refreshTokenService.getMemberIdFromValidSession(refreshToken);
+        if (!memberRepository.existsById(memberId)) {
             throw new InvalidTokenException();
         }
-        RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(InvalidTokenException::new);
-        if (savedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new InvalidTokenException();
-        }
-        Long memberId = Long.valueOf(jwtTokenProvider.getMemberId(refreshToken));
-        if (!savedToken.getMemberId().equals(memberId)) {
-            throw new InvalidTokenException();
-        }
+
         String accessToken = jwtTokenProvider.createAccessToken(memberId);
         return new ReissueResponse(accessToken);
-
     }
 
-    public void logout(Long memberId) {
-        refreshTokenRepository.deleteByMemberId(memberId);
+    public void logout(Long memberId, String refreshToken) {
+        refreshTokenService.deleteSession(memberId, refreshToken);
     }
 
-
-
-
-
+    public void logoutAll(Long memberId) {
+        refreshTokenService.deleteAllSessions(memberId);
+    }
 }

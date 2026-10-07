@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -21,7 +23,7 @@ public class JwtTokenProvider {
             @Value("${jwt.access-expiration}") long accessExpiration,
             @Value("${jwt.refresh-expiration}") long refreshExpiration
     ) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessExpiration = accessExpiration;
         this.refreshExpiration = refreshExpiration;
     }
@@ -42,6 +44,7 @@ public class JwtTokenProvider {
     public String createRefreshToken(Long memberId) {
         Date now = new Date();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(memberId.toString())
                 .claim("type", "REFRESH")
                 .issuedAt(new Date())
@@ -53,12 +56,15 @@ public class JwtTokenProvider {
     }
 
     public String getMemberId(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    public Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
     }
 
     public boolean isAccessToken(String token) {

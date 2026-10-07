@@ -16,4 +16,8 @@ public record LoginResponse(
         )
         String accessToken
 ) {
+
+    public static LoginResponse from(TokenPair tokenPair) {
+        return new LoginResponse(tokenPair.accessToken());
+    }
 }
