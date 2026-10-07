@@ -5,6 +5,7 @@ import com.anabada.fleaflea.domain.chat.controller.ChatSocketController;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatEventListener;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
@@ -70,6 +71,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -204,6 +206,32 @@ class ChatWebSocketIntegrationTest {
     }
 
     @Test
+    @DisplayName("소켓 입력 상태는 인증 회원으로 처리하고 상대방에게만 전달한다")
+    void updateTypingStatus_deliversOnlyToOtherMember() throws Exception {
+        StompSession sender = connect(1L);
+        BlockingQueue<String> senderEvents = subscribe(sender, 1L, "/user/queue/chat");
+        BlockingQueue<String> receiverEvents = subscribe(connect(2L), 2L, "/user/queue/chat");
+        BlockingQueue<String> outsiderEvents = subscribe(connect(3L), 3L, "/user/queue/chat");
+        doAnswer(invocation -> {
+            chatEventListener.onChatEvent(new ChatEvent(
+                    1L, 2L, ChatEvent.TYPING_CHANGED,
+                    ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L,
+                            invocation.getArgument(2))
+            ));
+            return null;
+        }).when(chatService).updateTypingStatus(eq(1L), eq(10L), any(Boolean.class));
+
+        sendJson(sender, "/app/chat/rooms/10/typing", "{\"typing\":true}");
+
+        String event = receiverEvents.poll(5, TimeUnit.SECONDS);
+        assertThat(event).isNotNull().contains("chat-typing");
+        assertThat(JsonMapper.builder().build().readTree(event).get("payload").get("typing").asBoolean()).isTrue();
+        verify(chatService).updateTypingStatus(1L, 10L, true);
+        assertThat(senderEvents.poll(300, TimeUnit.MILLISECONDS)).isNull();
+        assertThat(outsiderEvents.poll(300, TimeUnit.MILLISECONDS)).isNull();
+    }
+
+    @Test
     @DisplayName("허용되지 않은 웹 Origin의 WebSocket 업그레이드 요청을 거절한다")
     void handshake_rejectsUntrustedOrigin() {
         assertThatThrownBy(() -> HttpClient.newHttpClient().newWebSocketBuilder()
@@ -306,6 +334,8 @@ class ChatWebSocketIntegrationTest {
                 Arguments.of("길이 초과", messages, "{\"content\":\"" + "a".repeat(2001) + "\",\"clientMessageId\":" + uuid + "}"),
                 Arguments.of("UUID 누락", messages, "{\"content\":\"안녕\"}"),
                 Arguments.of("UUID 형식 오류", messages, "{\"content\":\"안녕\",\"clientMessageId\":\"invalid\"}"),
+                Arguments.of("입력 상태 누락", "/app/chat/rooms/10/typing", "{}"),
+                Arguments.of("입력 상태 null", "/app/chat/rooms/10/typing", "{\"typing\":null}"),
                 Arguments.of("읽음 ID null", "/app/chat/rooms/10/read", "{\"messageId\":null}"),
                 Arguments.of("읽음 ID 누락", "/app/chat/rooms/10/read", "{}"),
                 Arguments.of("방 ID 범위 초과", "/app/chat/rooms/9223372036854775808/messages",

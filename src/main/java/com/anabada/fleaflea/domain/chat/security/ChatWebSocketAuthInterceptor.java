@@ -24,7 +24,7 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 
     public static final String TOKEN_EXPIRATION_ATTRIBUTE = "chatTokenExpiration";
     private static final Pattern SEND_DESTINATION =
-            Pattern.compile("/app/chat/rooms/-?\\d+/(messages|read)");
+            Pattern.compile("/app/chat/rooms/-?\\d+/(messages|read|typing)");
     private static final List<String> SUBSCRIBE_DESTINATIONS = List.of(
             "/user/queue/chat", "/user/queue/chat-acks", "/user/queue/chat-errors"
     );

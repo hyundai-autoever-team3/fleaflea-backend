@@ -4,6 +4,8 @@ import com.anabada.fleaflea.domain.chat.domain.ChatMessage;
 import com.anabada.fleaflea.domain.chat.domain.ChatRoom;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
+import com.anabada.fleaflea.domain.chat.event.ChatEvent;
 import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.exception.ChatMessageNotFoundException;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,6 +89,56 @@ class ChatServiceTest {
         sender = MemberFixture.createMember(MEMBER_ID);
         receiver = MemberFixture.createMember(FRIEND_ID);
         chatRoom = ChatFixture.createChatRoomWithId(ROOM_ID, MEMBER_ID, FRIEND_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("친구인 참여자의 입력 시작과 종료는 저장 없이 이벤트로 전달한다")
+    void updateTypingStatus_publishesEventWithoutSaving(boolean typing) {
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
+        when(friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                MEMBER_ID, FRIEND_ID, FriendshipStatus.ACCEPTED
+        )).thenReturn(true);
+
+        chatService.updateTypingStatus(MEMBER_ID, ROOM_ID, typing);
+
+        verify(eventPublisher).publishEvent(new ChatEvent(
+                MEMBER_ID, FRIEND_ID, ChatEvent.TYPING_CHANGED,
+                ChatTypingResponse.from(chatRoom, MEMBER_ID, typing)
+        ));
+        verify(chatRoomRepository, never()).save(any(ChatRoom.class));
+        verifyNoInteractions(chatMessageRepository, memberRepository, imageService);
+    }
+
+    @Test
+    @DisplayName("친구가 아닌 참여자는 입력 상태를 전송할 수 없다")
+    void updateTypingStatus_rejectsFormerFriend() {
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
+
+        assertThatThrownBy(() -> chatService.updateTypingStatus(MEMBER_ID, ROOM_ID, true))
+                .isInstanceOf(ChatFriendRequiredException.class);
+
+        verifyNoInteractions(eventPublisher, chatMessageRepository);
+    }
+
+    @Test
+    @DisplayName("제삼자는 입력 상태를 전송할 수 없다")
+    void updateTypingStatus_rejectsNonParticipant() {
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
+
+        assertThatThrownBy(() -> chatService.updateTypingStatus(3L, ROOM_ID, true))
+                .isInstanceOf(ChatNotParticipantException.class);
+
+        verifyNoInteractions(friendshipRepository, eventPublisher, chatMessageRepository);
+    }
+
+    @Test
+    @DisplayName("없는 채팅방에는 입력 상태를 전송할 수 없다")
+    void updateTypingStatus_rejectsMissingRoom() {
+        assertThatThrownBy(() -> chatService.updateTypingStatus(MEMBER_ID, ROOM_ID, true))
+                .isInstanceOf(ChatRoomNotFoundException.class);
+
+        verifyNoInteractions(friendshipRepository, eventPublisher, chatMessageRepository);
     }
 
     @Test

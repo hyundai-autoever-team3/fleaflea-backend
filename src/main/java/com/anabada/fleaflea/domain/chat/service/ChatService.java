@@ -7,6 +7,7 @@ import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatEvent;
 import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
@@ -229,6 +230,22 @@ public class ChatService {
         }
 
         return response;
+    }
+
+    public void updateTypingStatus(Long memberId, Long roomId, boolean typing) {
+        ChatRoom chatRoom = getChatRoomForParticipant(memberId, roomId);
+        Long friendId = chatRoom.getOtherMemberId(memberId);
+
+        if (!isAcceptedFriendship(memberId, friendId)) {
+            throw new ChatFriendRequiredException();
+        }
+
+        eventPublisher.publishEvent(new ChatEvent(
+                memberId,
+                friendId,
+                ChatEvent.TYPING_CHANGED,
+                ChatTypingResponse.from(chatRoom, memberId, typing)
+        ));
     }
 
     private ChatRoom getChatRoomForParticipant(Long memberId, Long roomId) {

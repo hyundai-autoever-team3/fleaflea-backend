@@ -4,6 +4,7 @@ import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingRequest;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.exception.ErrorCode;
@@ -48,6 +49,15 @@ public class ChatSocketController {
             @Valid @Payload ChatReadRequest request
     ) {
         return chatService.markMessagesAsRead(Long.valueOf(principal.getName()), roomId, request.messageId());
+    }
+
+    @MessageMapping("/chat/rooms/{roomId}/typing")
+    public void updateTypingStatus(
+            Principal principal,
+            @DestinationVariable Long roomId,
+            @Valid @Payload ChatTypingRequest request
+    ) {
+        chatService.updateTypingStatus(Long.valueOf(principal.getName()), roomId, request.typing());
     }
 
     @MessageExceptionHandler(BusinessException.class)

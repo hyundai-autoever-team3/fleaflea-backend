@@ -48,12 +48,22 @@ CONNECTED 이후 아래 세 경로를 구독하고 메시지를 전송한다.
 | 용도 | STOMP 경로 | 본문 |
 |---|---|---|
 | 메시지 전송 (SEND) | `/app/chat/rooms/{roomId}/messages` | `{ "content": "어디서 만날까?", "clientMessageId": "UUID" }` |
+| 입력 상태 (SEND) | `/app/chat/rooms/{roomId}/typing` | `{ "typing": true }` 또는 `{ "typing": false }` |
 | 읽음 처리 (SEND) | `/app/chat/rooms/{roomId}/read` | `{ "messageId": 123 }` |
-| 실시간 이벤트 (SUBSCRIBE) | `/user/queue/chat` | `{ "type": "chat-message" 또는 "chat-read", "payload": ... }` |
+| 실시간 이벤트 (SUBSCRIBE) | `/user/queue/chat` | `{ "type": "chat-message", "chat-read" 또는 "chat-typing", "payload": ... }` |
 | 요청 결과 (SUBSCRIBE) | `/user/queue/chat-acks` | 저장된 메시지 또는 읽음 상태 응답 |
 | 요청 오류 (SUBSCRIBE) | `/user/queue/chat-errors` | `{ "code": "CHAT_FRIEND_REQUIRED", "message": "..." }` |
 
 - `chat-message` payload는 메시지 응답과 같다. 두 참여자의 모든 접속 기기에 전달한다.
+- `chat-typing` payload는 `{ "roomId": 1, "memberId": 2, "typing": true }`다.
+  채팅방 참여자이면서 현재 친구인 회원만 전송할 수 있고, 상대방의 접속 기기에만 전달한다.
+  DB에 저장하지 않으며 요청 성공 응답(`chat-acks`)이나 재접속 시 복구도 제공하지 않는다.
+- 입력 시작 시 `typing=true`를 보내고 계속 입력하는 동안 최대 1초에 한 번 갱신한다.
+  입력을 멈추거나 입력창이 비거나 메시지를 보내거나 방을 나가면 `typing=false`를 보낸다.
+- 수신 화면은 현재 방과 상대 회원 ID가 일치할 때만 표시한다. 마지막 `true` 수신 후
+  3초 동안 갱신이 없으면 숨기고, `false` 수신·메시지 수신·방 변경·소켓 종료 시에도 숨긴다.
+  자동 숨김은 클라이언트에서 구현해야 한다. 여러 기기의 상태를 서버에서 합산하지 않으며
+  마지막으로 받은 상태를 기준으로 표시한다.
 - `chat-read` payload는 `{ "roomId": 1, "memberId": 2, "lastReadMessageId": 123 }`다.
 - 요청 결과와 오류는 요청을 보낸 세션에만 전달한다. 본인 경로만 구독할 수 있고,
   `/user/{다른 회원}/...`, `/queue/...`, `/topic/...` 구독 및 브로커 직접 SEND는 차단한다.

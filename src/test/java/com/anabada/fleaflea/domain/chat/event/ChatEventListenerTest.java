@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.chat.event;
 
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatSocketEventResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.fixture.ChatFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class ChatEventListenerTest {
@@ -25,6 +27,18 @@ class ChatEventListenerTest {
 
     @InjectMocks
     private ChatEventListener chatEventListener;
+
+    @Test
+    @DisplayName("입력 상태는 상대방에게만 전달한다")
+    void onChatEvent_deliversTypingOnlyToOtherMember() {
+        ChatTypingResponse typing = ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L, true);
+        ChatEvent event = new ChatEvent(1L, 2L, ChatEvent.TYPING_CHANGED, typing);
+
+        chatEventListener.onChatEvent(event);
+
+        verify(messagingTemplate).convertAndSendToUser("2", "/queue/chat", ChatSocketEventResponse.from(event));
+        verifyNoMoreInteractions(messagingTemplate);
+    }
 
     @Test
     @DisplayName("한 참여자에게 이벤트 전달이 실패해도 다른 참여자에게 전달한다")

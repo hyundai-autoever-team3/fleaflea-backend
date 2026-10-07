@@ -19,7 +19,9 @@ public class ChatEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onChatEvent(ChatEvent event) {
         ChatSocketEventResponse response = ChatSocketEventResponse.from(event);
-        sendToMember(event.firstMemberId(), response);
+        if (!ChatEvent.TYPING_CHANGED.equals(event.eventName())) {
+            sendToMember(event.firstMemberId(), response);
+        }
         sendToMember(event.secondMemberId(), response);
     }
 

@@ -3,6 +3,9 @@ package com.anabada.fleaflea.domain.chat;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
+import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
+import com.anabada.fleaflea.domain.chat.event.ChatEvent;
+import com.anabada.fleaflea.domain.chat.repository.ChatRoomRepository;
 import com.anabada.fleaflea.domain.chat.repository.ChatMessageRepository;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
@@ -24,6 +27,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +62,9 @@ class ChatEventIntegrationTest {
     private ChatMessageRepository chatMessageRepository;
 
     @Autowired
+    private ChatRoomRepository chatRoomRepository;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @MockitoBean
@@ -77,6 +85,24 @@ class ChatEventIntegrationTest {
         friendshipRepository.save(
                 FriendshipFixture.createFriendship(receiver, sender, FriendshipStatus.ACCEPTED)
         );
+    }
+
+    @Test
+    @DisplayName("읽기 전용 트랜잭션의 입력 상태도 상대에게 전달하며 채팅방을 변경하지 않는다")
+    void updateTypingStatus_readOnlyTransaction_deliversWithoutSaving() {
+        Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
+        LocalDateTime updatedAt = chatRoomRepository.findById(roomId).orElseThrow().getUpdatedAt();
+
+        chatService.updateTypingStatus(sender.getMemberId(), roomId, true);
+
+        ChatSocketEventResponse response = ChatSocketEventResponse.from(new ChatEvent(
+                sender.getMemberId(), receiver.getMemberId(), ChatEvent.TYPING_CHANGED,
+                ChatTypingResponse.from(chatRoomRepository.findById(roomId).orElseThrow(), sender.getMemberId(), true)
+        ));
+        verify(messagingTemplate).convertAndSendToUser(receiver.getMemberId().toString(), "/queue/chat", response);
+        verify(messagingTemplate, never()).convertAndSendToUser(eq(sender.getMemberId().toString()), eq("/queue/chat"), any());
+        assertThat(chatMessageRepository.count()).isZero();
+        assertThat(chatRoomRepository.findById(roomId).orElseThrow().getUpdatedAt()).isEqualTo(updatedAt);
     }
 
     @Test
