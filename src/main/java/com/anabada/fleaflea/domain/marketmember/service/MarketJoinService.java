@@ -11,6 +11,7 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.global.lock.RedisLocked;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,20 +27,27 @@ public class MarketJoinService {
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
 
+    @RedisLocked(key = "@marketLockKeys.getMarketKeyByInviteCode(#marketJoinRequest.inviteCode())")
     @Transactional
     public MarketJoinResponse joinMarket(
             Long memberId,
-            MarketJoinRequest request
+            MarketJoinRequest marketJoinRequest
     ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        String inviteCode = request.inviteCode()
+        String inviteCode = marketJoinRequest.inviteCode()
                 .trim()
                 .toUpperCase(Locale.ROOT);
 
-        Market market = marketRepository.findByInviteCode(inviteCode)
+        Long marketId = marketRepository.findMarketIdByInviteCode(inviteCode)
                 .orElseThrow(InvalidMarketInviteCodeException::new);
+        Market market = marketRepository.findLockedById(marketId)
+                .orElseThrow(InvalidMarketInviteCodeException::new);
+
+        if (!market.getInviteCode().equals(inviteCode)) {
+            throw new InvalidMarketInviteCodeException();
+        }
 
         if (marketMemberRepository.existsByMarketAndMember(market, member)) {
             throw new AlreadyJoinedMarketException();
