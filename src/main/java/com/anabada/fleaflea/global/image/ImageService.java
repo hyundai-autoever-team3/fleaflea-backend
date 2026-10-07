@@ -48,7 +48,10 @@ public class ImageService {
         this.bucket = bucket;
     }
 
-    public String upload(MultipartFile file, ImageCategory category) {
+    public String upload(
+            MultipartFile file,
+            ImageCategory category
+    ) {
         if (category == null) {
             throw new ImageException(ErrorCode.INVALID_IMAGE_CATEGORY);
         }
@@ -87,7 +90,10 @@ public class ImageService {
         }
     }
 
-    public String uploadInTransaction(MultipartFile file, ImageCategory category) {
+    public String uploadInTransaction(
+            MultipartFile file,
+            ImageCategory category
+    ) {
         validateWritableTransaction();
         String imageKey = upload(file, category);
 
@@ -149,11 +155,7 @@ public class ImageService {
             throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
         }
 
-        if (!TransactionSynchronizationManager.isActualTransactionActive()
-                || !TransactionSynchronizationManager.isSynchronizationActive()
-                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
-        }
+        validateWritableTransaction();
 
         TransactionSynchronizationManager.registerSynchronization(
                 new TransactionSynchronization() {
@@ -272,11 +274,7 @@ public class ImageService {
             MultipartFile file,
             ImageCategory category
     ) {
-        if (!TransactionSynchronizationManager.isActualTransactionActive()
-                || !TransactionSynchronizationManager.isSynchronizationActive()
-                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
-            throw new ImageException(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
-        }
+        validateWritableTransaction();
 
         ImageReplacement replacement =
                 prepareReplacement(previousKey, file, category);

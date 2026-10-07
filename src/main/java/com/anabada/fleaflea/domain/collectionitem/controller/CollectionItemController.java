@@ -50,12 +50,12 @@ public class CollectionItemController {
             @AuthenticationPrincipal Long memberId,
 
             @Valid @ModelAttribute
-            CollectionItemCreateRequest request
+            CollectionItemCreateRequest collectionItemCreateRequest
     ) {
         CollectionItemResponse response =
                 collectionItemService.createCollectionItem(
                         memberId,
-                        request
+                        collectionItemCreateRequest
                 );
 
         return ResponseEntity
@@ -74,9 +74,9 @@ public class CollectionItemController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "createdAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "createdAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         return ResponseEntity.ok(
@@ -101,9 +101,9 @@ public class CollectionItemController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "createdAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "createdAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         return ResponseEntity.ok(
@@ -145,13 +145,13 @@ public class CollectionItemController {
             @PathVariable Long collectionItemId,
 
             @Valid @ModelAttribute
-            CollectionItemUpdateRequest request
+            CollectionItemUpdateRequest collectionItemUpdateRequest
     ) {
         return ResponseEntity.ok(
                 collectionItemService.updateCollectionItem(
                         memberId,
                         collectionItemId,
-                        request
+                        collectionItemUpdateRequest
                 )
         );
     }

@@ -65,9 +65,11 @@ class CollectionItemIntegrationTest {
     @Test
     @DisplayName("수락된 교환의 대상과 제안 물건 모두 거래 중으로 조회된다")
     void getCollectionItem_acceptedExchange_marksBothItemsInProgress() {
-        CollectionTradeRequest request = CollectionTradeRequest.create(target, requester, offer, CollectionTradeType.EXCHANGE);
-        request.accept();
-        collectionTradeRequestRepository.save(request);
+        CollectionTradeRequest collectionTradeRequest = CollectionTradeRequest.create(
+                target, requester, offer, CollectionTradeType.EXCHANGE
+        );
+        collectionTradeRequest.accept();
+        collectionTradeRequestRepository.save(collectionTradeRequest);
 
         assertThat(collectionItemService.getCollectionItem(owner.getMemberId(), target.getCollectionItemId()).status())
                 .isEqualTo(CollectionItemStatus.IN_PROGRESS);
@@ -79,11 +81,13 @@ class CollectionItemIntegrationTest {
     @EnumSource(value = TradeRequestStatus.class, names = {"PENDING", "ACCEPTED"})
     @DisplayName("대기 또는 수락된 교환 요청이 있으면 대상과 제안 물건을 삭제할 수 없다")
     void deleteCollectionItem_activeExchange_blocksBothItems(TradeRequestStatus status) {
-        CollectionTradeRequest request = CollectionTradeRequest.create(target, requester, offer, CollectionTradeType.EXCHANGE);
+        CollectionTradeRequest collectionTradeRequest = CollectionTradeRequest.create(
+                target, requester, offer, CollectionTradeType.EXCHANGE
+        );
         if (status == TradeRequestStatus.ACCEPTED) {
-            request.accept();
+            collectionTradeRequest.accept();
         }
-        collectionTradeRequestRepository.save(request);
+        collectionTradeRequestRepository.save(collectionTradeRequest);
 
         assertThatThrownBy(() -> collectionItemService.deleteCollectionItem(owner.getMemberId(), target.getCollectionItemId()))
                 .isInstanceOf(CollectionItemTradeInProgressException.class);
@@ -96,9 +100,11 @@ class CollectionItemIntegrationTest {
     @Test
     @DisplayName("취소된 교환 요청을 정리한 뒤 제안 물건을 삭제할 수 있다")
     void deleteCollectionItem_cancelledExchange_removesRequestAndItem() {
-        CollectionTradeRequest request = CollectionTradeRequest.create(target, requester, offer, CollectionTradeType.EXCHANGE);
-        request.cancel();
-        collectionTradeRequestRepository.save(request);
+        CollectionTradeRequest collectionTradeRequest = CollectionTradeRequest.create(
+                target, requester, offer, CollectionTradeType.EXCHANGE
+        );
+        collectionTradeRequest.cancel();
+        collectionTradeRequestRepository.save(collectionTradeRequest);
 
         collectionItemService.deleteCollectionItem(requester.getMemberId(), offer.getCollectionItemId());
         collectionItemRepository.flush();

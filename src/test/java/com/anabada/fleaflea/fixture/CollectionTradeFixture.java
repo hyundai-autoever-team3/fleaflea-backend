@@ -12,12 +12,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 public final class CollectionTradeFixture {
 
     public static CollectionTradeRequest createAcceptedRequestWithId(
-            Long id, CollectionItem target, Member requester, CollectionItem offer, CollectionTradeType type
+            Long id,
+            CollectionItem target,
+            Member requester,
+            CollectionItem offer,
+            CollectionTradeType type
     ) {
-        CollectionTradeRequest request = CollectionTradeRequest.create(target, requester, offer, type);
-        ReflectionTestUtils.setField(request, "collectionTradeRequestId", id);
-        request.accept();
+        CollectionTradeRequest collectionTradeRequest = CollectionTradeRequest.create(target, requester, offer, type);
+        ReflectionTestUtils.setField(collectionTradeRequest, "collectionTradeRequestId", id);
+        collectionTradeRequest.accept();
 
-        return request;
+        return collectionTradeRequest;
     }
 }

@@ -61,7 +61,7 @@ class CollectionTradeServiceTest {
     @InjectMocks
     private CollectionTradeService collectionTradeService;
 
-    private CollectionTradeRequest request;
+    private CollectionTradeRequest collectionTradeRequest;
     private Member owner;
     private Member requester;
     private CollectionItem target;
@@ -74,10 +74,12 @@ class CollectionTradeServiceTest {
 
         target = CollectionItemFixture.createCollectionItemWithId(10L, owner, "교환 대상", true);
         offer = CollectionItemFixture.createCollectionItemWithId(20L, requester, "제안 아이템", true);
-        request = CollectionTradeFixture.createAcceptedRequestWithId(REQUEST_ID, target, requester, offer, CollectionTradeType.EXCHANGE);
+        collectionTradeRequest = CollectionTradeFixture.createAcceptedRequestWithId(
+                REQUEST_ID, target, requester, offer, CollectionTradeType.EXCHANGE
+        );
 
         when(collectionTradeRequestRepository.findLockedByCollectionTradeRequestId(REQUEST_ID))
-                .thenReturn(Optional.of(request));
+                .thenReturn(Optional.of(collectionTradeRequest));
     }
 
     @Test
@@ -88,7 +90,7 @@ class CollectionTradeServiceTest {
 
         collectionTradeService.completeCollectionTradeRequest(REQUESTER_ID, REQUEST_ID);
 
-        assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
+        assertThat(collectionTradeRequest.getStatus()).isEqualTo(TradeRequestStatus.COMPLETED);
         assertThat(target.getOwner()).isSameAs(requester);
         assertThat(offer.getOwner()).isSameAs(owner);
         verify(tradeRepository).save(any());
@@ -100,7 +102,7 @@ class CollectionTradeServiceTest {
         TradeCompletedEvent event = eventCaptor.getValue();
         assertThat(event.confirmerId()).isEqualTo(REQUESTER_ID);
         assertThat(event.counterpartyId()).isEqualTo(OWNER_ID);
-        assertThat(event.confirmerNickname()).isEqualTo(request.getRequester().getNickname());
+        assertThat(event.confirmerNickname()).isEqualTo(collectionTradeRequest.getRequester().getNickname());
     }
 
     @Test
@@ -111,7 +113,7 @@ class CollectionTradeServiceTest {
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.COLLECTION_TRADE_ACCESS_DENIED));
 
-        assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
+        assertThat(collectionTradeRequest.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
         verify(tradeRepository, never()).save(any());
         verifyNoInteractions(tradeNotifier);
     }
@@ -145,7 +147,7 @@ class CollectionTradeServiceTest {
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.COLLECTION_TRADE_OWNERSHIP_CHANGED));
 
-        assertThat(request.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
+        assertThat(collectionTradeRequest.getStatus()).isEqualTo(TradeRequestStatus.ACCEPTED);
         assertThat(target.getOwner()).isSameAs(owner);
         verify(tradeRepository, never()).save(any());
         verifyNoInteractions(tradeNotifier);

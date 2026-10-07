@@ -35,10 +35,10 @@ public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCus
                 .join(collectionItem.owner).fetchJoin()
                 .where(
                         collectionItem.owner.memberId.eq(ownerId),
-                        publicOnly(publicOnly),
-                        titleContains(condition)
+                        createPublicOnlyPredicate(publicOnly),
+                        createTitleContainsPredicate(condition)
                 )
-                .orderBy(orderSpecifiers(pageable))
+                .orderBy(createOrderSpecifiers(pageable))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -48,8 +48,8 @@ public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCus
                 .from(collectionItem)
                 .where(
                         collectionItem.owner.memberId.eq(ownerId),
-                        publicOnly(publicOnly),
-                        titleContains(condition)
+                        createPublicOnlyPredicate(publicOnly),
+                        createTitleContainsPredicate(condition)
                 );
 
         return PageableExecutionUtils.getPage(
@@ -62,11 +62,11 @@ public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCus
         );
     }
 
-    private BooleanExpression publicOnly(boolean publicOnly) {
+    private BooleanExpression createPublicOnlyPredicate(boolean publicOnly) {
         return publicOnly ? collectionItem.isPublic.isTrue() : null;
     }
 
-    private BooleanExpression titleContains(
+    private BooleanExpression createTitleContainsPredicate(
             CollectionItemSearchCondition condition
     ) {
         if (condition == null
@@ -80,22 +80,22 @@ public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCus
         );
     }
 
-    private OrderSpecifier<?>[] orderSpecifiers(Pageable pageable) {
+    private OrderSpecifier<?>[] createOrderSpecifiers(Pageable pageable) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
         for (org.springframework.data.domain.Sort.Order order
                 : pageable.getSort()) {
             switch (order.getProperty()) {
                 case "title" -> orders.add(new OrderSpecifier<>(
-                        direction(order),
+                        getOrderDirection(order),
                         collectionItem.title
                 ));
                 case "updatedAt" -> orders.add(new OrderSpecifier<>(
-                        direction(order),
+                        getOrderDirection(order),
                         collectionItem.updatedAt
                 ));
                 default -> orders.add(new OrderSpecifier<>(
-                        direction(order),
+                        getOrderDirection(order),
                         collectionItem.createdAt
                 ));
             }
@@ -110,7 +110,7 @@ public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCus
         return orders.toArray(OrderSpecifier[]::new);
     }
 
-    private Order direction(org.springframework.data.domain.Sort.Order order) {
+    private Order getOrderDirection(org.springframework.data.domain.Sort.Order order) {
         return order.isAscending() ? Order.ASC : Order.DESC;
     }
 }

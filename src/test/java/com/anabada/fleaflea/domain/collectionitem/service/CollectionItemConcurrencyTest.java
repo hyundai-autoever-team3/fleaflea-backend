@@ -111,7 +111,10 @@ class CollectionItemConcurrencyTest {
         }
     }
 
-    private void awaitStart(CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+    private void awaitStart(
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException  {
         ready.countDown();
         if (!start.await(10, TimeUnit.SECONDS)) {
             throw new IllegalStateException("도감 요청 시작 신호를 받지 못했습니다.");

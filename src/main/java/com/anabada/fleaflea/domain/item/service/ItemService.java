@@ -53,7 +53,7 @@ public class ItemService {
     public ItemSummaryResponse createItem(
             Long marketId,
             Long memberId,
-            ItemCreateRequest request
+            ItemCreateRequest itemCreateRequest
     ) {
         Market market = marketRepository.findById(marketId)
                 .orElseThrow(MarketNotFoundException::new);
@@ -62,8 +62,8 @@ public class ItemService {
 
         CollectionItem collectionItem = null;
 
-        if (request.collectionItemId() != null) {
-            collectionItem = collectionItemRepository.findLockedById(request.collectionItemId())
+        if (itemCreateRequest.collectionItemId() != null) {
+            collectionItem = collectionItemRepository.findLockedById(itemCreateRequest.collectionItemId())
                     .orElseThrow(CollectionItemNotFoundException::new);
 
             validateCollectionItemOwner(collectionItem, memberId);
@@ -73,21 +73,21 @@ public class ItemService {
                 .orElseThrow(MemberNotFoundException::new);
 
         String imageKey = resolveImageKey(
-                request,
+                itemCreateRequest,
                 collectionItem
         );
 
-        Long price = request.tradeType() == ItemTradeType.SALE
-                ? request.price()
+        Long price = itemCreateRequest.tradeType() == ItemTradeType.SALE
+                ? itemCreateRequest.price()
                 : null;
 
         Item item = Item.create(
                 collectionItem,
                 market,
                 seller,
-                request.title(),
-                request.description(),
-                request.tradeType(),
+                itemCreateRequest.title(),
+                itemCreateRequest.description(),
+                itemCreateRequest.tradeType(),
                 price,
                 imageKey
         );
@@ -150,7 +150,7 @@ public class ItemService {
     public ItemDetailResponse updateItem(
             Long itemId,
             Long memberId,
-            ItemUpdateRequest request
+            ItemUpdateRequest itemUpdateRequest
     ) {
         Item item = itemRepository.findWithSellerByItemId(itemId)
                 .orElseThrow(ItemNotFoundException::new);
@@ -159,26 +159,26 @@ public class ItemService {
 
         String imageKey = item.getImageKey();
 
-        if (request.image() != null && !request.image().isEmpty()) {
+        if (itemUpdateRequest.image() != null && !itemUpdateRequest.image().isEmpty()) {
             if (imageKey == null) {
                 imageKey = imageService.upload(
-                        request.image(),
+                        itemUpdateRequest.image(),
                         ImageCategory.ITEM
                 );
             } else {
                 imageKey = imageService.replace(
                         imageKey,
-                        request.image(),
+                        itemUpdateRequest.image(),
                         ImageCategory.ITEM
                 );
             }
         }
 
         item.update(
-                request.title(),
-                request.description(),
-                request.tradeType(),
-                request.price(),
+                itemUpdateRequest.title(),
+                itemUpdateRequest.description(),
+                itemUpdateRequest.tradeType(),
+                itemUpdateRequest.price(),
                 imageKey
         );
 
@@ -238,12 +238,12 @@ public class ItemService {
     }
 
     private String resolveImageKey(
-            ItemCreateRequest request,
+            ItemCreateRequest itemCreateRequest,
             CollectionItem collectionItem
     ) {
-        if (request.image() != null && !request.image().isEmpty()) {
+        if (itemCreateRequest.image() != null && !itemCreateRequest.image().isEmpty()) {
             return imageService.upload(
-                    request.image(),
+                    itemCreateRequest.image(),
                     ImageCategory.ITEM
             );
         }

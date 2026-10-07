@@ -54,11 +54,18 @@ public class CollectionItemService {
     private final TradeRequestRepository tradeRequestRepository;
 
     @Transactional
-    public CollectionItemResponse createCollectionItem(Long memberId, CollectionItemCreateRequest request) {
+    public CollectionItemResponse createCollectionItem(
+            Long memberId,
+            CollectionItemCreateRequest collectionItemCreateRequest
+    ) {
         Member owner = getMember(memberId);
-        String imageKey = imageService.uploadInTransaction(request.image(), ImageCategory.COLLECTION_ITEM);
+        String imageKey = imageService.uploadInTransaction(collectionItemCreateRequest.image(), ImageCategory.COLLECTION_ITEM);
         CollectionItem collectionItem = CollectionItem.create(
-                owner, request.title(), request.description(), imageKey, request.isPublic()
+                owner,
+                collectionItemCreateRequest.title(),
+                collectionItemCreateRequest.description(),
+                imageKey,
+                collectionItemCreateRequest.isPublic()
         );
         CollectionItem savedItem = collectionItemRepository.save(collectionItem);
 
@@ -66,7 +73,9 @@ public class CollectionItemService {
     }
 
     public PageResponse<CollectionItemSummaryResponse> getMyCollectionItems(
-            Long memberId, CollectionItemSearchCondition condition, Pageable pageable
+            Long memberId,
+            CollectionItemSearchCondition condition,
+            Pageable pageable
     ) {
         Member owner = getMember(memberId);
 
@@ -75,7 +84,10 @@ public class CollectionItemService {
     }
 
     public PageResponse<CollectionItemSummaryResponse> getMemberCollectionItems(
-            Long requesterId, Long ownerId, CollectionItemSearchCondition condition, Pageable pageable
+            Long requesterId,
+            Long ownerId,
+            CollectionItemSearchCondition condition,
+            Pageable pageable
     ) {
         Member requester = getMember(requesterId);
         Member owner = getMember(ownerId);
@@ -85,7 +97,10 @@ public class CollectionItemService {
                 .map(this::toCollectionItemSummaryResponse));
     }
 
-    public CollectionItemResponse getCollectionItem(Long memberId, Long collectionItemId) {
+    public CollectionItemResponse getCollectionItem(
+            Long memberId,
+            Long collectionItemId
+    ) {
         Member requester = getMember(memberId);
         CollectionItem collectionItem = findCollectionItem(collectionItemId);
 
@@ -101,17 +116,23 @@ public class CollectionItemService {
 
     @Transactional
     public CollectionItemResponse updateCollectionItem(
-            Long memberId, Long collectionItemId, CollectionItemUpdateRequest request
+            Long memberId,
+            Long collectionItemId,
+            CollectionItemUpdateRequest collectionItemUpdateRequest
     ) {
         CollectionItem collectionItem = findLockedCollectionItem(collectionItemId);
         validateOwner(collectionItem, memberId);
-        collectionItem.update(request.title(), request.description(), request.isPublic());
+        collectionItem.update(
+                collectionItemUpdateRequest.title(),
+                collectionItemUpdateRequest.description(),
+                collectionItemUpdateRequest.isPublic()
+        );
 
-        if (request.image() != null && !request.image().isEmpty()) {
+        if (collectionItemUpdateRequest.image() != null && !collectionItemUpdateRequest.image().isEmpty()) {
             String previousImageKey = collectionItem.getImageKey();
             String newImageKey = previousImageKey == null
-                    ? imageService.uploadInTransaction(request.image(), ImageCategory.COLLECTION_ITEM)
-                    : imageService.replace(previousImageKey, request.image(), ImageCategory.COLLECTION_ITEM);
+                    ? imageService.uploadInTransaction(collectionItemUpdateRequest.image(), ImageCategory.COLLECTION_ITEM)
+                    : imageService.replace(previousImageKey, collectionItemUpdateRequest.image(), ImageCategory.COLLECTION_ITEM);
             collectionItem.updateImageKey(newImageKey);
         }
 
@@ -119,7 +140,10 @@ public class CollectionItemService {
     }
 
     @Transactional
-    public void deleteCollectionItem(Long memberId, Long collectionItemId) {
+    public void deleteCollectionItem(
+            Long memberId,
+            Long collectionItemId
+    ) {
         CollectionItem collectionItem = findLockedCollectionItem(collectionItemId);
         validateOwner(collectionItem, memberId);
         validateDeletable(collectionItemId);
@@ -160,7 +184,10 @@ public class CollectionItemService {
         return collectionItemRepository.findLockedById(collectionItemId).orElseThrow(CollectionItemNotFoundException::new);
     }
 
-    private void validateOwner(CollectionItem collectionItem, Long memberId) {
+    private void validateOwner(
+            CollectionItem collectionItem,
+            Long memberId
+    ) {
         if (!collectionItem.isOwnedBy(memberId)) {
             throw new CollectionItemAccessDeniedException();
         }
@@ -191,7 +218,10 @@ public class CollectionItemService {
         return CollectionItemSummaryResponse.from(collectionItem, imageService.getUrl(collectionItem.getImageKey()));
     }
 
-    private boolean isAcceptedFriend(Long memberId, Long friendId) {
+    private boolean isAcceptedFriend(
+            Long memberId,
+            Long friendId
+    ) {
         return friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                 memberId, friendId, FriendshipStatus.ACCEPTED
         ) || friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
@@ -199,7 +229,10 @@ public class CollectionItemService {
         );
     }
 
-    private void validateCollectionViewer(Long requesterId, Long ownerId) {
+    private void validateCollectionViewer(
+            Long requesterId,
+            Long ownerId
+    ) {
         if (!requesterId.equals(ownerId) && !isAcceptedFriend(requesterId, ownerId)) {
             throw new CollectionItemAccessDeniedException();
         }

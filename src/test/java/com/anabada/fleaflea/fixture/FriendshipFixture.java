@@ -9,7 +9,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FriendshipFixture {
 
-    public static Friendship createFriendship(Member requester, Member addressee, FriendshipStatus status) {
+    public static Friendship createFriendship(
+            Member requester,
+            Member addressee,
+            FriendshipStatus status
+    ) {
         return Friendship.create(requester, addressee, status);
     }
 }

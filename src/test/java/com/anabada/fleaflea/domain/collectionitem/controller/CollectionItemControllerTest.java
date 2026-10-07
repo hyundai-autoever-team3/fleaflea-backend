@@ -56,7 +56,13 @@ class CollectionItemControllerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidCreateRequests")
     @DisplayName("도감 등록의 필수값과 길이 검증에 실패하면 서비스를 호출하지 않는다")
-    void createCollectionItem_rejectsInvalidInput(String caseName, String title, String description, String isPublic, byte[] image) throws Exception {
+    void createCollectionItem_rejectsInvalidInput(
+            String caseName,
+            String title,
+            String description,
+            String isPublic,
+            byte[] image
+    ) throws Exception  {
         MockMultipartHttpServletRequestBuilder request = multipart("/api/v1/collection-items");
         if (title != null) {
             request.param("title", title);

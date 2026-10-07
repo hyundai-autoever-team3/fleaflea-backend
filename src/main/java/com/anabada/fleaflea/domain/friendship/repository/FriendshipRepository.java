@@ -16,12 +16,17 @@ public interface FriendshipRepository
         extends JpaRepository<Friendship, Long>, FriendshipRepositoryCustom {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select f from Friendship f where f.status = :status and " +
-            "((f.requester.memberId = :a and f.addressee.memberId = :b) or " +
-            "(f.requester.memberId = :b and f.addressee.memberId = :a))")
-    List<Friendship> lockRelationship(@Param("a") Long a, @Param("b") Long b,
-                                    @Param("status") FriendshipStatus status);
-
+    @Query("""
+            select friendship from Friendship friendship
+            where friendship.status = :status
+                and ((friendship.requester.memberId = :memberId and friendship.addressee.memberId = :friendId)
+                    or (friendship.requester.memberId = :friendId and friendship.addressee.memberId = :memberId))
+            """)
+    List<Friendship> lockRelationship(
+            @Param("memberId") Long memberId,
+            @Param("friendId") Long friendId,
+            @Param("status") FriendshipStatus status
+    );
 
     Optional<Friendship> findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
             Long requesterId,

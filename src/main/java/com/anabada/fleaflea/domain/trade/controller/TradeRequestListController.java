@@ -44,8 +44,9 @@ public class TradeRequestListController {
     })
     public ResponseEntity<List<TradeRequestListResponse>> getTradeRequests(
             @AuthenticationPrincipal Long memberId,
+
             @Parameter(description = "요청 방향: received 또는 sent", required = true,
-                    example = "received")
+            example = "received")
             @RequestParam String direction
     ) {
         return ResponseEntity.ok(tradeRequestListService.getTradeRequests(memberId, direction));
@@ -66,7 +67,9 @@ public class TradeRequestListController {
     })
     public ResponseEntity<TradeRequestHistoryDetailResponse> getTradeRequestHistoryDetail(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable String requestType,
+
             @PathVariable Long requestId
     ) {
         return ResponseEntity.ok(

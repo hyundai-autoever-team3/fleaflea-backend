@@ -1,7 +1,11 @@
 package com.anabada.fleaflea.domain.market.service;
 
 import com.anabada.fleaflea.domain.market.domain.Market;
-import com.anabada.fleaflea.domain.market.dto.*;
+import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
 import com.anabada.fleaflea.domain.market.exception.MarketHostCannotLeaveException;
 import com.anabada.fleaflea.domain.market.exception.MarketHostOnlyException;
 import com.anabada.fleaflea.domain.market.exception.MarketMembershipNotFoundException;
@@ -32,7 +36,7 @@ public class MarketService {
     @Transactional
     public MarketCreateResponse createMarket(
             Long memberId,
-            MarketCreateRequest request
+            MarketCreateRequest marketCreateRequest
     ) {
         Member host = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -41,18 +45,18 @@ public class MarketService {
 
         String coverImageKey = null;
 
-        if (request.coverImage() != null
-                && !request.coverImage().isEmpty()) {
+        if (marketCreateRequest.coverImage() != null
+                && !marketCreateRequest.coverImage().isEmpty()) {
             coverImageKey = imageService.uploadInTransaction(
-                    request.coverImage(),
+                    marketCreateRequest.coverImage(),
                     ImageCategory.MARKET
             );
         }
 
         Market market = Market.create(
                 host,
-                request.title(),
-                request.description(),
+                marketCreateRequest.title(),
+                marketCreateRequest.description(),
                 coverImageKey,
                 inviteCode
         );
@@ -94,7 +98,7 @@ public class MarketService {
     public MarketUpdateResponse updateMarket(
             Long memberId,
             Long marketId,
-            MarketUpdateRequest request
+            MarketUpdateRequest marketUpdateRequest
     ) {
         Market market = getMarket(marketId);
 
@@ -102,25 +106,25 @@ public class MarketService {
 
         String coverImageKey = market.getCoverImageKey();
 
-        if (request.coverImage() != null
-                && !request.coverImage().isEmpty()) {
+        if (marketUpdateRequest.coverImage() != null
+                && !marketUpdateRequest.coverImage().isEmpty()) {
             if (coverImageKey == null) {
                 coverImageKey = imageService.uploadInTransaction(
-                        request.coverImage(),
+                        marketUpdateRequest.coverImage(),
                         ImageCategory.MARKET
                 );
             } else {
                 coverImageKey = imageService.replace(
                         coverImageKey,
-                        request.coverImage(),
+                        marketUpdateRequest.coverImage(),
                         ImageCategory.MARKET
                 );
             }
         }
 
         market.update(
-                request.title(),
-                request.description(),
+                marketUpdateRequest.title(),
+                marketUpdateRequest.description(),
                 coverImageKey
         );
 
