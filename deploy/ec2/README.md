@@ -106,3 +106,12 @@ curl -i -X OPTIONS \
 ```
 
 Do not run `docker compose down -v`; it removes the PostgreSQL data volume.
+
+## Chat WebSocket
+
+Add the contents of `nginx-chat.conf` inside the existing HTTPS server block
+for `api.fleaflea.app`, then validate and reload Nginx as shown above. This
+host configuration is not installed by the container deployment workflow.
+The `/ws/chat` endpoint requires HTTP/1.1 Upgrade headers. Chat clients use
+STOMP with an access token in the CONNECT headers; ordinary notification
+SSE remains unchanged. See `docs/friend-chat.md` for the client contract.

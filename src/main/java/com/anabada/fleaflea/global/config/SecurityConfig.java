@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/reissue"
                         ).permitAll()
+                        .requestMatchers("/ws/chat").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

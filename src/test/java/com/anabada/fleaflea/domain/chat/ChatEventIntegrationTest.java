@@ -9,7 +9,8 @@ import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
+import com.anabada.fleaflea.domain.chat.dto.ChatSocketEventResponse;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.anabada.fleaflea.fixture.ChatFixture;
 import com.anabada.fleaflea.fixture.FriendshipFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
@@ -26,7 +27,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -63,7 +63,7 @@ class ChatEventIntegrationTest {
     private ImageService imageService;
 
     @MockitoBean
-    private NotificationSseService notificationSseService;
+    private SimpMessagingTemplate messagingTemplate;
 
     private Member sender;
     private Member receiver;
@@ -80,33 +80,41 @@ class ChatEventIntegrationTest {
     }
 
     @Test
-    @DisplayName("메시지 저장 트랜잭션을 롤백하면 메시지와 SSE 이벤트가 남지 않는다")
+    @DisplayName("메시지 저장 트랜잭션을 롤백하면 메시지와 WebSocket 이벤트가 남지 않는다")
     void sendMessage_rollback_doesNotPersistOrPublish() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             sendMessage(sender, roomId, "rolled back");
-            verify(notificationSseService, never()).sendEvent(anyLong(), eq("chat-message"), any());
+            verify(messagingTemplate, never()).convertAndSendToUser(anyString(), eq("/queue/chat"), any());
             status.setRollbackOnly();
         });
 
         assertThat(chatMessageRepository.count()).isZero();
-        verify(notificationSseService, never()).sendEvent(anyLong(), eq("chat-message"), any());
+        verify(messagingTemplate, never()).convertAndSendToUser(anyString(), eq("/queue/chat"), any());
     }
 
     @Test
-    @DisplayName("메시지 저장이 커밋되면 두 참여자에게만 SSE 이벤트를 전달한다")
+    @DisplayName("메시지 저장이 커밋되면 두 참여자에게만 WebSocket 이벤트를 전달한다")
     void sendMessage_commit_publishesOnlyToParticipants() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
 
         ChatMessageResponse saved = sendMessage(sender, roomId, "committed");
 
-        verify(notificationSseService, timeout(3000)).sendEvent(sender.getMemberId(), "chat-message", saved);
-        verify(notificationSseService, timeout(3000)).sendEvent(receiver.getMemberId(), "chat-message", saved);
-        verify(notificationSseService, never()).sendEvent(eq(outsider.getMemberId()), anyString(), any());
+        verify(messagingTemplate, timeout(3000)).convertAndSendToUser(
+                        sender.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-message", saved)
+                );
+        verify(messagingTemplate, timeout(3000)).convertAndSendToUser(
+                        receiver.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-message", saved)
+                );
+        verify(messagingTemplate, never()).convertAndSendToUser(eq(outsider.getMemberId().toString()), anyString(), any());
     }
 
     @Test
-    @DisplayName("메시지 재전송은 시각과 ID를 유지하고 참여자별 SSE를 한 번만 전달한다")
+    @DisplayName("메시지 재전송은 시각과 ID를 유지하고 참여자별 WebSocket를 한 번만 전달한다")
     void sendMessage_retryPreservesTimestampAndPublishesOnce() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
         ChatMessageSendRequest request = createSendRequest("재전송");
@@ -118,10 +126,18 @@ class ChatEventIntegrationTest {
         assertThat(chatMessageRepository.findById(original.id()).orElseThrow().getCreatedAt())
                 .isEqualTo(original.createdAt());
         assertThat(chatMessageRepository.count()).isEqualTo(1);
-        verify(notificationSseService, timeout(3000).times(1))
-                .sendEvent(sender.getMemberId(), "chat-message", original);
-        verify(notificationSseService, timeout(3000).times(1))
-                .sendEvent(receiver.getMemberId(), "chat-message", original);
+        verify(messagingTemplate, timeout(3000).times(1))
+                .convertAndSendToUser(
+                        sender.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-message", original)
+                );
+        verify(messagingTemplate, timeout(3000).times(1))
+                .convertAndSendToUser(
+                        receiver.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-message", original)
+                );
     }
 
     @Test
@@ -132,10 +148,18 @@ class ChatEventIntegrationTest {
 
         ChatReadResponse response = chatService.markMessagesAsRead(receiver.getMemberId(), roomId, message.id());
 
-        verify(notificationSseService, timeout(3000))
-                .sendEvent(sender.getMemberId(), "chat-read", response);
-        verify(notificationSseService, timeout(3000))
-                .sendEvent(receiver.getMemberId(), "chat-read", response);
+        verify(messagingTemplate, timeout(3000))
+                .convertAndSendToUser(
+                        sender.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-read", response)
+                );
+        verify(messagingTemplate, timeout(3000))
+                .convertAndSendToUser(
+                        receiver.getMemberId().toString(),
+                        "/queue/chat",
+                        new ChatSocketEventResponse("chat-read", response)
+                );
         assertThat(response.lastReadMessageId()).isEqualTo(message.id());
     }
 

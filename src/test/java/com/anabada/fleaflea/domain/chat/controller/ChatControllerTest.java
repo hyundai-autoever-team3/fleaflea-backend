@@ -1,15 +1,11 @@
 package com.anabada.fleaflea.domain.chat.controller;
 
-import com.anabada.fleaflea.domain.chat.domain.ChatMessage;
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.domain.chat.exception.ChatNotParticipantException;
 import com.anabada.fleaflea.domain.chat.exception.ChatRoomNotFoundException;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
-import com.anabada.fleaflea.fixture.ChatFixture;
 import com.anabada.fleaflea.global.config.SecurityConfig;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
@@ -29,21 +25,16 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,7 +50,6 @@ class ChatControllerTest {
 
     private static final Long MEMBER_ID = 1L;
     private static final Long ROOM_ID = 10L;
-    private static final String CLIENT_MESSAGE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
     @Autowired
     private MockMvc mockMvc;
@@ -72,43 +62,6 @@ class ChatControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("invalidMessageBodies")
-    @DisplayName("잘못된 메시지 입력은 INVALID_REQUEST를 반환하고 서비스를 호출하지 않는다")
-    void sendMessage_rejectsInvalidRequest(String caseName, String body) throws Exception {
-        mockMvc.perform(post("/api/v1/chat/rooms/{roomId}/messages", ROOM_ID)
-                        .with(authentication(createMemberAuthentication()))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-
-        verifyNoInteractions(chatService);
-    }
-
-    @Test
-    @DisplayName("2000자 메시지를 전송하면 기존 메시지 응답 필드로 결과를 반환한다")
-    void sendMessage_acceptsMaximumLengthAndPreservesResponseFields() throws Exception {
-        ChatMessageSendRequest request = ChatFixture.createSendRequest("a".repeat(2000));
-        ChatMessage message = ChatFixture.createChatMessageWithId(
-                20L, ROOM_ID, MEMBER_ID, request, LocalDateTime.of(2026, 1, 1, 12, 0)
-        );
-        when(chatService.sendMessage(eq(MEMBER_ID), eq(ROOM_ID), any(ChatMessageSendRequest.class)))
-                .thenReturn(ChatMessageResponse.from(message));
-
-        mockMvc.perform(post("/api/v1/chat/rooms/{roomId}/messages", ROOM_ID)
-                        .with(authentication(createMemberAuthentication()))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonMapper.builder().build().writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(20))
-                .andExpect(jsonPath("$.roomId").value(ROOM_ID))
-                .andExpect(jsonPath("$.senderId").value(MEMBER_ID))
-                .andExpect(jsonPath("$.content").value(request.content()))
-                .andExpect(jsonPath("$.clientMessageId").value(request.clientMessageId().toString()))
-                .andExpect(jsonPath("$.createdAt").exists());
-    }
 
     @Test
     @DisplayName("인증 없이 채팅 목록을 조회하면 401을 반환한다")
@@ -163,20 +116,6 @@ class ChatControllerTest {
                         .with(authentication(createMemberAuthentication()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requiredIdBody("friendId", value)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-
-        verifyNoInteractions(chatService);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("invalidRequiredIdBodies")
-    @DisplayName("필수 메시지 ID가 없거나 잘못되면 읽음 처리 요청을 거절한다")
-    void markMessagesAsRead_rejectsInvalidMessageId(String caseName, String value) throws Exception {
-        mockMvc.perform(patch("/api/v1/chat/rooms/{roomId}/read", ROOM_ID)
-                        .with(authentication(createMemberAuthentication()))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requiredIdBody("messageId", value)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
 
@@ -249,24 +188,6 @@ class ChatControllerTest {
         return new UsernamePasswordAuthenticationToken(MEMBER_ID, null, List.of());
     }
 
-    private static Stream<Arguments> invalidMessageBodies() {
-        String clientMessageId = "\"" + CLIENT_MESSAGE_ID + "\"";
-
-        return Stream.of(
-                Arguments.of("요청 본문 null", "null"),
-                Arguments.of("요청 본문 없음", ""),
-                Arguments.of("빈 객체", "{}"),
-                Arguments.of("null 내용", messageBody("null", clientMessageId)),
-                Arguments.of("내용 누락", "{\"clientMessageId\":" + clientMessageId + "}"),
-                Arguments.of("빈 내용", messageBody("\"\"", clientMessageId)),
-                Arguments.of("공백 내용", messageBody("\"   \"", clientMessageId)),
-                Arguments.of("2001자 내용", messageBody("\"" + "a".repeat(2001) + "\"", clientMessageId)),
-                Arguments.of("null UUID", messageBody("\"안녕\"", "null")),
-                Arguments.of("UUID 누락", "{\"content\":\"안녕\"}"),
-                Arguments.of("잘못된 UUID", messageBody("\"안녕\"", "\"not-a-uuid\""))
-        );
-    }
-
     private static Stream<Arguments> invalidRoomRequests() {
         return Stream.of(
                 Arguments.of("페이지 음수", "/api/v1/chat/rooms?page=-1"),
@@ -283,7 +204,4 @@ class ChatControllerTest {
         );
     }
 
-    private static String messageBody(String content, String clientMessageId) {
-        return "{\"content\":%s,\"clientMessageId\":%s}".formatted(content, clientMessageId);
-    }
 }

@@ -1,9 +1,6 @@
 package com.anabada.fleaflea.domain.chat.controller;
 
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
-import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
-import com.anabada.fleaflea.domain.chat.dto.ChatReadRequest;
-import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomCreateRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
@@ -17,7 +14,6 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,19 +66,6 @@ public class ChatController {
         return chatService.getChatRoom(memberId, roomId);
     }
 
-    @PostMapping("/{roomId}/messages")
-    @Operation(
-            summary = "메시지 전송",
-            description = "최대 2000자, 회원당 분당 60개. clientMessageId는 UUID이며 재시도 시 같은 값을 사용합니다. 저장 완료 후 SSE chat-message 이벤트를 전달합니다."
-    )
-    public ChatMessageResponse sendMessage(
-            @AuthenticationPrincipal Long memberId,
-            @PathVariable Long roomId,
-            @Valid @RequestBody ChatMessageSendRequest request
-    ) {
-        return chatService.sendMessage(memberId, roomId, request);
-    }
-
     @GetMapping("/{roomId}/messages")
     @Operation(
             summary = "메시지 조회",
@@ -99,16 +82,4 @@ public class ChatController {
         return chatService.getMessages(memberId, roomId, beforeId, afterId, size);
     }
 
-    @PatchMapping("/{roomId}/read")
-    @Operation(
-            summary = "메시지 읽음 처리",
-            description = "실제로 확인한 메시지 ID를 전달합니다. 읽음 위치는 뒤로 이동하지 않습니다. SSE chat-read 이벤트를 전달합니다."
-    )
-    public ChatReadResponse markMessagesAsRead(
-            @AuthenticationPrincipal Long memberId,
-            @PathVariable Long roomId,
-            @Valid @RequestBody ChatReadRequest request
-    ) {
-        return chatService.markMessagesAsRead(memberId, roomId, request.messageId());
-    }
 }
