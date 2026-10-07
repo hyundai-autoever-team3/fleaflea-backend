@@ -2,7 +2,6 @@ package com.anabada.fleaflea.global.security.oauth2;
 
 import com.anabada.fleaflea.domain.member.domain.SocialProvider;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOidcUser;
 import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
 import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotFoundException;
@@ -32,28 +31,23 @@ public class CustomOidcUserService extends OidcUserService {
         SocialProvider provider = resolveProvider(registrationId);
         String providerId = extractProviderId(oidcUser);
 
-        CustomOAuth2User principal = memberRepository
-                .findBySocialProviderAndProviderId(
-                        provider,
-                        providerId
-                )
-                .map(member -> CustomOAuth2User.registered(
+        return memberRepository
+                .findBySocialProviderAndProviderId(provider, providerId)
+                .map(member -> CustomOidcUser.registered(
+                        oidcUser,
                         member.getMemberId(),
                         new OAuth2MemberInfo(
                                 provider,
                                 providerId,
                                 member.getEmail(),
                                 member.getNickname()
-                        ),
-                        oidcUser.getAttributes()
+                        )
                 ))
                 .orElseGet(() -> createSignupPrincipal(
                         provider,
                         providerId,
                         oidcUser
                 ));
-
-        return new CustomOidcUser(oidcUser, principal);
     }
 
     private SocialProvider resolveProvider(String registrationId) {
@@ -73,7 +67,7 @@ public class CustomOidcUserService extends OidcUserService {
         return providerId;
     }
 
-    private CustomOAuth2User createSignupPrincipal(
+    private CustomOidcUser createSignupPrincipal(
             SocialProvider provider,
             String providerId,
             OidcUser oidcUser
@@ -95,16 +89,14 @@ public class CustomOidcUserService extends OidcUserService {
             default -> throw new UnsupportedOAuth2ProviderException(provider.name());
         };
 
-        OAuth2MemberInfo memberInfo = new OAuth2MemberInfo(
-                provider,
-                providerId,
-                email,
-                displayName
-        );
-
         return principalFactory.createSignupRequired(
-                memberInfo,
-                oidcUser.getAttributes()
+                new OAuth2MemberInfo(
+                        provider,
+                        providerId,
+                        email,
+                        displayName
+                ),
+                oidcUser
         );
 
     }
