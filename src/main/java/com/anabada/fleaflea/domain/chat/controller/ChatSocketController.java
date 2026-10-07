@@ -39,9 +39,9 @@ public class ChatSocketController {
             @DestinationVariable Long roomId,
 
             @Valid @Payload
-            ChatMessageSendRequest request
+            ChatMessageSendRequest chatMessageSendRequest
     ) {
-        return chatService.sendMessage(Long.valueOf(principal.getName()), roomId, request);
+        return chatService.sendMessage(Long.valueOf(principal.getName()), roomId, chatMessageSendRequest);
     }
 
     @MessageMapping("/chat/rooms/{roomId}/read")
@@ -52,9 +52,9 @@ public class ChatSocketController {
             @DestinationVariable Long roomId,
 
             @Valid @Payload
-            ChatReadRequest request
+            ChatReadRequest chatReadRequest
     ) {
-        return chatService.markMessagesAsRead(Long.valueOf(principal.getName()), roomId, request.messageId());
+        return chatService.markMessagesAsRead(Long.valueOf(principal.getName()), roomId, chatReadRequest.messageId());
     }
 
     @MessageMapping("/chat/rooms/{roomId}/typing")
@@ -64,9 +64,9 @@ public class ChatSocketController {
             @DestinationVariable Long roomId,
 
             @Valid @Payload
-            ChatTypingRequest request
+            ChatTypingRequest chatTypingRequest
     ) {
-        chatService.updateTypingStatus(Long.valueOf(principal.getName()), roomId, request.typing());
+        chatService.updateTypingStatus(Long.valueOf(principal.getName()), roomId, chatTypingRequest.typing());
     }
 
     @MessageExceptionHandler(BusinessException.class)

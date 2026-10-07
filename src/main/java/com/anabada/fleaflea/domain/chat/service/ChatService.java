@@ -135,7 +135,7 @@ public class ChatService {
     public ChatMessageResponse sendMessage(
             Long memberId,
             Long roomId,
-            ChatMessageSendRequest request
+            ChatMessageSendRequest chatMessageSendRequest
     ) {
         // 회원별 전송 제한과 재전송 검증이 동시 요청에서도 동일하게 적용되도록 잠근다.
         memberRepository.findLockedById(memberId)
@@ -145,8 +145,8 @@ public class ChatService {
         Long friendId = chatRoom.getOtherMemberId(memberId);
         validateAcceptedFriendship(memberId, friendId);
 
-        String content = request.content();
-        String clientMessageId = request.clientMessageId().toString();
+        String content = chatMessageSendRequest.content();
+        String clientMessageId = chatMessageSendRequest.clientMessageId().toString();
         Optional<ChatMessage> existingMessage = chatMessageRepository
                 .findByRoomIdAndSenderIdAndClientMessageId(roomId, memberId, clientMessageId);
 
