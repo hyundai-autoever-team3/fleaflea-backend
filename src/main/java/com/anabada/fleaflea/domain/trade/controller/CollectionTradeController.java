@@ -12,45 +12,78 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 @Tag(name = "도감 거래")
 public class CollectionTradeController {
-    private final CollectionTradeService service;
+
+    private final CollectionTradeService collectionTradeService;
 
     @PostMapping("/collection-items/{collectionItemId}/trade-requests")
     @Operation(summary = "도감 거래 요청 생성")
     public ResponseEntity<CollectionTradeRequestResponse> createCollectionTradeRequest(
-            @AuthenticationPrincipal Long memberId, @PathVariable Long collectionItemId,
-            @Valid @RequestBody CollectionTradeRequestCreateRequest body) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createCollectionTradeRequest(memberId, collectionItemId, body));
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable Long collectionItemId,
+
+            @Valid @RequestBody
+            CollectionTradeRequestCreateRequest collectionTradeRequestCreateRequest
+    ) {
+        CollectionTradeRequestResponse collectionTradeRequestResponse = collectionTradeService.createCollectionTradeRequest(
+                memberId,
+                collectionItemId,
+                collectionTradeRequestCreateRequest
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(collectionTradeRequestResponse);
     }
 
     @GetMapping("/collection-trade-requests/{id}")
     @Operation(summary = "도감 거래 요청 상세 조회")
-    public CollectionTradeRequestResponse getCollectionTradeRequest(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
-        return service.getCollectionTradeRequest(memberId, id);
+    public CollectionTradeRequestResponse getCollectionTradeRequest(
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable("id") Long collectionTradeRequestId
+    ) {
+        return collectionTradeService.getCollectionTradeRequest(memberId, collectionTradeRequestId);
     }
 
     @PostMapping("/collection-trade-requests/{id}/accept")
     @Operation(summary = "도감 거래 요청 수락")
-    public CollectionTradeRequestResponse acceptCollectionTradeRequest(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
-        return service.acceptCollectionTradeRequest(memberId, id);
+    public CollectionTradeRequestResponse acceptCollectionTradeRequest(
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable("id") Long collectionTradeRequestId
+    ) {
+        return collectionTradeService.acceptCollectionTradeRequest(memberId, collectionTradeRequestId);
     }
 
     @PostMapping("/collection-trade-requests/{id}/reject")
     @Operation(summary = "도감 거래 요청 거절")
-    public CollectionTradeRequestResponse rejectCollectionTradeRequest(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
-        return service.rejectCollectionTradeRequest(memberId, id);
+    public CollectionTradeRequestResponse rejectCollectionTradeRequest(
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable("id") Long collectionTradeRequestId
+    ) {
+        return collectionTradeService.rejectCollectionTradeRequest(memberId, collectionTradeRequestId);
     }
 
     @PostMapping("/collection-trade-requests/{id}/cancel")
     @Operation(summary = "도감 거래 요청 취소")
-    public CollectionTradeRequestResponse cancelCollectionTradeRequest(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
-        return service.cancelCollectionTradeRequest(memberId, id);
+    public CollectionTradeRequestResponse cancelCollectionTradeRequest(
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable("id") Long collectionTradeRequestId
+    ) {
+        return collectionTradeService.cancelCollectionTradeRequest(memberId, collectionTradeRequestId);
     }
 
     @PostMapping("/collection-trade-requests/{id}/complete")
@@ -65,7 +98,11 @@ public class CollectionTradeController {
             @ApiResponse(responseCode = "404", description = "도감 거래 요청을 찾을 수 없음"),
             @ApiResponse(responseCode = "409", description = "수락된 거래가 아니거나 이미 완료된 거래")
     })
-    public CollectionTradeRequestResponse completeCollectionTradeRequest(@AuthenticationPrincipal Long memberId, @PathVariable Long id) {
-        return service.completeCollectionTradeRequest(memberId, id);
+    public CollectionTradeRequestResponse completeCollectionTradeRequest(
+            @AuthenticationPrincipal Long memberId,
+
+            @PathVariable("id") Long collectionTradeRequestId
+    ) {
+        return collectionTradeService.completeCollectionTradeRequest(memberId, collectionTradeRequestId);
     }
 }

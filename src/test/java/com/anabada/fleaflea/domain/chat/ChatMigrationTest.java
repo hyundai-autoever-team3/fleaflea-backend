@@ -49,7 +49,11 @@ class ChatMigrationTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("constraintViolations")
     @DisplayName("채팅 마이그레이션의 제약 조건을 위반하면 해당 PostgreSQL 오류가 발생한다")
-    void migration_rejectsConstraintViolation(String caseName, String invalidSql, String expectedSqlState) throws SQLException {
+    void migration_rejectsConstraintViolation(
+            String caseName,
+            String invalidSql,
+            String expectedSqlState
+    ) throws SQLException  {
         try (Connection connection = openConnection(); Statement statement = connection.createStatement()) {
             statement.executeUpdate("TRUNCATE TABLE chat_messages, chat_rooms RESTART IDENTITY CASCADE");
             statement.executeUpdate(INSERT_ROOM.formatted(1, 2));

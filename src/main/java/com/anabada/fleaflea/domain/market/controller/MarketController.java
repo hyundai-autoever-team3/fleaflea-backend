@@ -63,10 +63,12 @@ public class MarketController {
     public ResponseEntity<MarketCreateResponse> createMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
-            @Valid @ModelAttribute MarketCreateRequest request
+
+            @Valid @ModelAttribute
+            MarketCreateRequest marketCreateRequest
     ) {
         MarketCreateResponse response =
-                marketService.createMarket(memberId, request);
+                marketService.createMarket(memberId, marketCreateRequest);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -89,9 +91,9 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(
-                    description = "조회 범위",
-                    example = "joined",
-                    required = true
+            description = "조회 범위",
+            example = "joined",
+            required = true
             )
             @RequestParam(defaultValue = "joined") String scope,
 
@@ -99,9 +101,9 @@ public class MarketController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "joinedAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "joinedAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         PageResponse<MarketSummaryResponse> response =
@@ -157,9 +159,9 @@ public class MarketController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "joinedAt",
-                    direction = Sort.Direction.ASC
+            size = 20,
+            sort = "joinedAt",
+            direction = Sort.Direction.ASC
             ) Pageable pageable
     ) {
         PageResponse<MarketMemberResponse> response =
@@ -183,13 +185,14 @@ public class MarketController {
 
             @PathVariable Long marketId,
 
-            @Valid @ModelAttribute MarketUpdateRequest request
+            @Valid @ModelAttribute
+            MarketUpdateRequest marketUpdateRequest
     ) {
         MarketUpdateResponse response =
                 marketService.updateMarket(
                         memberId,
                         marketId,
-                        request
+                        marketUpdateRequest
                 );
 
         return ResponseEntity.ok(response);

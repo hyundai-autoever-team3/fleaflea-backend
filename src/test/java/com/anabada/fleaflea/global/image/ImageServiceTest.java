@@ -27,7 +27,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -71,11 +71,11 @@ class ImageServiceTest {
 
         PutObjectRequest.Builder builder = PutObjectRequest.builder();
         requestCaptor.getValue().accept(builder);
-        PutObjectRequest request = builder.build();
+        PutObjectRequest putObjectRequest = builder.build();
 
-        assertThat(request.bucket()).isEqualTo("test-bucket");
-        assertThat(request.key()).isEqualTo(key);
-        assertThat(request.contentType()).isEqualTo("image/png");
+        assertThat(putObjectRequest.bucket()).isEqualTo("test-bucket");
+        assertThat(putObjectRequest.key()).isEqualTo(key);
+        assertThat(putObjectRequest.contentType()).isEqualTo("image/png");
 
         try (InputStream input =
                      bodyCaptor.getValue().contentStreamProvider().newStream()) {
@@ -105,10 +105,10 @@ class ImageServiceTest {
 
         PutObjectRequest.Builder builder = PutObjectRequest.builder();
         requestCaptor.getValue().accept(builder);
-        PutObjectRequest request = builder.build();
+        PutObjectRequest putObjectRequest = builder.build();
 
-        assertThat(request.key()).isEqualTo(key);
-        assertThat(request.contentType()).isEqualTo("image/webp");
+        assertThat(putObjectRequest.key()).isEqualTo(key);
+        assertThat(putObjectRequest.contentType()).isEqualTo("image/webp");
     }
 
     @Test
@@ -122,11 +122,12 @@ class ImageServiceTest {
                         .getBytes(StandardCharsets.UTF_8)
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.upload(file, ImageCategory.ITEM)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_IMAGE);
         verifyNoInteractions(s3Client);
     }
@@ -139,11 +140,12 @@ class ImageServiceTest {
                 "this is not an image".getBytes(StandardCharsets.UTF_8)
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.upload(file, ImageCategory.ITEM)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_IMAGE);
         verifyNoInteractions(s3Client);
@@ -156,11 +158,12 @@ class ImageServiceTest {
         when(file.isEmpty()).thenReturn(false);
         when(file.getSize()).thenReturn(100L * 1024 * 1024 + 1);
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.upload(file, ImageCategory.ITEM)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_TOO_LARGE);
         verifyNoInteractions(s3Client);
@@ -173,11 +176,12 @@ class ImageServiceTest {
                 "file", "empty.png", "image/png", new byte[0]
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.upload(file, ImageCategory.PROFILE)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_IMAGE);
         verifyNoInteractions(s3Client);
@@ -186,11 +190,12 @@ class ImageServiceTest {
     @Test
     @DisplayName("잘못된 이미지 키는 삭제할 수 없다")
     void deleteRejectsInvalidKey() {
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.delete("../other-file.png")
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_IMAGE_KEY);
         verifyNoInteractions(s3Client);
@@ -210,10 +215,10 @@ class ImageServiceTest {
 
         DeleteObjectRequest.Builder builder = DeleteObjectRequest.builder();
         captor.getValue().accept(builder);
-        DeleteObjectRequest request = builder.build();
+        DeleteObjectRequest deleteObjectRequest = builder.build();
 
-        assertThat(request.bucket()).isEqualTo("test-bucket");
-        assertThat(request.key()).isEqualTo(key);
+        assertThat(deleteObjectRequest.bucket()).isEqualTo("test-bucket");
+        assertThat(deleteObjectRequest.key()).isEqualTo(key);
     }
 
     @Test
@@ -237,12 +242,12 @@ class ImageServiceTest {
 
         CopyObjectRequest.Builder builder = CopyObjectRequest.builder();
         captor.getValue().accept(builder);
-        CopyObjectRequest request = builder.build();
+        CopyObjectRequest copyObjectRequest = builder.build();
 
-        assertThat(request.sourceBucket()).isEqualTo("test-bucket");
-        assertThat(request.sourceKey()).isEqualTo(sourceKey);
-        assertThat(request.destinationBucket()).isEqualTo("test-bucket");
-        assertThat(request.destinationKey()).isEqualTo(targetKey);
+        assertThat(copyObjectRequest.sourceBucket()).isEqualTo("test-bucket");
+        assertThat(copyObjectRequest.sourceKey()).isEqualTo(sourceKey);
+        assertThat(copyObjectRequest.destinationBucket()).isEqualTo("test-bucket");
+        assertThat(copyObjectRequest.destinationKey()).isEqualTo(targetKey);
     }
 
     @Test
@@ -310,11 +315,12 @@ class ImageServiceTest {
     void deleteAfterCommitRejectsMissingTransaction() {
         String key = "items/12345678-1234-1234-1234-123456789abc.png";
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.deleteAfterCommit(key)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
 
@@ -344,11 +350,12 @@ class ImageServiceTest {
                 any(RequestBody.class)
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.upload(file, ImageCategory.ITEM)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_FAILED);
         assertThat(exception.getCause()).isSameAs(cause);
@@ -366,11 +373,12 @@ class ImageServiceTest {
                         .<Consumer<DeleteObjectRequest.Builder>>any()
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.delete(key)
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_DELETE_FAILED);
         assertThat(exception.getCause()).isSameAs(cause);
@@ -420,13 +428,14 @@ class ImageServiceTest {
                 any(RequestBody.class)
         );
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.prepareReplacement(
                         previousKey, file, ImageCategory.ITEM
                 )
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_FAILED);
         assertThat(exception.getCause()).isSameAs(cause);
@@ -444,13 +453,14 @@ class ImageServiceTest {
                 "profiles/12345678-1234-1234-1234-123456789abc.png";
         MockMultipartFile file = createPngFile();
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.prepareReplacement(
                         previousKey, file, ImageCategory.ITEM
                 )
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_IMAGE_KEY);
         verifyNoInteractions(s3Client);
@@ -488,7 +498,7 @@ class ImageServiceTest {
     void replaceRejectsMissingTransaction() throws Exception {
         MockMultipartFile file = createPngFile();
 
-        ImageException exception = assertThrows(
+        ImageException exception = catchThrowableOfType(
                 ImageException.class,
                 () -> imageService.replace(
                         "items/12345678-1234-1234-1234-123456789abc.png",
@@ -497,6 +507,7 @@ class ImageServiceTest {
                 )
         );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
 
@@ -581,9 +592,12 @@ class ImageServiceTest {
     void uploadInTransaction_requiresWritableTransaction() throws Exception {
         MockMultipartFile image = createPngFile();
 
-        ImageException exception = assertThrows(ImageException.class,
-                () -> imageService.uploadInTransaction(image, ImageCategory.COLLECTION_ITEM));
+        ImageException exception = catchThrowableOfType(
+                ImageException.class,
+                () -> imageService.uploadInTransaction(image, ImageCategory.COLLECTION_ITEM)
+        );
 
+        assertThat(exception).isNotNull();
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IMAGE_TRANSACTION_REQUIRED);
         verifyNoInteractions(s3Client);
     }

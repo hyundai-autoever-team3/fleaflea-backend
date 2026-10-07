@@ -25,7 +25,10 @@ public class ChatEventListener {
         sendToMember(event.secondMemberId(), response);
     }
 
-    private void sendToMember(Long memberId, ChatSocketEventResponse response) {
+    private void sendToMember(
+            Long memberId,
+            ChatSocketEventResponse response
+    ) {
         try {
             messagingTemplate.convertAndSendToUser(memberId.toString(), "/queue/chat", response);
         } catch (MessagingException exception) {

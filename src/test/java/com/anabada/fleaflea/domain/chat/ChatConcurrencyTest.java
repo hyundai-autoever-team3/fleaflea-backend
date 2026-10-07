@@ -106,7 +106,8 @@ class ChatConcurrencyTest {
             assertThat(ready.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
             start.countDown();
 
-            assertThat(firstRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isEqualTo(secondRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertThat(firstRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+                .isEqualTo(secondRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertThat(chatRoomRepository.count()).isEqualTo(1);
         }
     }
@@ -115,7 +116,7 @@ class ChatConcurrencyTest {
     @DisplayName("같은 메시지를 동시에 재전송해도 하나만 저장한다")
     void sendMessage_concurrentRetries_persistOneMessage() throws Exception {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
-        ChatMessageSendRequest request = createSendRequest("firstRequest message");
+        ChatMessageSendRequest chatMessageSendRequest = createChatMessageSendRequest("firstRequest message");
 
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             CountDownLatch ready = new CountDownLatch(2);
@@ -123,18 +124,19 @@ class ChatConcurrencyTest {
             Future<ChatMessageResponse> firstRequest = executor.submit(() -> {
                 awaitStart(ready, start);
 
-                return chatService.sendMessage(sender.getMemberId(), roomId, request);
+                return chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
             });
             Future<ChatMessageResponse> secondRequest = executor.submit(() -> {
                 awaitStart(ready, start);
 
-                return chatService.sendMessage(sender.getMemberId(), roomId, request);
+                return chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
             });
 
             assertThat(ready.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
             start.countDown();
 
-            assertThat(firstRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isEqualTo(secondRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertThat(firstRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+                .isEqualTo(secondRequest.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertThat(chatMessageRepository.count()).isEqualTo(1);
         }
     }
@@ -211,15 +213,22 @@ class ChatConcurrencyTest {
         }
     }
 
-    private ChatMessageSendRequest createSendRequest(String content) {
-        return ChatFixture.createSendRequest(content);
+    private ChatMessageSendRequest createChatMessageSendRequest(String content) {
+        return ChatFixture.createChatMessageSendRequest(content);
     }
 
-    private ChatMessageResponse sendMessage(Member member, Long roomId, String content) {
-        return chatService.sendMessage(member.getMemberId(), roomId, createSendRequest(content));
+    private ChatMessageResponse sendMessage(
+            Member member,
+            Long roomId,
+            String content
+    ) {
+        return chatService.sendMessage(member.getMemberId(), roomId, createChatMessageSendRequest(content));
     }
 
-    private void awaitStart(CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+    private void awaitStart(
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException  {
         ready.countDown();
 
         if (!start.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {

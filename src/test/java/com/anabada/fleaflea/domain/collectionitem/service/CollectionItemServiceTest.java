@@ -89,13 +89,13 @@ class CollectionItemServiceTest {
     @DisplayName("도감을 등록하면 트랜잭션에 연결된 이미지 키를 저장한다")
     void createCollectionItem_savesUploadedImageKey() {
         MockMultipartFile image = new MockMultipartFile("image", new byte[]{1});
-        CollectionItemCreateRequest request = new CollectionItemCreateRequest("텀블러", "설명", true, image);
+        CollectionItemCreateRequest collectionItemCreateRequest = new CollectionItemCreateRequest("텀블러", "설명", true, image);
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(owner));
         when(imageService.uploadInTransaction(image, ImageCategory.COLLECTION_ITEM)).thenReturn("image-key");
         when(collectionItemRepository.save(any(CollectionItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(imageService.getUrl("image-key")).thenReturn("https://example.test/image.png");
 
-        CollectionItemResponse response = collectionItemService.createCollectionItem(MEMBER_ID, request);
+        CollectionItemResponse response = collectionItemService.createCollectionItem(MEMBER_ID, collectionItemCreateRequest);
 
         assertThat(response.title()).isEqualTo("텀블러");
         assertThat(response.ownerId()).isEqualTo(MEMBER_ID);

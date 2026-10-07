@@ -51,8 +51,8 @@ public class BegRequestService {
     public BeggingResponse createBegging(
             Long memberId,
             Long collectionItemId,
-            BeggingRequest request
-            ) {
+            BeggingRequest beggingRequest
+    ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
@@ -78,7 +78,7 @@ public class BegRequestService {
         BegRequest begRequest = BegRequest.create(
                 collectionItem,
                 member,
-                request.story(),
+                beggingRequest.story(),
                 BegRequestStatus.PENDING
         );
         begRequestRepository.save(begRequest);
@@ -117,7 +117,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse acceptBeggingRequest(Long memberId , Long begRequestId) {
+    public BeggingStatusResponse acceptBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -128,7 +131,6 @@ public class BegRequestService {
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
-
 
         begRequest.accept();
 
@@ -151,7 +153,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse rejectBeggingRequest(Long memberId ,Long begRequestId) {
+    public BeggingStatusResponse rejectBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -162,7 +167,6 @@ public class BegRequestService {
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
-
 
         begRequest.reject();
 
@@ -185,7 +189,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse cancelBeggingRequest(Long memberId, Long begRequestId) {
+    public BeggingStatusResponse cancelBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -267,7 +274,6 @@ public class BegRequestService {
 
         return BeggingStatusResponse.from(begRequest);
     }
-
 
     private TradeTarget toTradeTarget(CollectionItem collectionItem) {
         return TradeTarget.of(

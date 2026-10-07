@@ -44,7 +44,7 @@ class ChatEventListenerTest {
     @DisplayName("한 참여자에게 이벤트 전달이 실패해도 다른 참여자에게 전달한다")
     void onChatEvent_continuesAfterDeliveryFailure() {
         ChatMessageResponse message = ChatMessageResponse.from(ChatFixture.createChatMessageWithId(
-                20L, 10L, 1L, ChatFixture.createSendRequest("전달 확인"), LocalDateTime.of(2026, 1, 1, 12, 0)
+                20L, 10L, 1L, ChatFixture.createChatMessageSendRequest("전달 확인"), LocalDateTime.of(2026, 1, 1, 12, 0)
         ));
         ChatEvent event = new ChatEvent(1L, 2L, ChatEvent.MESSAGE_SENT, message);
         ChatSocketEventResponse response = ChatSocketEventResponse.from(event);

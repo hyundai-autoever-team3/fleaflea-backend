@@ -19,6 +19,8 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
 
     private static final String AUTHENTICATION_DEADLINE_ATTRIBUTE = "chatAuthenticationDeadline";
 
+    private static final long AUTHENTICATION_TIMEOUT_MILLIS = 10000;
+
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
     @Override
@@ -27,7 +29,7 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
 
             @Override
             public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-                session.getAttributes().put(AUTHENTICATION_DEADLINE_ATTRIBUTE, System.currentTimeMillis() + 10000);
+                session.getAttributes().put(AUTHENTICATION_DEADLINE_ATTRIBUTE, System.currentTimeMillis() + AUTHENTICATION_TIMEOUT_MILLIS);
                 sessions.put(session.getId(), session);
                 try {
                     super.afterConnectionEstablished(session);
@@ -38,7 +40,10 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
             }
 
             @Override
-            public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
+            public void afterConnectionClosed(
+            WebSocketSession session,
+            CloseStatus closeStatus
+    ) throws Exception  {
                 sessions.remove(session.getId());
                 super.afterConnectionClosed(session, closeStatus);
             }

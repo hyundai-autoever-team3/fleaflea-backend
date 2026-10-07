@@ -30,7 +30,10 @@ public class MemberPokeService {
     private final PokeRateLimiter pokeRateLimiter;
 
     @Transactional
-    public void sendPoke(Long senderId, Long recipientId) {
+    public void sendPoke(
+            Long senderId,
+            Long recipientId
+    ) {
         if (senderId.equals(recipientId)) {
             throw new PokeSelfRequestException();
         }
@@ -56,7 +59,11 @@ public class MemberPokeService {
         );
     }
 
-    public PageResponse<MemberPokeResponse> getReceivedPokes(Long recipientId, int page, int size) {
+    public PageResponse<MemberPokeResponse> getReceivedPokes(
+            Long recipientId,
+            int page,
+            int size
+    ) {
         return PageResponse.from(memberPokeRepository.findByRecipient_MemberId(
                 recipientId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
@@ -64,7 +71,10 @@ public class MemberPokeService {
     }
 
     @Transactional
-    public void markPokeAsRead(Long recipientId, Long pokeId) {
+    public void markPokeAsRead(
+            Long recipientId,
+            Long pokeId
+    ) {
         MemberPoke poke = memberPokeRepository.findById(pokeId)
                 .orElseThrow(() -> new PokeNotFoundException());
         if (!poke.getRecipient().getMemberId().equals(recipientId)) {

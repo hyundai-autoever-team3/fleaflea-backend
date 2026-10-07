@@ -13,7 +13,10 @@ public record ChatRoomListResponse(
         boolean hasNext
 ) {
 
-    public static ChatRoomListResponse from(List<ChatRoomResponse> rooms, boolean hasNext) {
+    public static ChatRoomListResponse from(
+            List<ChatRoomResponse> rooms,
+            boolean hasNext
+    ) {
         return new ChatRoomListResponse(rooms, hasNext);
     }
 }

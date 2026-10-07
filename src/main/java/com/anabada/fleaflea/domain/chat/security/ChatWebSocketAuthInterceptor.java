@@ -33,7 +33,10 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
     private final ChatWebSocketSessionDecorator chatWebSocketSessionDecorator;
 
     @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public Message<?> preSend(
+            Message<?> message,
+            MessageChannel channel
+    ) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
         if (accessor == null || accessor.getCommand() == null) {
             return message;
@@ -47,7 +50,10 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
         }
     }
 
-    private Message<?> authorizeMessage(Message<?> message, StompHeaderAccessor accessor) {
+    private Message<?> authorizeMessage(
+            Message<?> message,
+            StompHeaderAccessor accessor
+    ) {
         StompCommand command = accessor.getCommand();
         if (command == StompCommand.CONNECT) {
             authenticate(accessor);

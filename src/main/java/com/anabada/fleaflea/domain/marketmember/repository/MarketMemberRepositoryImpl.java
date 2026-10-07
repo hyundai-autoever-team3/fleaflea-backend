@@ -47,9 +47,9 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
                 .join(market.host, member)
                 .where(
                         marketMember.member.memberId.eq(memberId),
-                        titleContains(condition)
+                        createTitleContainsPredicate(condition)
                 )
-                .orderBy(orderSpecifiers(pageable))
+                .orderBy(createOrderSpecifiers(pageable))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -60,7 +60,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
                 .join(marketMember.market, market)
                 .where(
                         marketMember.member.memberId.eq(memberId),
-                        titleContains(condition)
+                        createTitleContainsPredicate(condition)
                 );
 
         return PageableExecutionUtils.getPage(
@@ -73,7 +73,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
         );
     }
 
-    private BooleanExpression titleContains(MarketSearchCondition condition) {
+    private BooleanExpression createTitleContainsPredicate(MarketSearchCondition condition) {
         if (condition == null
                 || condition.title() == null
                 || condition.title().isBlank()) {
@@ -83,18 +83,18 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
         return market.title.containsIgnoreCase(condition.title().trim());
     }
 
-    private OrderSpecifier<?>[] orderSpecifiers(Pageable pageable) {
+    private OrderSpecifier<?>[] createOrderSpecifiers(Pageable pageable) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
         for (org.springframework.data.domain.Sort.Order order
                 : pageable.getSort()) {
             switch (order.getProperty()) {
                 case "title" -> orders.add(new OrderSpecifier<>(
-                        direction(order),
+                        getOrderDirection(order),
                         market.title
                 ));
                 default -> orders.add(new OrderSpecifier<>(
-                        direction(order),
+                        getOrderDirection(order),
                         marketMember.joinedAt
                 ));
             }
@@ -109,7 +109,7 @@ public class MarketMemberRepositoryImpl implements MarketMemberRepositoryCustom 
         return orders.toArray(OrderSpecifier[]::new);
     }
 
-    private Order direction(org.springframework.data.domain.Sort.Order order) {
+    private Order getOrderDirection(org.springframework.data.domain.Sort.Order order) {
         return order.isAscending() ? Order.ASC : Order.DESC;
     }
 }

@@ -47,7 +47,7 @@ class ChatWebSocketAuthInterceptorTest {
         assertThat(accessor.getFirstNativeHeader("Authorization")).isNull();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(strings = {"", "Bearer invalid", "invalid"})
     @DisplayName("토큰이 없거나 형식이 잘못된 연결은 거절한다")
     void connect_rejectsInvalidAuthorization(String authorization) {
@@ -68,7 +68,7 @@ class ChatWebSocketAuthInterceptorTest {
                 .isInstanceOf(BadCredentialsException.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(strings = {"/queue/chat", "/topic/chat", "/user/2/queue/chat", "/app/chat/rooms/1/messages"})
     @DisplayName("다른 회원이나 공용 경로를 구독할 수 없다")
     void subscribe_rejectsOtherDestinations(String destination) {
@@ -79,7 +79,7 @@ class ChatWebSocketAuthInterceptorTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(strings = {"/user/queue/chat", "/user/queue/chat-acks", "/user/queue/chat-errors"})
     @DisplayName("본인의 채팅 이벤트와 전송 결과 및 오류만 구독할 수 있다")
     void subscribe_acceptsPersonalDestinations(String destination) {
@@ -90,7 +90,7 @@ class ChatWebSocketAuthInterceptorTest {
         assertThat(chatWebSocketAuthInterceptor.preSend(message, null)).isSameAs(message);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(strings = {"/queue/chat", "/user/queue/chat", "/topic/chat", "/app/notifications", "/app/chat/rooms/1/messages/extra"})
     @DisplayName("브로커 직접 전송과 채팅 외 경로 전송을 차단한다")
     void send_rejectsOtherDestinations(String destination) {
@@ -101,7 +101,7 @@ class ChatWebSocketAuthInterceptorTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(strings = {"/app/chat/rooms/1/messages", "/app/chat/rooms/1/read"})
     @DisplayName("채팅 메시지와 읽음 처리 경로로 전송할 수 있다")
     void send_acceptsChatDestinations(String destination) {

@@ -23,32 +23,41 @@ public record TradeRequestListResponse(
 ) {
 
     public static TradeRequestListResponse from(
-            TradeRequest request, MemberSummaryResponse owner, MemberSummaryResponse requester, String imageUrl
+            TradeRequest tradeRequest,
+            MemberSummaryResponse owner,
+            MemberSummaryResponse requester,
+            String imageUrl
     ) {
         return new TradeRequestListResponse(
-                "ITEM", request.getTradeRequestId(), request.getItem().getItemId(),
-                request.getItem().getTitle(), request.getItem().getTradeType().name(),
-                request.getStatus(), owner, requester, imageUrl, request.getCreatedAt()
+                "ITEM", tradeRequest.getTradeRequestId(), tradeRequest.getItem().getItemId(),
+                tradeRequest.getItem().getTitle(), tradeRequest.getItem().getTradeType().name(),
+                tradeRequest.getStatus(), owner, requester, imageUrl, tradeRequest.getCreatedAt()
         );
     }
 
     public static TradeRequestListResponse from(
-            CollectionTradeRequest request, MemberSummaryResponse owner, MemberSummaryResponse requester, String imageUrl
+            CollectionTradeRequest collectionTradeRequest,
+            MemberSummaryResponse owner,
+            MemberSummaryResponse requester,
+            String imageUrl
     ) {
         return new TradeRequestListResponse(
-                "COLLECTION", request.getCollectionTradeRequestId(), request.getCollectionItemSnapshotId(),
-                request.getCollectionItemTitle(), request.getTradeType().name(),
-                request.getStatus(), owner, requester, imageUrl, request.getCreatedAt()
+                "COLLECTION", collectionTradeRequest.getCollectionTradeRequestId(), collectionTradeRequest.getCollectionItemSnapshotId(),
+                collectionTradeRequest.getCollectionItemTitle(), collectionTradeRequest.getTradeType().name(),
+                collectionTradeRequest.getStatus(), owner, requester, imageUrl, collectionTradeRequest.getCreatedAt()
         );
     }
 
     public static TradeRequestListResponse from(
-            BegRequest request, MemberSummaryResponse owner, MemberSummaryResponse requester, String imageUrl
+            BegRequest begRequest,
+            MemberSummaryResponse owner,
+            MemberSummaryResponse requester,
+            String imageUrl
     ) {
         return new TradeRequestListResponse(
-                "BEG", request.getBegRequestId(), request.getCollectionItemSnapshotId(),
-                request.getCollectionItemTitle(), null, request.getStatus().toTradeRequestStatus(),
-                owner, requester, imageUrl, request.getCreatedAt()
+                "BEG", begRequest.getBegRequestId(), begRequest.getCollectionItemSnapshotId(),
+                begRequest.getCollectionItemTitle(), null, begRequest.getStatus().toTradeRequestStatus(),
+                owner, requester, imageUrl, begRequest.getCreatedAt()
         );
     }
 }

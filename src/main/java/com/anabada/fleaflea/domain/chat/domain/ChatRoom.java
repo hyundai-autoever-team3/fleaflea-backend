@@ -57,7 +57,10 @@ public class ChatRoom extends BaseTimeEntity {
         this.memberHighId = memberHighId;
     }
 
-    public static ChatRoom create(Long memberId, Long friendId) {
+    public static ChatRoom create(
+            Long memberId,
+            Long friendId
+    ) {
         return ChatRoom.builder()
                 .memberLowId(Math.min(memberId, friendId))
                 .memberHighId(Math.max(memberId, friendId))
@@ -80,7 +83,10 @@ public class ChatRoom extends BaseTimeEntity {
         return memberLowId.equals(memberId) ? lowLastReadId : highLastReadId;
     }
 
-    public void markMessagesAsRead(Long memberId, long messageId) {
+    public void markMessagesAsRead(
+            Long memberId,
+            long messageId
+    ) {
         validateParticipant(memberId);
 
         if (memberLowId.equals(memberId)) {

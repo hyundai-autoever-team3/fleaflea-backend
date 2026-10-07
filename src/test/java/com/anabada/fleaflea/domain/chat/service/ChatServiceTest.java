@@ -91,7 +91,7 @@ class ChatServiceTest {
         chatRoom = ChatFixture.createChatRoomWithId(ROOM_ID, MEMBER_ID, FRIEND_ID);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(booleans = {true, false})
     @DisplayName("친구인 참여자의 입력 시작과 종료는 저장 없이 이벤트로 전달한다")
     void updateTypingStatus_publishesEventWithoutSaving(boolean typing) {
@@ -185,7 +185,7 @@ class ChatServiceTest {
         when(memberRepository.findLockedById(MEMBER_ID)).thenReturn(Optional.of(sender));
         when(chatRoomRepository.findLockedById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
-        assertThatThrownBy(() -> chatService.sendMessage(MEMBER_ID, ROOM_ID, ChatFixture.createSendRequest("안녕")))
+        assertThatThrownBy(() -> chatService.sendMessage(MEMBER_ID, ROOM_ID, ChatFixture.createChatMessageSendRequest("안녕")))
                 .isInstanceOf(ChatFriendRequiredException.class);
 
         verifyNoInteractions(chatMessageRepository, eventPublisher);
@@ -194,16 +194,16 @@ class ChatServiceTest {
     @Test
     @DisplayName("같은 메시지를 재전송하면 기존 응답을 반환하고 저장과 이벤트 발행을 반복하지 않는다")
     void sendMessage_reusesExistingMessageWithoutPublishingEvent() {
-        ChatMessageSendRequest request = ChatFixture.createSendRequest("안녕");
+        ChatMessageSendRequest chatMessageSendRequest = ChatFixture.createChatMessageSendRequest("안녕");
         ChatMessage existingMessage = ChatFixture.createChatMessageWithId(
-                20L, ROOM_ID, MEMBER_ID, request, LocalDateTime.of(2026, 1, 1, 12, 0)
+                20L, ROOM_ID, MEMBER_ID, chatMessageSendRequest, LocalDateTime.of(2026, 1, 1, 12, 0)
         );
         prepareMessageSender();
         when(chatMessageRepository.findByRoomIdAndSenderIdAndClientMessageId(
-                ROOM_ID, MEMBER_ID, request.clientMessageId().toString()
+                ROOM_ID, MEMBER_ID, chatMessageSendRequest.clientMessageId().toString()
         )).thenReturn(Optional.of(existingMessage));
 
-        ChatMessageResponse response = chatService.sendMessage(MEMBER_ID, ROOM_ID, request);
+        ChatMessageResponse response = chatService.sendMessage(MEMBER_ID, ROOM_ID, chatMessageSendRequest);
 
         assertThat(response).isEqualTo(ChatMessageResponse.from(existingMessage));
         verify(chatMessageRepository, never()).save(any(ChatMessage.class));
@@ -213,7 +213,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("같은 클라이언트 메시지 ID에 다른 내용이 전달되면 중복 충돌 예외가 발생한다")
     void sendMessage_rejectsChangedRetryContent() {
-        ChatMessageSendRequest originalRequest = ChatFixture.createSendRequest("원래 내용");
+        ChatMessageSendRequest originalRequest = ChatFixture.createChatMessageSendRequest("원래 내용");
         ChatMessage existingMessage = ChatFixture.createChatMessageWithId(
                 20L, ROOM_ID, MEMBER_ID, originalRequest, LocalDateTime.of(2026, 1, 1, 12, 0)
         );
@@ -221,7 +221,7 @@ class ChatServiceTest {
         when(chatMessageRepository.findByRoomIdAndSenderIdAndClientMessageId(
                 ROOM_ID, MEMBER_ID, originalRequest.clientMessageId().toString()
         )).thenReturn(Optional.of(existingMessage));
-        ChatMessageSendRequest changedRequest = ChatFixture.createSendRequest("다른 내용", originalRequest.clientMessageId());
+        ChatMessageSendRequest changedRequest = ChatFixture.createChatMessageSendRequest("다른 내용", originalRequest.clientMessageId());
 
         assertThatThrownBy(() -> chatService.sendMessage(MEMBER_ID, ROOM_ID, changedRequest))
                 .isInstanceOf(ChatDuplicateMessageConflictException.class);
@@ -236,7 +236,7 @@ class ChatServiceTest {
         when(chatMessageRepository.countRecentMessagesBySenderId(eq(MEMBER_ID), any(LocalDateTime.class)))
                 .thenReturn(60L);
 
-        assertThatThrownBy(() -> chatService.sendMessage(MEMBER_ID, ROOM_ID, ChatFixture.createSendRequest("초과")))
+        assertThatThrownBy(() -> chatService.sendMessage(MEMBER_ID, ROOM_ID, ChatFixture.createChatMessageSendRequest("초과")))
                 .isInstanceOfSatisfying(ChatRateLimitExceededException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CHAT_RATE_LIMIT_EXCEEDED));
 
@@ -247,7 +247,12 @@ class ChatServiceTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidMessageCursors")
     @DisplayName("잘못된 커서 조합이나 조회 범위는 채팅 커서 전용 예외로 처리한다")
-    void getMessages_rejectsInvalidCursor(String caseName, Long beforeId, Long afterId, int size) {
+    void getMessages_rejectsInvalidCursor(
+            String caseName,
+            Long beforeId,
+            Long afterId,
+            int size
+    ) {
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
         assertThatThrownBy(() -> chatService.getMessages(MEMBER_ID, ROOM_ID, beforeId, afterId, size))

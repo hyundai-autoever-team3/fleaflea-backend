@@ -37,7 +37,10 @@ public class TradeRequestListService {
     private final TradeRepository tradeRepository;
     private final ImageService imageService;
 
-    public List<TradeRequestListResponse> getTradeRequests(Long memberId, String direction) {
+    public List<TradeRequestListResponse> getTradeRequests(
+            Long memberId,
+            String direction
+    ) {
         boolean received;
         if ("received".equalsIgnoreCase(direction)) {
             received = true;
@@ -58,19 +61,21 @@ public class TradeRequestListService {
                 : begRequestRepository.findByApplicant_MemberIdOrderByCreatedAtDesc(memberId);
 
         List<TradeRequestListResponse> result = new ArrayList<>(items.size() + collections.size() + begs.size());
-        for (TradeRequest request : items) {
-            result.add(TradeRequestListResponse.from(request, toMemberSummaryResponse(request.getItem().getSeller()),
-                    toMemberSummaryResponse(request.getRequester()), imageService.getUrl(request.getItem().getImageKey())));
+        for (TradeRequest tradeRequest : items) {
+            result.add(TradeRequestListResponse.from(tradeRequest, toMemberSummaryResponse(tradeRequest.getItem().getSeller()),
+                    toMemberSummaryResponse(tradeRequest.getRequester()), imageService.getUrl(tradeRequest.getItem().getImageKey())));
         }
-        for (CollectionTradeRequest request : collections) {
-            String imageKey = request.getCollectionItem() == null ? null : request.getCollectionItem().getImageKey();
-            result.add(TradeRequestListResponse.from(request, toMemberSummaryResponse(request.getOwner()),
-                    toMemberSummaryResponse(request.getRequester()), imageService.getUrl(imageKey)));
+        for (CollectionTradeRequest collectionTradeRequest : collections) {
+            String imageKey = collectionTradeRequest.getCollectionItem() == null
+                    ? null
+                    : collectionTradeRequest.getCollectionItem().getImageKey();
+            result.add(TradeRequestListResponse.from(collectionTradeRequest, toMemberSummaryResponse(collectionTradeRequest.getOwner()),
+                    toMemberSummaryResponse(collectionTradeRequest.getRequester()), imageService.getUrl(imageKey)));
         }
-        for (BegRequest request : begs) {
-            String imageKey = request.getCollectionItem() == null ? null : request.getCollectionItem().getImageKey();
-            result.add(TradeRequestListResponse.from(request, toMemberSummaryResponse(request.getOwner()),
-                    toMemberSummaryResponse(request.getApplicant()), imageService.getUrl(imageKey)));
+        for (BegRequest begRequest : begs) {
+            String imageKey = begRequest.getCollectionItem() == null ? null : begRequest.getCollectionItem().getImageKey();
+            result.add(TradeRequestListResponse.from(begRequest, toMemberSummaryResponse(begRequest.getOwner()),
+                    toMemberSummaryResponse(begRequest.getApplicant()), imageService.getUrl(imageKey)));
         }
 
         result.sort(Comparator.comparing(TradeRequestListResponse::createdAt,
@@ -89,138 +94,100 @@ public class TradeRequestListService {
         }
 
         return switch (requestType.toUpperCase(Locale.ROOT)) {
-            case "ITEM" -> itemDetail(memberId, requestId);
-            case "COLLECTION" -> collectionDetail(memberId, requestId);
-            case "BEG" -> begDetail(memberId, requestId);
+            case "ITEM" -> getItemTradeRequestDetail(memberId, requestId);
+            case "COLLECTION" -> getCollectionTradeRequestDetail(memberId, requestId);
+            case "BEG" -> getBegRequestDetail(memberId, requestId);
             default -> throw new InvalidTradeRequestTypeException();
         };
     }
 
-    private TradeRequestHistoryDetailResponse itemDetail(
+    private TradeRequestHistoryDetailResponse getItemTradeRequestDetail(
             Long memberId,
             Long requestId
     ) {
-        TradeRequest request = tradeRequestRepository
+        TradeRequest tradeRequest = tradeRequestRepository
                 .findWithDetailsByTradeRequestId(requestId)
                 .orElseThrow(TradeRequestNotFoundException::new);
-        Item item = request.getItem();
-        requireParty(
+        Item item = tradeRequest.getItem();
+        validateTradeParticipant(
                 memberId,
                 item.getSeller().getMemberId(),
-                request.getRequester().getMemberId()
+                tradeRequest.getRequester().getMemberId()
         );
 
-        return new TradeRequestHistoryDetailResponse(
-                "ITEM",
-                request.getTradeRequestId(),
-                item.getItemId(),
-                item.getTitle(),
-                item.getDescription(),
-                imageService.getUrl(item.getImageKey()),
-                item.getTradeType().name(),
-                item.getPrice(),
-                request.getStatus(),
+        return TradeRequestHistoryDetailResponse.from(
+                tradeRequest,
                 toMemberSummaryResponse(item.getSeller()),
-                toMemberSummaryResponse(request.getRequester()),
-                null,
-                request.getMessage(),
-                request.getRentalStartDate(),
-                request.getRentalEndDate(),
-                request.getCreatedAt(),
-                request.getUpdatedAt(),
+                toMemberSummaryResponse(tradeRequest.getRequester()),
+                imageService.getUrl(item.getImageKey()),
                 tradeRepository.findByTradeRequestId(requestId)
                         .map(trade -> trade.getCompletedAt())
                         .orElse(null)
         );
     }
 
-    private TradeRequestHistoryDetailResponse collectionDetail(
+    private TradeRequestHistoryDetailResponse getCollectionTradeRequestDetail(
             Long memberId,
             Long requestId
     ) {
-        CollectionTradeRequest request = collectionTradeRequestRepository
+        CollectionTradeRequest collectionTradeRequest = collectionTradeRequestRepository
                 .findWithDetailsByCollectionTradeRequestId(requestId)
                 .orElseThrow(TradeRequestNotFoundException::new);
-        CollectionItem target = request.getCollectionItem();
-        requireParty(
+        CollectionItem target = collectionTradeRequest.getCollectionItem();
+        validateTradeParticipant(
                 memberId,
-                request.getOwner().getMemberId(),
-                request.getRequester().getMemberId()
+                collectionTradeRequest.getOwner().getMemberId(),
+                collectionTradeRequest.getRequester().getMemberId()
         );
 
-        CollectionItem offer = request.getOfferCollectionItem();
-        TradeRequestHistoryDetailResponse.OfferItem offerResponse =
-                request.getOfferCollectionItemSnapshotId() == null ? null
-                        : new TradeRequestHistoryDetailResponse.OfferItem(
-                                request.getOfferCollectionItemSnapshotId(),
-                                request.getOfferCollectionItemTitle(),
-                                request.getOfferCollectionItemDescription(),
-                                imageService.getUrl(offer == null ? null : offer.getImageKey())
-                        );
+        CollectionItem offer = collectionTradeRequest.getOfferCollectionItem();
+        TradeRequestHistoryDetailResponse.OfferItem offerResponse = TradeRequestHistoryDetailResponse.OfferItem.from(
+                collectionTradeRequest,
+                imageService.getUrl(offer == null ? null : offer.getImageKey())
+        );
 
-        return new TradeRequestHistoryDetailResponse(
-                "COLLECTION",
-                request.getCollectionTradeRequestId(),
-                request.getCollectionItemSnapshotId(),
-                request.getCollectionItemTitle(),
-                request.getCollectionItemDescription(),
+        return TradeRequestHistoryDetailResponse.from(
+                collectionTradeRequest,
+                toMemberSummaryResponse(collectionTradeRequest.getOwner()),
+                toMemberSummaryResponse(collectionTradeRequest.getRequester()),
                 imageService.getUrl(target == null ? null : target.getImageKey()),
-                request.getTradeType().name(),
-                null,
-                request.getStatus(),
-                toMemberSummaryResponse(request.getOwner()),
-                toMemberSummaryResponse(request.getRequester()),
                 offerResponse,
-                null,
-                null,
-                null,
-                request.getCreatedAt(),
-                request.getUpdatedAt(),
                 tradeRepository.findByCollectionTradeRequestId(requestId)
                         .map(trade -> trade.getCompletedAt())
                         .orElse(null)
         );
     }
 
-    private TradeRequestHistoryDetailResponse begDetail(
+    private TradeRequestHistoryDetailResponse getBegRequestDetail(
             Long memberId,
             Long requestId
     ) {
-        BegRequest request = begRequestRepository
+        BegRequest begRequest = begRequestRepository
                 .findWithDetailsByBegRequestId(requestId)
                 .orElseThrow(TradeRequestNotFoundException::new);
-        CollectionItem target = request.getCollectionItem();
-        requireParty(
+        CollectionItem target = begRequest.getCollectionItem();
+        validateTradeParticipant(
                 memberId,
-                request.getOwner().getMemberId(),
-                request.getApplicant().getMemberId()
+                begRequest.getOwner().getMemberId(),
+                begRequest.getApplicant().getMemberId()
         );
 
-        return new TradeRequestHistoryDetailResponse(
-                "BEG",
-                request.getBegRequestId(),
-                request.getCollectionItemSnapshotId(),
-                request.getCollectionItemTitle(),
-                request.getCollectionItemDescription(),
+        return TradeRequestHistoryDetailResponse.from(
+                begRequest,
+                toMemberSummaryResponse(begRequest.getOwner()),
+                toMemberSummaryResponse(begRequest.getApplicant()),
                 imageService.getUrl(target == null ? null : target.getImageKey()),
-                null,
-                null,
-                request.getStatus().toTradeRequestStatus(),
-                toMemberSummaryResponse(request.getOwner()),
-                toMemberSummaryResponse(request.getApplicant()),
-                null,
-                request.getStory(),
-                null,
-                null,
-                request.getCreatedAt(),
-                request.getUpdatedAt(),
                 tradeRepository.findByBegRequestId(requestId)
                         .map(trade -> trade.getCompletedAt())
                         .orElse(null)
         );
     }
 
-    private void requireParty(Long memberId, Long ownerId, Long requesterId) {
+    private void validateTradeParticipant(
+            Long memberId,
+            Long ownerId,
+            Long requesterId
+    ) {
         if (!memberId.equals(ownerId) && !memberId.equals(requesterId)) {
             throw new TradeRequestAccessDeniedException();
         }

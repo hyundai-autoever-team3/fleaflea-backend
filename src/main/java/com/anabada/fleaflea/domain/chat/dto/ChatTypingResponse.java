@@ -14,7 +14,11 @@ public record ChatTypingResponse(
         boolean typing
 ) {
 
-    public static ChatTypingResponse from(ChatRoom chatRoom, Long memberId, boolean typing) {
+    public static ChatTypingResponse from(
+            ChatRoom chatRoom,
+            Long memberId,
+            boolean typing
+    ) {
         return new ChatTypingResponse(chatRoom.getId(), memberId, typing);
     }
 }

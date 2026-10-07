@@ -58,18 +58,20 @@ public class CollectionTradeService {
 
     @Transactional
     public CollectionTradeRequestResponse createCollectionTradeRequest(
-            Long requesterId, Long collectionItemId, CollectionTradeRequestCreateRequest request
+            Long requesterId,
+            Long collectionItemId,
+            CollectionTradeRequestCreateRequest collectionTradeRequestCreateRequest
     ) {
         Member requester = memberRepository.findById(requesterId)
                 .orElseThrow(MemberNotFoundException::new);
         List<Long> itemIds = new ArrayList<>();
         itemIds.add(collectionItemId);
-        if (request.tradeType() == CollectionTradeType.EXCHANGE) {
-            if (request.offerCollectionItemId() == null) {
+        if (collectionTradeRequestCreateRequest.tradeType() == CollectionTradeType.EXCHANGE) {
+            if (collectionTradeRequestCreateRequest.offerCollectionItemId() == null) {
                 throw new CollectionTradeOfferRequiredException();
             }
-            itemIds.add(request.offerCollectionItemId());
-        } else if (request.offerCollectionItemId() != null) {
+            itemIds.add(collectionTradeRequestCreateRequest.offerCollectionItemId());
+        } else if (collectionTradeRequestCreateRequest.offerCollectionItemId() != null) {
             throw new CollectionTradeInvalidOfferException();
         }
         Map<Long, CollectionItem> lockedItems = collectionItemRepository.findAllByIdForUpdate(itemIds).stream()
@@ -90,8 +92,8 @@ public class CollectionTradeService {
         }
 
         CollectionItem offer = null;
-        if (request.tradeType() == CollectionTradeType.EXCHANGE) {
-            offer = lockedItems.get(request.offerCollectionItemId());
+        if (collectionTradeRequestCreateRequest.tradeType() == CollectionTradeType.EXCHANGE) {
+            offer = lockedItems.get(collectionTradeRequestCreateRequest.offerCollectionItemId());
             if (offer == null || !offer.isOwnedBy(requesterId)
                     || offer.getCollectionItemId().equals(collectionItemId)) {
                 throw new CollectionTradeInvalidOfferException();
@@ -103,7 +105,7 @@ public class CollectionTradeService {
                         target,
                         requester,
                         offer,
-                        request.tradeType()
+                        collectionTradeRequestCreateRequest.tradeType()
                 );
 
         collectionTradeRequestRepository.save(tradeRequest);
@@ -122,94 +124,110 @@ public class CollectionTradeService {
     }
 
     @Transactional(readOnly = true)
-    public CollectionTradeRequestResponse getCollectionTradeRequest(Long memberId, Long collectionTradeRequestId) {
-        CollectionTradeRequest request = collectionTradeRequestRepository.findWithDetailsByCollectionTradeRequestId(collectionTradeRequestId)
+    public CollectionTradeRequestResponse getCollectionTradeRequest(
+            Long memberId,
+            Long collectionTradeRequestId
+    ) {
+        CollectionTradeRequest collectionTradeRequest = collectionTradeRequestRepository
+                .findWithDetailsByCollectionTradeRequestId(collectionTradeRequestId)
                 .orElseThrow(CollectionTradeRequestNotFoundException::new);
-        requireParty(request, memberId);
-        return CollectionTradeRequestResponse.from(request);
+        requireParty(collectionTradeRequest, memberId);
+        return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
     @Transactional
-    public CollectionTradeRequestResponse acceptCollectionTradeRequest(Long memberId, Long collectionTradeRequestId) {
-        CollectionTradeRequest request = findLockedCollectionTradeRequest(collectionTradeRequestId);
-        requireOwner(request, memberId);
-        requireStatus(request, TradeRequestStatus.PENDING);
-        request.accept();
+    public CollectionTradeRequestResponse acceptCollectionTradeRequest(
+            Long memberId,
+            Long collectionTradeRequestId
+    ) {
+        CollectionTradeRequest collectionTradeRequest = findLockedCollectionTradeRequest(collectionTradeRequestId);
+        requireOwner(collectionTradeRequest, memberId);
+        requireStatus(collectionTradeRequest, TradeRequestStatus.PENDING);
+        collectionTradeRequest.accept();
 
-        Member owner = request.getOwner();
+        Member owner = collectionTradeRequest.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeAcceptedEvent.of(
-                        request.getCollectionTradeRequestId(),
-                        request.getRequester().getMemberId(),
+                        collectionTradeRequest.getCollectionTradeRequestId(),
+                        collectionTradeRequest.getRequester().getMemberId(),
                         owner.getMemberId(),
                         owner.getNickname(),
-                        toTradeTarget(request)
+                        toTradeTarget(collectionTradeRequest)
                 )
         );
 
-        return CollectionTradeRequestResponse.from(request);
+        return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
     @Transactional
-    public CollectionTradeRequestResponse rejectCollectionTradeRequest(Long memberId, Long collectionTradeRequestId) {
-        CollectionTradeRequest request = findLockedCollectionTradeRequest(collectionTradeRequestId);
-        requireOwner(request, memberId);
-        requireStatus(request, TradeRequestStatus.PENDING);
-        request.reject();
+    public CollectionTradeRequestResponse rejectCollectionTradeRequest(
+            Long memberId,
+            Long collectionTradeRequestId
+    ) {
+        CollectionTradeRequest collectionTradeRequest = findLockedCollectionTradeRequest(collectionTradeRequestId);
+        requireOwner(collectionTradeRequest, memberId);
+        requireStatus(collectionTradeRequest, TradeRequestStatus.PENDING);
+        collectionTradeRequest.reject();
 
-        Member owner = request.getOwner();
+        Member owner = collectionTradeRequest.getOwner();
 
         tradeNotifier.notifyOf(
                 TradeRejectedEvent.of(
-                        request.getCollectionTradeRequestId(),
-                        request.getRequester().getMemberId(),
+                        collectionTradeRequest.getCollectionTradeRequestId(),
+                        collectionTradeRequest.getRequester().getMemberId(),
                         owner.getMemberId(),
                         owner.getNickname(),
-                        toTradeTarget(request)
+                        toTradeTarget(collectionTradeRequest)
                 )
         );
 
-        return CollectionTradeRequestResponse.from(request);
+        return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
     @Transactional
-    public CollectionTradeRequestResponse cancelCollectionTradeRequest(Long memberId, Long collectionTradeRequestId) {
-        CollectionTradeRequest request = findLockedCollectionTradeRequest(collectionTradeRequestId);
-        if (!request.getRequester().getMemberId().equals(memberId)) {
+    public CollectionTradeRequestResponse cancelCollectionTradeRequest(
+            Long memberId,
+            Long collectionTradeRequestId
+    ) {
+        CollectionTradeRequest collectionTradeRequest = findLockedCollectionTradeRequest(collectionTradeRequestId);
+        if (!collectionTradeRequest.getRequester().getMemberId().equals(memberId)) {
             throw new CollectionTradeAccessDeniedException();
         }
-        requireStatus(request, TradeRequestStatus.PENDING);
-        request.cancel();
+        requireStatus(collectionTradeRequest, TradeRequestStatus.PENDING);
+        collectionTradeRequest.cancel();
 
         tradeNotifier.notifyOf(
                 TradeCancelledEvent.of(
-                        request.getCollectionTradeRequestId(),
-                        request.getRequester().getMemberId(),
-                        request.getOwner().getMemberId(),
-                        request.getRequester()
+                        collectionTradeRequest.getCollectionTradeRequestId(),
+                        collectionTradeRequest.getRequester().getMemberId(),
+                        collectionTradeRequest.getOwner().getMemberId(),
+                        collectionTradeRequest.getRequester()
                                 .getNickname(),
-                        toTradeTarget(request)
+                        toTradeTarget(collectionTradeRequest)
                 )
         );
 
-        return CollectionTradeRequestResponse.from(request);
+        return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
     @Transactional
-    public CollectionTradeRequestResponse completeCollectionTradeRequest(Long memberId, Long collectionTradeRequestId) {
-        CollectionTradeRequest request = findLockedCollectionTradeRequest(collectionTradeRequestId);
-        requireRequester(request, memberId);
-        requireStatus(request, TradeRequestStatus.ACCEPTED);
+    public CollectionTradeRequestResponse completeCollectionTradeRequest(
+            Long memberId,
+            Long collectionTradeRequestId
+    ) {
+        CollectionTradeRequest collectionTradeRequest = findLockedCollectionTradeRequest(collectionTradeRequestId);
+        requireRequester(collectionTradeRequest, memberId);
+        requireStatus(collectionTradeRequest, TradeRequestStatus.ACCEPTED);
         if (tradeRepository.existsByCollectionTradeRequestId(collectionTradeRequestId)) {
             throw new CollectionTradeInvalidStatusException();
         }
 
-        Member owner = request.getOwner();
-        Member requester = request.getRequester();
+        Member owner = collectionTradeRequest.getOwner();
+        Member requester = collectionTradeRequest.getRequester();
 
-        exchangeOwnership(request, owner, requester);
-        request.complete();
+        exchangeOwnership(collectionTradeRequest, owner, requester);
+        collectionTradeRequest.complete();
 
         tradeRepository.save(
                 Trade.ofCollectionTrade(
@@ -221,15 +239,15 @@ public class CollectionTradeService {
 
         tradeNotifier.notifyOf(
                 TradeCompletedEvent.of(
-                        request.getCollectionTradeRequestId(),
+                        collectionTradeRequest.getCollectionTradeRequestId(),
                         requester.getMemberId(),
                         owner.getMemberId(),
                         requester.getNickname(),
-                        toTradeTarget(request)
+                        toTradeTarget(collectionTradeRequest)
                 )
         );
 
-        return CollectionTradeRequestResponse.from(request);
+        return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
     private CollectionTradeRequest findLockedCollectionTradeRequest(Long collectionTradeRequestId) {
@@ -237,36 +255,45 @@ public class CollectionTradeService {
                 .orElseThrow(CollectionTradeRequestNotFoundException::new);
     }
 
-    private void requireOwner(CollectionTradeRequest request, Long memberId) {
-        if (!request.getOwner().getMemberId().equals(memberId)) {
+    private void requireOwner(
+            CollectionTradeRequest collectionTradeRequest,
+            Long memberId
+    ) {
+        if (!collectionTradeRequest.getOwner().getMemberId().equals(memberId)) {
             throw new CollectionTradeAccessDeniedException();
         }
     }
 
-    private void requireRequester(CollectionTradeRequest request, Long memberId) {
-        if (!request.getRequester().getMemberId().equals(memberId)) {
+    private void requireRequester(
+            CollectionTradeRequest collectionTradeRequest,
+            Long memberId
+    ) {
+        if (!collectionTradeRequest.getRequester().getMemberId().equals(memberId)) {
             throw new CollectionTradeAccessDeniedException();
         }
     }
 
-    private void requireParty(CollectionTradeRequest request, Long memberId) {
-        if (!request.getRequester().getMemberId().equals(memberId)
-                && !request.getOwner().getMemberId().equals(memberId)) {
+    private void requireParty(
+            CollectionTradeRequest collectionTradeRequest,
+            Long memberId
+    ) {
+        if (!collectionTradeRequest.getRequester().getMemberId().equals(memberId)
+                && !collectionTradeRequest.getOwner().getMemberId().equals(memberId)) {
             throw new CollectionTradeAccessDeniedException();
         }
     }
 
     private void exchangeOwnership(
-            CollectionTradeRequest request,
+            CollectionTradeRequest collectionTradeRequest,
             Member owner,
             Member requester
     ) {
-        if (request.getTradeType() != CollectionTradeType.EXCHANGE) {
+        if (collectionTradeRequest.getTradeType() != CollectionTradeType.EXCHANGE) {
             return;
         }
 
-        CollectionItem requestedItem = request.getCollectionItem();
-        CollectionItem offeredItem = request.getOfferCollectionItem();
+        CollectionItem requestedItem = collectionTradeRequest.getCollectionItem();
+        CollectionItem offeredItem = collectionTradeRequest.getOfferCollectionItem();
         if (offeredItem == null) {
             throw new CollectionTradeOwnershipChangedException();
         }
@@ -290,13 +317,19 @@ public class CollectionTradeService {
         lockedOfferedItem.transferTo(owner);
     }
 
-    private void requireStatus(CollectionTradeRequest request, TradeRequestStatus expected) {
-        if (request.getStatus() != expected) {
+    private void requireStatus(
+            CollectionTradeRequest collectionTradeRequest,
+            TradeRequestStatus expected
+    ) {
+        if (collectionTradeRequest.getStatus() != expected) {
             throw new CollectionTradeInvalidStatusException();
         }
     }
 
-    private boolean areFriends(Long firstMemberId, Long secondMemberId) {
+    private boolean areFriends(
+            Long firstMemberId,
+            Long secondMemberId
+    ) {
         return friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                 firstMemberId, secondMemberId, FriendshipStatus.ACCEPTED)
                 || friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
@@ -304,23 +337,23 @@ public class CollectionTradeService {
     }
 
     private TradeTarget toTradeTarget(
-            CollectionTradeRequest request
+            CollectionTradeRequest collectionTradeRequest
     ) {
         CollectionItem collectionItem =
-                request.getCollectionItem();
+                collectionTradeRequest.getCollectionItem();
 
         return TradeTarget.of(
                 TradeKind.COLLECTION,
-                toTradeDealType(request),
+                toTradeDealType(collectionTradeRequest),
                 collectionItem.getCollectionItemId(),
                 collectionItem.getTitle()
         );
     }
 
     private TradeDealType toTradeDealType(
-            CollectionTradeRequest request
+            CollectionTradeRequest collectionTradeRequest
     ) {
-        return switch (request.getTradeType()) {
+        return switch (collectionTradeRequest.getTradeType()) {
             case RENTAL ->
                     TradeDealType.COLLECTION_RENTAL;
 

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "콕찌르기", description = "회원 간 콕찌르기 API")
 public class MemberPokeController {
 
-    private final MemberPokeService pokeService;
+    private final MemberPokeService memberPokeService;
 
     @PostMapping("/members/{memberId}/pokes")
     @Operation(summary = "회원 콕찌르기", description = "상대 회원에게 콕찌르기를 보냅니다.")
@@ -38,9 +38,10 @@ public class MemberPokeController {
     })
     public ResponseEntity<Void> sendPoke(
             @AuthenticationPrincipal Long senderId,
+
             @PathVariable Long memberId
     ) {
-        pokeService.sendPoke(senderId, memberId);
+        memberPokeService.sendPoke(senderId, memberId);
         return ResponseEntity.noContent().build();
     }
 
@@ -49,10 +50,12 @@ public class MemberPokeController {
     @ApiResponse(responseCode = "200", description = "목록 조회 성공")
     public ResponseEntity<PageResponse<MemberPokeResponse>> getReceivedPokes(
             @AuthenticationPrincipal Long memberId,
+
             @RequestParam(defaultValue = "0") @Min(0) int page,
+
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        return ResponseEntity.ok(pokeService.getReceivedPokes(memberId, page, size));
+        return ResponseEntity.ok(memberPokeService.getReceivedPokes(memberId, page, size));
     }
 
     @PatchMapping("/pokes/{pokeId}/read")
@@ -64,9 +67,10 @@ public class MemberPokeController {
     })
     public ResponseEntity<Void> markPokeAsRead(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long pokeId
     ) {
-        pokeService.markPokeAsRead(memberId, pokeId);
+        memberPokeService.markPokeAsRead(memberId, pokeId);
         return ResponseEntity.noContent().build();
     }
 }

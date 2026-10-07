@@ -123,7 +123,7 @@ class ChatServiceIntegrationTest {
         assertThatThrownBy(() -> {
             switch (operation) {
                 case GET_ROOM -> chatService.getChatRoom(outsider.getMemberId(), roomId);
-                case SEND_MESSAGE -> chatService.sendMessage(outsider.getMemberId(), roomId, createSendRequest("hello"));
+                case SEND_MESSAGE -> chatService.sendMessage(outsider.getMemberId(), roomId, createChatMessageSendRequest("hello"));
                 case GET_MESSAGES -> chatService.getMessages(outsider.getMemberId(), roomId, null, null, 30);
                 case MARK_READ -> chatService.markMessagesAsRead(outsider.getMemberId(), roomId, message.id());
             }
@@ -162,10 +162,10 @@ class ChatServiceIntegrationTest {
     @DisplayName("같은 메시지를 재전송하면 저장된 응답을 반환하고 중복 저장하지 않는다")
     void sendMessage_retry_returnsPersistedMessage() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
-        ChatMessageSendRequest request = createSendRequest("hello");
-        ChatMessageResponse first = chatService.sendMessage(sender.getMemberId(), roomId, request);
+        ChatMessageSendRequest chatMessageSendRequest = createChatMessageSendRequest("hello");
+        ChatMessageResponse first = chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
 
-        ChatMessageResponse retry = chatService.sendMessage(sender.getMemberId(), roomId, request);
+        ChatMessageResponse retry = chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
 
         assertThat(retry).isEqualTo(first);
         assertThat(chatMessageRepository.count()).isEqualTo(1);
@@ -175,9 +175,9 @@ class ChatServiceIntegrationTest {
     @DisplayName("같은 메시지 ID로 다른 내용을 보내면 기존 메시지를 변경하지 않는다")
     void sendMessage_changedRetryContent_preservesOriginalMessage() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
-        ChatMessageSendRequest originalRequest = createSendRequest("원래 내용");
+        ChatMessageSendRequest originalRequest = createChatMessageSendRequest("원래 내용");
         ChatMessageResponse original = chatService.sendMessage(sender.getMemberId(), roomId, originalRequest);
-        ChatMessageSendRequest changedRequest = ChatFixture.createSendRequest("다른 내용", originalRequest.clientMessageId());
+        ChatMessageSendRequest changedRequest = ChatFixture.createChatMessageSendRequest("다른 내용", originalRequest.clientMessageId());
 
         assertThatThrownBy(() -> chatService.sendMessage(sender.getMemberId(), roomId, changedRequest))
                 .isInstanceOf(ChatDuplicateMessageConflictException.class);
@@ -195,7 +195,9 @@ class ChatServiceIntegrationTest {
         ChatMessageResponse third = sendMessage(sender, roomId, "3");
 
         CursorPageResponse<ChatMessageResponse> newest = chatService.getMessages(receiver.getMemberId(), roomId, null, null, 2);
-        CursorPageResponse<ChatMessageResponse> older = chatService.getMessages(receiver.getMemberId(), roomId, newest.nextCursor(), null, 2);
+        CursorPageResponse<ChatMessageResponse> older = chatService.getMessages(
+                receiver.getMemberId(), roomId, newest.nextCursor(), null, 2
+        );
 
         assertThat(newest.content()).containsExactly(third, second);
         assertThat(newest.hasNext()).isTrue();
@@ -213,7 +215,9 @@ class ChatServiceIntegrationTest {
         ChatMessageResponse third = sendMessage(sender, roomId, "3");
 
         CursorPageResponse<ChatMessageResponse> firstPage = chatService.getMessages(receiver.getMemberId(), roomId, null, 0L, 2);
-        CursorPageResponse<ChatMessageResponse> nextPage = chatService.getMessages(receiver.getMemberId(), roomId, null, firstPage.nextCursor(), 2);
+        CursorPageResponse<ChatMessageResponse> nextPage = chatService.getMessages(
+                receiver.getMemberId(), roomId, null, firstPage.nextCursor(), 2
+        );
 
         assertThat(firstPage.content()).containsExactly(first, second);
         assertThat(firstPage.hasNext()).isTrue();
@@ -300,11 +304,15 @@ class ChatServiceIntegrationTest {
         GET_ROOM, SEND_MESSAGE, GET_MESSAGES, MARK_READ
     }
 
-    private ChatMessageSendRequest createSendRequest(String content) {
-        return ChatFixture.createSendRequest(content);
+    private ChatMessageSendRequest createChatMessageSendRequest(String content) {
+        return ChatFixture.createChatMessageSendRequest(content);
     }
 
-    private ChatMessageResponse sendMessage(Member member, Long roomId, String content) {
-        return chatService.sendMessage(member.getMemberId(), roomId, createSendRequest(content));
+    private ChatMessageResponse sendMessage(
+            Member member,
+            Long roomId,
+            String content
+    ) {
+        return chatService.sendMessage(member.getMemberId(), roomId, createChatMessageSendRequest(content));
     }
 }

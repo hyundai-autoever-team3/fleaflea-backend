@@ -36,9 +36,11 @@ public class ChatController {
     )
     public ChatRoomResponse getOrCreateChatRoom(
             @AuthenticationPrincipal Long memberId,
-            @Valid @RequestBody ChatRoomCreateRequest request
+
+            @Valid @RequestBody
+            ChatRoomCreateRequest chatRoomCreateRequest
     ) {
-        return chatService.getOrCreateChatRoom(memberId, request.friendId());
+        return chatService.getOrCreateChatRoom(memberId, chatRoomCreateRequest.friendId());
     }
 
     @GetMapping
@@ -48,7 +50,9 @@ public class ChatController {
     )
     public ChatRoomListResponse getChatRooms(
             @AuthenticationPrincipal Long memberId,
+
             @RequestParam(defaultValue = "0") @Min(0) int page,
+
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return chatService.getChatRooms(memberId, page, size);
@@ -61,6 +65,7 @@ public class ChatController {
     )
     public ChatRoomResponse getChatRoom(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long roomId
     ) {
         return chatService.getChatRoom(memberId, roomId);
@@ -74,9 +79,13 @@ public class ChatController {
     )
     public CursorPageResponse<ChatMessageResponse> getMessages(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long roomId,
+
             @RequestParam(required = false) Long beforeId,
+
             @RequestParam(required = false) @Min(0) Long afterId,
+
             @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size
     ) {
         return chatService.getMessages(memberId, roomId, beforeId, afterId, size);

@@ -75,7 +75,10 @@ class ChatControllerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidRoomRequests")
     @DisplayName("잘못된 페이지와 메시지 커서는 서비스 호출 전에 거절한다")
-    void getRequests_rejectInvalidParameters(String caseName, String path) throws Exception {
+    void getRequests_rejectInvalidParameters(
+            String caseName,
+            String path
+    ) throws Exception  {
         mockMvc.perform(get(path).with(authentication(createMemberAuthentication())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
@@ -94,7 +97,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.code").value("CHAT_NOT_PARTICIPANT"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index}: {0}")
     @ValueSource(longs = {0L, -1L})
     @DisplayName("숫자 방 ID는 서비스에 전달하고 조회 결과의 도메인 오류를 반환한다")
     void getChatRoom_delegatesNumericRoomIdToService(Long roomId) throws Exception {
@@ -111,7 +114,10 @@ class ChatControllerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidRequiredIdBodies")
     @DisplayName("필수 친구 ID가 없거나 잘못되면 채팅방 생성 요청을 거절한다")
-    void getOrCreateChatRoom_rejectsInvalidFriendId(String caseName, String value) throws Exception {
+    void getOrCreateChatRoom_rejectsInvalidFriendId(
+            String caseName,
+            String value
+    ) throws Exception  {
         mockMvc.perform(post("/api/v1/chat/rooms")
                         .with(authentication(createMemberAuthentication()))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,7 +131,10 @@ class ChatControllerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("emptyOptionalCursorRequests")
     @DisplayName("선택 커서를 생략하거나 빈 값으로 보내면 null로 전달하고 기본 범위로 조회한다")
-    void getMessages_acceptsMissingOrEmptyCursors(String caseName, String query) throws Exception {
+    void getMessages_acceptsMissingOrEmptyCursors(
+            String caseName,
+            String query
+    ) throws Exception  {
         when(chatService.getMessages(MEMBER_ID, ROOM_ID, null, null, 30))
                 .thenReturn(CursorPageResponse.from(List.of(), null, false));
 
@@ -141,7 +150,10 @@ class ChatControllerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("defaultPageRequests")
     @DisplayName("페이지와 크기를 생략하거나 빈 값으로 보내면 기본값으로 조회한다")
-    void getChatRooms_usesDefaultPagination(String caseName, String query) throws Exception {
+    void getChatRooms_usesDefaultPagination(
+            String caseName,
+            String query
+    ) throws Exception  {
         when(chatService.getChatRooms(MEMBER_ID, 0, 20))
                 .thenReturn(ChatRoomListResponse.from(List.of(), false));
 
@@ -180,7 +192,10 @@ class ChatControllerTest {
         );
     }
 
-    private static String requiredIdBody(String fieldName, String value) {
+    private static String requiredIdBody(
+            String fieldName,
+            String value
+    ) {
         return value == null ? "{}" : "{\"%s\":%s}".formatted(fieldName, value);
     }
 

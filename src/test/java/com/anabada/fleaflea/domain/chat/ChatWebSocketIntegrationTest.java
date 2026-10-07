@@ -130,19 +130,19 @@ class ChatWebSocketIntegrationTest {
     @Test
     @DisplayName("실제 소켓 전송은 인증 회원을 사용하고 저장 결과를 요청 세션에 반환한다")
     void sendMessage_returnsSavedMessageToSender() throws Exception {
-        ChatMessageSendRequest request = ChatFixture.createSendRequest("a".repeat(2000));
-        ChatMessageResponse response = createMessageResponse(request);
+        ChatMessageSendRequest chatMessageSendRequest = ChatFixture.createChatMessageSendRequest("a".repeat(2000));
+        ChatMessageResponse response = createMessageResponse(chatMessageSendRequest);
         when(chatService.sendMessage(eq(1L), eq(10L), any(ChatMessageSendRequest.class))).thenReturn(response);
         StompSession session = connect(1L);
         BlockingQueue<String> acknowledgements = subscribe(session, 1L, "/user/queue/chat-acks");
 
-        sendJson(session, "/app/chat/rooms/10/messages", JsonMapper.builder().build().writeValueAsString(request));
+        sendJson(session, "/app/chat/rooms/10/messages", JsonMapper.builder().build().writeValueAsString(chatMessageSendRequest));
 
         String acknowledgement = acknowledgements.poll(5, TimeUnit.SECONDS);
         assertThat(acknowledgement).isNotNull();
         ChatMessageResponse actual = JsonMapper.builder().build().readValue(acknowledgement, ChatMessageResponse.class);
         assertThat(actual).isEqualTo(response);
-        verify(chatService).sendMessage(1L, 10L, request);
+        verify(chatService).sendMessage(1L, 10L, chatMessageSendRequest);
     }
 
     @Test
@@ -165,7 +165,11 @@ class ChatWebSocketIntegrationTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidRequests")
     @DisplayName("잘못된 JSON과 필수값은 소켓 오류로 반환하고 서비스를 호출하지 않는다")
-    void sendMessage_rejectsInvalidRequest(String caseName, String destination, String body) throws Exception {
+    void sendMessage_rejectsInvalidRequest(
+            String caseName,
+            String destination,
+            String body
+    ) throws Exception  {
         StompSession session = connect(1L);
         BlockingQueue<String> errors = subscribe(session, 1L, "/user/queue/chat-errors");
 
@@ -185,7 +189,7 @@ class ChatWebSocketIntegrationTest {
         BlockingQueue<String> errors = subscribe(session, 1L, "/user/queue/chat-errors");
 
         sendJson(session, "/app/chat/rooms/10/messages", JsonMapper.builder().build()
-                .writeValueAsString(ChatFixture.createSendRequest("친구만")));
+                .writeValueAsString(ChatFixture.createChatMessageSendRequest("친구만")));
 
         assertThat(errors.poll(5, TimeUnit.SECONDS)).isNotNull().contains("CHAT_FRIEND_REQUIRED");
     }
@@ -196,7 +200,7 @@ class ChatWebSocketIntegrationTest {
         BlockingQueue<String> senderEvents = subscribe(connect(1L), 1L, "/user/queue/chat");
         BlockingQueue<String> receiverEvents = subscribe(connect(2L), 2L, "/user/queue/chat");
         BlockingQueue<String> outsiderEvents = subscribe(connect(3L), 3L, "/user/queue/chat");
-        ChatMessageResponse response = createMessageResponse(ChatFixture.createSendRequest("안녕하세요"));
+        ChatMessageResponse response = createMessageResponse(ChatFixture.createChatMessageSendRequest("안녕하세요"));
 
         chatEventListener.onChatEvent(new ChatEvent(1L, 2L, ChatEvent.MESSAGE_SENT, response));
 
@@ -234,9 +238,13 @@ class ChatWebSocketIntegrationTest {
     @Test
     @DisplayName("허용되지 않은 웹 Origin의 WebSocket 업그레이드 요청을 거절한다")
     void handshake_rejectsUntrustedOrigin() {
-        assertThatThrownBy(() -> HttpClient.newHttpClient().newWebSocketBuilder()
-                .header("Origin", "https://untrusted.example")
-                .buildAsync(URI.create("ws://localhost:" + port + "/ws/chat"), new WebSocket.Listener() {})
+        assertThatThrownBy(
+            () -> HttpClient.newHttpClient().newWebSocketBuilder()
+            .header("Origin",
+            "https://untrusted.example")
+            .buildAsync(URI.create("ws://localhost:" + port + "/ws/chat"),
+            new WebSocket.Listener(
+    ) {})
                 .get(5, TimeUnit.SECONDS))
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(WebSocketHandshakeException.class);
@@ -257,14 +265,20 @@ class ChatWebSocketIntegrationTest {
 
                         @Override
                         public CompletionStage<?> onText(
-                                WebSocket webSocket, CharSequence data, boolean last
-                        ) {
+            WebSocket webSocket,
+            CharSequence data,
+            boolean last
+    ) {
                             webSocket.request(1);
                             return null;
                         }
 
                         @Override
-                        public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+                        public CompletionStage<?> onClose(
+            WebSocket webSocket,
+            int statusCode,
+            String reason
+    ) {
                             closeStatuses.add(statusCode);
                             return null;
                         }
@@ -282,7 +296,11 @@ class ChatWebSocketIntegrationTest {
         verifyNoInteractions(chatService);
     }
 
-    private void sendJson(StompSession session, String destination, String body) {
+    private void sendJson(
+            StompSession session,
+            String destination,
+            String body
+    ) {
         StompHeaders headers = new StompHeaders();
         headers.setDestination(destination);
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -299,7 +317,11 @@ class ChatWebSocketIntegrationTest {
         return session;
     }
 
-    private BlockingQueue<String> subscribe(StompSession session, Long memberId, String destination) throws Exception {
+    private BlockingQueue<String> subscribe(
+            StompSession session,
+            Long memberId,
+            String destination
+    ) throws Exception  {
         BlockingQueue<String> messages = new LinkedBlockingQueue<>();
         session.subscribe(destination, new StompFrameHandler() {
 
@@ -309,7 +331,10 @@ class ChatWebSocketIntegrationTest {
             }
 
             @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
+            public void handleFrame(
+            StompHeaders headers,
+            Object payload
+    ) {
                 messages.add(new String((byte[]) payload, StandardCharsets.UTF_8));
             }
         });
@@ -317,9 +342,9 @@ class ChatWebSocketIntegrationTest {
         return messages;
     }
 
-    private ChatMessageResponse createMessageResponse(ChatMessageSendRequest request) {
+    private ChatMessageResponse createMessageResponse(ChatMessageSendRequest chatMessageSendRequest) {
         return ChatMessageResponse.from(ChatFixture.createChatMessageWithId(
-                20L, 10L, 1L, request, LocalDateTime.of(2026, 1, 1, 12, 0)
+                20L, 10L, 1L, chatMessageSendRequest, LocalDateTime.of(2026, 1, 1, 12, 0)
         ));
     }
 
@@ -370,7 +395,10 @@ class ChatWebSocketIntegrationTest {
             subscriptions.clear();
         }
 
-        void awaitSubscription(Long memberId, String destination) throws Exception {
+        void awaitSubscription(
+            Long memberId,
+            String destination
+    ) throws Exception  {
             SessionSubscribeEvent event = subscriptions.poll(5, TimeUnit.SECONDS);
             assertThat(event).isNotNull();
             assertThat(event.getUser().getName()).isEqualTo(memberId.toString());

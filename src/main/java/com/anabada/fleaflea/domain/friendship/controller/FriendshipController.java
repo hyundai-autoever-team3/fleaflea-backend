@@ -43,6 +43,7 @@ public class FriendshipController {
     @GetMapping("/friend-requests")
     public ResponseEntity<List<FriendshipResponse>> getFriendRequest(
             @AuthenticationPrincipal Long memberId,
+
             @RequestParam FriendRequestDirection direction
     ) {
         if (direction == FriendRequestDirection.SENT) {
@@ -79,6 +80,7 @@ public class FriendshipController {
     @PostMapping("/members/{memberId}/friend-requests")
     public ResponseEntity<Void> requestFollow(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable("memberId") Long targetMemberId
     ) {
         friendshipService.requestFollow(memberId, targetMemberId);
@@ -94,6 +96,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{requesterId}/accept")
     public ResponseEntity<Void> acceptFollow(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long requesterId
     ) {
         friendshipService.acceptFollow(memberId, requesterId);
@@ -109,6 +112,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{requesterId}/reject")
     public ResponseEntity<Void> rejectFollow(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long requesterId
     ) {
         friendshipService.rejectFollow(memberId, requesterId);
@@ -124,6 +128,7 @@ public class FriendshipController {
     @PostMapping("/friend-requests/{addresseeId}/cancel")
     public ResponseEntity<Void> cancelFollow(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long addresseeId
     ) {
         friendshipService.cancelFollow(memberId, addresseeId);
@@ -139,6 +144,7 @@ public class FriendshipController {
     @DeleteMapping("/friendships/{friendshipId}")
     public ResponseEntity<Void> deleteFriend(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable Long friendshipId
     ) {
         friendshipService.deleteFriend(memberId, friendshipId);

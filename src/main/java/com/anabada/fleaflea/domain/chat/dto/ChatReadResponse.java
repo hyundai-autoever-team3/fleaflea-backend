@@ -15,7 +15,10 @@ public record ChatReadResponse(
         long lastReadMessageId
 ) {
 
-    public static ChatReadResponse from(ChatRoom chatRoom, Long memberId) {
+    public static ChatReadResponse from(
+            ChatRoom chatRoom,
+            Long memberId
+    ) {
         return new ChatReadResponse(
                 chatRoom.getId(),
                 memberId,

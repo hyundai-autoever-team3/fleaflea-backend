@@ -167,7 +167,10 @@ public class MarketQueryService {
         return statuses;
     }
 
-    private Long getOtherMemberId(Friendship friendship, Long memberId) {
+    private Long getOtherMemberId(
+            Friendship friendship,
+            Long memberId
+    ) {
         if (friendship.getRequester().getMemberId().equals(memberId)) {
             return friendship.getAddressee().getMemberId();
         }

@@ -57,7 +57,10 @@ public class ChatService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public ChatRoomResponse getOrCreateChatRoom(Long memberId, Long friendId) {
+    public ChatRoomResponse getOrCreateChatRoom(
+            Long memberId,
+            Long friendId
+    ) {
         if (memberId.equals(friendId)) {
             throw new ChatFriendRequiredException();
         }
@@ -82,7 +85,11 @@ public class ChatService {
         return toChatRoomResponse(chatRoom, memberId);
     }
 
-    public ChatRoomListResponse getChatRooms(Long memberId, int page, int size) {
+    public ChatRoomListResponse getChatRooms(
+            Long memberId,
+            int page,
+            int size
+    ) {
         Slice<ChatRoom> chatRooms = chatRoomRepository.findChatRoomsByMemberId(
                 memberId,
                 PageRequest.of(page, size)
@@ -125,7 +132,10 @@ public class ChatService {
         return ChatRoomListResponse.from(responses, chatRooms.hasNext());
     }
 
-    public ChatRoomResponse getChatRoom(Long memberId, Long roomId) {
+    public ChatRoomResponse getChatRoom(
+            Long memberId,
+            Long roomId
+    ) {
         ChatRoom chatRoom = getChatRoomForParticipant(memberId, roomId);
 
         return toChatRoomResponse(chatRoom, memberId);
@@ -213,7 +223,11 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatReadResponse markMessagesAsRead(Long memberId, Long roomId, Long messageId) {
+    public ChatReadResponse markMessagesAsRead(
+            Long memberId,
+            Long roomId,
+            Long messageId
+    ) {
         ChatRoom chatRoom = getChatRoomForParticipantWithLock(memberId, roomId);
         chatMessageRepository.findByIdAndRoomId(messageId, roomId)
                 .orElseThrow(ChatMessageNotFoundException::new);
@@ -232,7 +246,11 @@ public class ChatService {
         return response;
     }
 
-    public void updateTypingStatus(Long memberId, Long roomId, boolean typing) {
+    public void updateTypingStatus(
+            Long memberId,
+            Long roomId,
+            boolean typing
+    ) {
         ChatRoom chatRoom = getChatRoomForParticipant(memberId, roomId);
         Long friendId = chatRoom.getOtherMemberId(memberId);
 
@@ -248,7 +266,10 @@ public class ChatService {
         ));
     }
 
-    private ChatRoom getChatRoomForParticipant(Long memberId, Long roomId) {
+    private ChatRoom getChatRoomForParticipant(
+            Long memberId,
+            Long roomId
+    ) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(ChatRoomNotFoundException::new);
 
@@ -257,7 +278,10 @@ public class ChatService {
         return chatRoom;
     }
 
-    private ChatRoom getChatRoomForParticipantWithLock(Long memberId, Long roomId) {
+    private ChatRoom getChatRoomForParticipantWithLock(
+            Long memberId,
+            Long roomId
+    ) {
         ChatRoom chatRoom = chatRoomRepository.findLockedById(roomId)
                 .orElseThrow(ChatRoomNotFoundException::new);
 
@@ -266,20 +290,29 @@ public class ChatService {
         return chatRoom;
     }
 
-    private void validateParticipant(ChatRoom chatRoom, Long memberId) {
+    private void validateParticipant(
+            ChatRoom chatRoom,
+            Long memberId
+    ) {
         if (!chatRoom.isParticipant(memberId)) {
             throw new ChatNotParticipantException();
         }
     }
 
-    private void validateAcceptedFriendship(Long memberId, Long friendId) {
+    private void validateAcceptedFriendship(
+            Long memberId,
+            Long friendId
+    ) {
         // 친구 삭제와 같은 관계 행을 잠가 삭제 도중 새 메시지가 저장되지 않도록 한다.
         if (friendshipRepository.lockRelationship(memberId, friendId, FriendshipStatus.ACCEPTED).isEmpty()) {
             throw new ChatFriendRequiredException();
         }
     }
 
-    private Set<Long> getAcceptedFriendIds(Long memberId, List<Long> friendIds) {
+    private Set<Long> getAcceptedFriendIds(
+            Long memberId,
+            List<Long> friendIds
+    ) {
         Set<Long> acceptedFriendIds = new HashSet<>();
         List<Friendship> relationships = friendshipRepository.findActiveRelationships(memberId, friendIds);
 
@@ -298,7 +331,10 @@ public class ChatService {
         return acceptedFriendIds;
     }
 
-    private boolean isAcceptedFriendship(Long memberId, Long friendId) {
+    private boolean isAcceptedFriendship(
+            Long memberId,
+            Long friendId
+    ) {
         return friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                 memberId, friendId, FriendshipStatus.ACCEPTED
         ) || friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
@@ -306,7 +342,11 @@ public class ChatService {
         );
     }
 
-    private void validateMessageCursor(Long beforeId, Long afterId, int size) {
+    private void validateMessageCursor(
+            Long beforeId,
+            Long afterId,
+            int size
+    ) {
         boolean conflictingCursors = beforeId != null && afterId != null;
         boolean invalidBeforeId = beforeId != null && beforeId <= 0;
         boolean invalidAfterId = afterId != null && afterId < 0;
@@ -317,7 +357,10 @@ public class ChatService {
         }
     }
 
-    private ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId) {
+    private ChatRoomResponse toChatRoomResponse(
+            ChatRoom chatRoom,
+            Long memberId
+    ) {
         Long friendId = chatRoom.getOtherMemberId(memberId);
         Member friend = memberRepository.findById(friendId).orElse(null);
         boolean canSend = friend != null && isAcceptedFriendship(memberId, friendId);

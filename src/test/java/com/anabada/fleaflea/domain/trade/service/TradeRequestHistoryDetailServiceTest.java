@@ -77,16 +77,16 @@ class TradeRequestHistoryDetailServiceTest {
         Item item = ItemFixture.createItem(market, owner, "판매 물건");
         ReflectionTestUtils.setField(item, "itemId", 10L);
 
-        TradeRequest request = TradeRequest.create(
+        TradeRequest tradeRequest = TradeRequest.create(
                 item,
                 requester,
                 "직거래 가능할까요?",
                 null,
                 null
         );
-        ReflectionTestUtils.setField(request, "tradeRequestId", 100L);
+        ReflectionTestUtils.setField(tradeRequest, "tradeRequestId", 100L);
         when(tradeRequestRepository.findWithDetailsByTradeRequestId(100L))
-                .thenReturn(Optional.of(request));
+                .thenReturn(Optional.of(tradeRequest));
 
         TradeRequestHistoryDetailResponse result =
                 tradeRequestListService.getTradeRequestHistoryDetail(OWNER_ID, "ITEM", 100L);
@@ -107,19 +107,19 @@ class TradeRequestHistoryDetailServiceTest {
         CollectionItem offer = collectionItem(
                 21L, requester, "키보드", "교환 제안 물건", "offer.png"
         );
-        CollectionTradeRequest request = CollectionTradeRequest.create(
+        CollectionTradeRequest collectionTradeRequest = CollectionTradeRequest.create(
                 target,
                 requester,
                 offer,
                 CollectionTradeType.EXCHANGE
         );
         ReflectionTestUtils.setField(
-                request,
+                collectionTradeRequest,
                 "collectionTradeRequestId",
                 200L
         );
         when(collectionTradeRequestRepository.findWithDetailsByCollectionTradeRequestId(200L))
-                .thenReturn(Optional.of(request));
+                .thenReturn(Optional.of(collectionTradeRequest));
 
         TradeRequestHistoryDetailResponse result =
                 tradeRequestListService.getTradeRequestHistoryDetail(REQUESTER_ID, "collection", 200L);
@@ -139,15 +139,15 @@ class TradeRequestHistoryDetailServiceTest {
         CollectionItem target = collectionItem(
                 30L, owner, "텀블러", "구걸 대상", "beg.png"
         );
-        BegRequest request = BegRequest.create(
+        BegRequest begRequest = BegRequest.create(
                 target,
                 requester,
                 "소중하게 사용하겠습니다.",
                 BegRequestStatus.REJECTED
         );
-        ReflectionTestUtils.setField(request, "begRequestId", 300L);
+        ReflectionTestUtils.setField(begRequest, "begRequestId", 300L);
         when(begRequestRepository.findWithDetailsByBegRequestId(300L))
-                .thenReturn(Optional.of(request));
+                .thenReturn(Optional.of(begRequest));
 
         TradeRequestHistoryDetailResponse result =
                 tradeRequestListService.getTradeRequestHistoryDetail(OWNER_ID, "BEG", 300L);
@@ -164,15 +164,15 @@ class TradeRequestHistoryDetailServiceTest {
         CollectionItem target = collectionItem(
                 40L, owner, "도감 물건", "설명", "item.png"
         );
-        BegRequest request = BegRequest.create(
+        BegRequest begRequest = BegRequest.create(
                 target,
                 requester,
                 "사연",
                 BegRequestStatus.PENDING
         );
-        ReflectionTestUtils.setField(request, "begRequestId", 400L);
+        ReflectionTestUtils.setField(begRequest, "begRequestId", 400L);
         when(begRequestRepository.findWithDetailsByBegRequestId(400L))
-                .thenReturn(Optional.of(request));
+                .thenReturn(Optional.of(begRequest));
 
         assertThatThrownBy(() -> tradeRequestListService.getTradeRequestHistoryDetail(99L, "BEG", 400L))
                 .isInstanceOf(TradeRequestAccessDeniedException.class)

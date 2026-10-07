@@ -143,10 +143,10 @@ class ChatEventIntegrationTest {
     @DisplayName("메시지 재전송은 시각과 ID를 유지하고 참여자별 WebSocket를 한 번만 전달한다")
     void sendMessage_retryPreservesTimestampAndPublishesOnce() {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
-        ChatMessageSendRequest request = createSendRequest("재전송");
+        ChatMessageSendRequest chatMessageSendRequest = createChatMessageSendRequest("재전송");
 
-        ChatMessageResponse original = chatService.sendMessage(sender.getMemberId(), roomId, request);
-        ChatMessageResponse retry = chatService.sendMessage(sender.getMemberId(), roomId, request);
+        ChatMessageResponse original = chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
+        ChatMessageResponse retry = chatService.sendMessage(sender.getMemberId(), roomId, chatMessageSendRequest);
 
         assertThat(retry).isEqualTo(original);
         assertThat(chatMessageRepository.findById(original.id()).orElseThrow().getCreatedAt())
@@ -189,11 +189,15 @@ class ChatEventIntegrationTest {
         assertThat(response.lastReadMessageId()).isEqualTo(message.id());
     }
 
-    private ChatMessageSendRequest createSendRequest(String content) {
-        return ChatFixture.createSendRequest(content);
+    private ChatMessageSendRequest createChatMessageSendRequest(String content) {
+        return ChatFixture.createChatMessageSendRequest(content);
     }
 
-    private ChatMessageResponse sendMessage(Member member, Long roomId, String content) {
-        return chatService.sendMessage(member.getMemberId(), roomId, createSendRequest(content));
+    private ChatMessageResponse sendMessage(
+            Member member,
+            Long roomId,
+            String content
+    ) {
+        return chatService.sendMessage(member.getMemberId(), roomId, createChatMessageSendRequest(content));
     }
 }

@@ -76,7 +76,12 @@ class FriendshipConcurrencyTest {
         }
     }
 
-    private boolean requestFriend(Member sender, Member recipient, CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+    private boolean requestFriend(
+            Member sender,
+            Member recipient,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException  {
         ready.countDown();
         if (!start.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
             throw new IllegalStateException("친구 요청 시작 신호를 받지 못했습니다.");

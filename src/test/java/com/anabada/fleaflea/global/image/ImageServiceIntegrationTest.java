@@ -16,7 +16,7 @@ import java.io.ByteArrayOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @EnabledIfEnvironmentVariable(
         named = "S3_INTEGRATION_TEST",
@@ -64,13 +64,12 @@ class ImageServiceIntegrationTest {
                 imageService.delete(key);
             }
 
-            S3Exception exception = assertThrows(
+            S3Exception exception = catchThrowableOfType(
                     S3Exception.class,
-                    () -> s3.headObject(
-                            request -> request.bucket(bucket).key(key)
-                    )
+                    () -> s3.headObject(request -> request.bucket(bucket).key(key))
             );
 
+            assertThat(exception).isNotNull();
             assertThat(exception.statusCode()).isEqualTo(404);
         }
     }
