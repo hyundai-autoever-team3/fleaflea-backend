@@ -15,29 +15,17 @@ public class OAuth2PrincipalFactory {
 
     private final MemberRepository memberRepository;
 
-    public CustomOAuth2User create(
+    public CustomOAuth2User createSignupRequired(
             OAuth2MemberInfo memberInfo,
             Map<String, Object> attributes
     ) {
-        return memberRepository
-                .findBySocialProviderAndProviderId(
-                        memberInfo.provider(),
-                        memberInfo.providerId()
-                )
-                .map(member -> CustomOAuth2User.registered(
-                        member.getMemberId(),
-                        memberInfo,
-                        attributes
-                ))
-                .orElseGet(() -> {
-                    if (memberRepository.existsByEmail(memberInfo.email())) {
-                        throw new OAuth2EmailAlreadyRegisteredException();
-                    }
+        if (memberRepository.existsByEmail(memberInfo.email())) {
+            throw new OAuth2EmailAlreadyRegisteredException();
+        }
 
-                    return CustomOAuth2User.signupRequired(
-                            memberInfo,
-                            attributes
-                    );
-                });
+        return CustomOAuth2User.signupRequired(
+                memberInfo,
+                attributes
+        );
     }
 }

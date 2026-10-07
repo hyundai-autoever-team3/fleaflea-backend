@@ -1,7 +1,6 @@
 package com.anabada.fleaflea.global.config;
 
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
-import com.anabada.fleaflea.global.security.oauth2.CustomOAuth2UserService;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
@@ -39,10 +38,9 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CorsProperties corsProperties;
-    private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomOidcUserService customOidcUserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
-    private final CustomOidcUserService customOidcUserService;
 
 
     @Bean
@@ -87,8 +85,7 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo ->
-                                userInfo.userService(customOAuth2UserService)
-                                        .oidcUserService(customOidcUserService))
+                                userInfo.oidcUserService(customOidcUserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )

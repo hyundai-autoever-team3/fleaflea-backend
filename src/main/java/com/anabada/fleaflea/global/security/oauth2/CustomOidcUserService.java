@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.global.security.oauth2;
 
 import com.anabada.fleaflea.domain.member.domain.SocialProvider;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOAuth2User;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOidcUser;
 import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CustomOidcUserService extends OidcUserService {
     private final OAuth2PrincipalFactory principalFactory;
+    private final MemberRepository memberRepository;
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) {
@@ -27,37 +29,83 @@ public class CustomOidcUserService extends OidcUserService {
                 .getClientRegistration()
                 .getRegistrationId();
 
-        if (!"google".equals(registrationId)) {
-            throw new UnsupportedOAuth2ProviderException(registrationId);
-        }
+        SocialProvider provider = resolveProvider(registrationId);
+        String providerId = extractProviderId(oidcUser);
 
+        CustomOAuth2User principal = memberRepository
+                .findBySocialProviderAndProviderId(
+                        provider,
+                        providerId
+                )
+                .map(member -> CustomOAuth2User.registered(
+                        member.getMemberId(),
+                        new OAuth2MemberInfo(
+                                provider,
+                                providerId,
+                                member.getEmail(),
+                                member.getNickname()
+                        ),
+                        oidcUser.getAttributes()
+                ))
+                .orElseGet(() -> createSignupPrincipal(
+                        provider,
+                        providerId,
+                        oidcUser
+                ));
+
+        return new CustomOidcUser(oidcUser, principal);
+    }
+
+    private SocialProvider resolveProvider(String registrationId) {
+        return switch (registrationId) {
+            case "google" -> SocialProvider.GOOGLE;
+            case "kakao" -> SocialProvider.KAKAO;
+            default -> throw new UnsupportedOAuth2ProviderException(registrationId);
+        };
+    }
+
+    private String extractProviderId(OidcUser oidcUser) {
         String providerId = oidcUser.getSubject();
-        String email = oidcUser.getEmail();
 
         if (providerId == null || providerId.isBlank()) {
             throw new OAuth2ProviderIdNotFoundException();
         }
+        return providerId;
+    }
+
+    private CustomOAuth2User createSignupPrincipal(
+            SocialProvider provider,
+            String providerId,
+            OidcUser oidcUser
+    ) {
+        String email = oidcUser.getEmail();
 
         if (email == null || email.isBlank()) {
             throw new OAuth2EmailNotFoundException();
         }
 
-        if (!Boolean.TRUE.equals(oidcUser.getEmailVerified())) {
+        if (provider == SocialProvider.GOOGLE
+                && !Boolean.TRUE.equals(oidcUser.getEmailVerified())) {
             throw new OAuth2EmailNotVerifiedException();
         }
 
+        String displayName = switch (provider) {
+            case GOOGLE -> oidcUser.getFullName();
+            case KAKAO -> oidcUser.getClaimAsString("nickname");
+            default -> throw new UnsupportedOAuth2ProviderException(provider.name());
+        };
+
         OAuth2MemberInfo memberInfo = new OAuth2MemberInfo(
-                SocialProvider.GOOGLE,
+                provider,
                 providerId,
                 email,
-                oidcUser.getFullName()
+                displayName
         );
 
-        CustomOAuth2User principal = principalFactory.create(
+        return principalFactory.createSignupRequired(
                 memberInfo,
                 oidcUser.getAttributes()
         );
 
-        return new CustomOidcUser(oidcUser, principal);
     }
 }
