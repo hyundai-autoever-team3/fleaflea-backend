@@ -131,8 +131,8 @@ client.publish({
 - Spring 기본 브로커를 사용한다. RabbitMQ/SQS/Redis는 추가하지 않는다.
   기본 브로커는 서버 메모리에서 동작하므로 서버를 여러 대로 늘릴 때 외부 브로커를 검토한다.
 - 프레임 크기는 16KB, 세션별 전송 버퍼는 256KB로 제한한다. 메시지 내용 제한은 기존 2000자다.
-- EC2의 HTTPS Nginx server 블록에 `deploy/ec2/nginx-chat.conf` 내용을 추가하고
-  `sudo nginx -t` 후 `sudo systemctl reload nginx`를 실행한다. 서버 설정은 자동 배포 대상이 아니다.
+- EC2에서 Nginx 설정을 별도로 관리한다. `/ws/chat` 경로에 HTTP/1.1 Upgrade 헤더가 필요하며,
+  설정 변경 시 `sudo nginx -t` 후 `sudo systemctl reload nginx`를 실행한다. 서버 설정은 자동 배포 대상이 아니다.
 - 클라이언트 STOMP 구독과 heartbeat, 토큰 재연결 처리를 연동해야 배포 환경에서 채팅이 동작한다.
 
 ## 오류
