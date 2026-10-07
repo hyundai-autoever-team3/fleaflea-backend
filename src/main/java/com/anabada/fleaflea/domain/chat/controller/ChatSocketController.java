@@ -35,8 +35,11 @@ public class ChatSocketController {
     @SendToUser(value = "/queue/chat-acks", broadcast = false)
     public ChatMessageResponse sendMessage(
             Principal principal,
+
             @DestinationVariable Long roomId,
-            @Valid @Payload ChatMessageSendRequest request
+
+            @Valid @Payload
+            ChatMessageSendRequest request
     ) {
         return chatService.sendMessage(Long.valueOf(principal.getName()), roomId, request);
     }
@@ -45,8 +48,11 @@ public class ChatSocketController {
     @SendToUser(value = "/queue/chat-acks", broadcast = false)
     public ChatReadResponse markMessagesAsRead(
             Principal principal,
+
             @DestinationVariable Long roomId,
-            @Valid @Payload ChatReadRequest request
+
+            @Valid @Payload
+            ChatReadRequest request
     ) {
         return chatService.markMessagesAsRead(Long.valueOf(principal.getName()), roomId, request.messageId());
     }
@@ -54,8 +60,11 @@ public class ChatSocketController {
     @MessageMapping("/chat/rooms/{roomId}/typing")
     public void updateTypingStatus(
             Principal principal,
+
             @DestinationVariable Long roomId,
-            @Valid @Payload ChatTypingRequest request
+
+            @Valid @Payload
+            ChatTypingRequest request
     ) {
         chatService.updateTypingStatus(Long.valueOf(principal.getName()), roomId, request.typing());
     }
