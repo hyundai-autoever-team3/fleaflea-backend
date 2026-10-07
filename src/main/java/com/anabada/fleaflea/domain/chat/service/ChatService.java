@@ -8,7 +8,9 @@ import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
-import com.anabada.fleaflea.domain.chat.event.ChatEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatMessageSentEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatMessagesReadEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.exception.ChatMessageNotFoundException;
@@ -186,7 +188,7 @@ public class ChatService {
 
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
         eventPublisher.publishEvent(
-                new ChatEvent(memberId, friendId, ChatEvent.MESSAGE_SENT, response)
+                ChatMessageSentEvent.of(memberId, friendId, response)
         );
 
         return response;
@@ -239,7 +241,7 @@ public class ChatService {
 
         if (previousReadMessageId != response.lastReadMessageId()) {
             eventPublisher.publishEvent(
-                    new ChatEvent(memberId, chatRoom.getOtherMemberId(memberId), ChatEvent.MESSAGES_READ, response)
+                    ChatMessagesReadEvent.of(memberId, chatRoom.getOtherMemberId(memberId), response)
             );
         }
 
@@ -258,10 +260,9 @@ public class ChatService {
             throw new ChatFriendRequiredException();
         }
 
-        eventPublisher.publishEvent(new ChatEvent(
+        eventPublisher.publishEvent(ChatTypingChangedEvent.of(
                 memberId,
                 friendId,
-                ChatEvent.TYPING_CHANGED,
                 ChatTypingResponse.from(chatRoom, memberId, typing)
         ));
     }

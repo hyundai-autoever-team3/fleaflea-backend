@@ -1,10 +1,11 @@
 package com.anabada.fleaflea.domain.chat;
 
+import com.anabada.fleaflea.domain.chat.event.ChatEventType;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
-import com.anabada.fleaflea.domain.chat.event.ChatEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.repository.ChatRoomRepository;
 import com.anabada.fleaflea.domain.chat.repository.ChatMessageRepository;
 import com.anabada.fleaflea.domain.chat.service.ChatService;
@@ -95,9 +96,8 @@ class ChatEventIntegrationTest {
 
         chatService.updateTypingStatus(sender.getMemberId(), roomId, true);
 
-        ChatSocketEventResponse response = ChatSocketEventResponse.from(new ChatEvent(
-                sender.getMemberId(), receiver.getMemberId(), ChatEvent.TYPING_CHANGED,
-                ChatTypingResponse.from(chatRoomRepository.findById(roomId).orElseThrow(), sender.getMemberId(), true)
+        ChatSocketEventResponse<?> response = ChatSocketEventResponse.from(ChatTypingChangedEvent.of(
+                sender.getMemberId(), receiver.getMemberId(), ChatTypingResponse.from(chatRoomRepository.findById(roomId).orElseThrow(), sender.getMemberId(), true)
         ));
         verify(messagingTemplate).convertAndSendToUser(receiver.getMemberId().toString(), "/queue/chat", response);
         verify(messagingTemplate, never()).convertAndSendToUser(eq(sender.getMemberId().toString()), eq("/queue/chat"), any());
@@ -129,12 +129,12 @@ class ChatEventIntegrationTest {
         verify(messagingTemplate, timeout(3000)).convertAndSendToUser(
                         sender.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-message", saved)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGE_SENT, saved)
                 );
         verify(messagingTemplate, timeout(3000)).convertAndSendToUser(
                         receiver.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-message", saved)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGE_SENT, saved)
                 );
         verify(messagingTemplate, never()).convertAndSendToUser(eq(outsider.getMemberId().toString()), anyString(), any());
     }
@@ -156,13 +156,13 @@ class ChatEventIntegrationTest {
                 .convertAndSendToUser(
                         sender.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-message", original)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGE_SENT, original)
                 );
         verify(messagingTemplate, timeout(3000).times(1))
                 .convertAndSendToUser(
                         receiver.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-message", original)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGE_SENT, original)
                 );
     }
 
@@ -178,13 +178,13 @@ class ChatEventIntegrationTest {
                 .convertAndSendToUser(
                         sender.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-read", response)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGES_READ, response)
                 );
         verify(messagingTemplate, timeout(3000))
                 .convertAndSendToUser(
                         receiver.getMemberId().toString(),
                         "/queue/chat",
-                        new ChatSocketEventResponse("chat-read", response)
+                        new ChatSocketEventResponse<>(ChatEventType.MESSAGES_READ, response)
                 );
         assertThat(response.lastReadMessageId()).isEqualTo(message.id());
     }

@@ -5,7 +5,7 @@ import com.anabada.fleaflea.domain.chat.domain.ChatRoom;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
-import com.anabada.fleaflea.domain.chat.event.ChatEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.exception.ChatMessageNotFoundException;
@@ -102,9 +102,8 @@ class ChatServiceTest {
 
         chatService.updateTypingStatus(MEMBER_ID, ROOM_ID, typing);
 
-        verify(eventPublisher).publishEvent(new ChatEvent(
-                MEMBER_ID, FRIEND_ID, ChatEvent.TYPING_CHANGED,
-                ChatTypingResponse.from(chatRoom, MEMBER_ID, typing)
+        verify(eventPublisher).publishEvent(ChatTypingChangedEvent.of(
+                MEMBER_ID, FRIEND_ID, ChatTypingResponse.from(chatRoom, MEMBER_ID, typing)
         ));
         verify(chatRoomRepository, never()).save(any(ChatRoom.class));
         verifyNoInteractions(chatMessageRepository, memberRepository, imageService);

@@ -30,29 +30,30 @@ class ChatEventListenerTest {
 
     @Test
     @DisplayName("입력 상태는 상대방에게만 전달한다")
-    void onChatEvent_deliversTypingOnlyToOtherMember() {
-        ChatTypingResponse typing = ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L, true);
-        ChatEvent event = new ChatEvent(1L, 2L, ChatEvent.TYPING_CHANGED, typing);
+    void onChatTypingChangedEvent_deliversOnlyToOtherMember() {
+        ChatTypingResponse chatTypingResponse = ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L, true);
+        ChatTypingChangedEvent chatTypingChangedEvent = ChatTypingChangedEvent.of(1L, 2L, chatTypingResponse);
 
-        chatEventListener.onChatEvent(event);
+        chatEventListener.onChatTypingChangedEvent(chatTypingChangedEvent);
 
-        verify(messagingTemplate).convertAndSendToUser("2", "/queue/chat", ChatSocketEventResponse.from(event));
+        verify(messagingTemplate).convertAndSendToUser("2", "/queue/chat", ChatSocketEventResponse.from(chatTypingChangedEvent));
         verifyNoMoreInteractions(messagingTemplate);
     }
 
     @Test
     @DisplayName("한 참여자에게 이벤트 전달이 실패해도 다른 참여자에게 전달한다")
-    void onChatEvent_continuesAfterDeliveryFailure() {
-        ChatMessageResponse message = ChatMessageResponse.from(ChatFixture.createChatMessageWithId(
+    void onChatMessageSentEvent_continuesAfterDeliveryFailure() {
+        ChatMessageResponse chatMessageResponse = ChatMessageResponse.from(ChatFixture.createChatMessageWithId(
                 20L, 10L, 1L, ChatFixture.createChatMessageSendRequest("전달 확인"), LocalDateTime.of(2026, 1, 1, 12, 0)
         ));
-        ChatEvent event = new ChatEvent(1L, 2L, ChatEvent.MESSAGE_SENT, message);
-        ChatSocketEventResponse response = ChatSocketEventResponse.from(event);
+        ChatMessageSentEvent chatMessageSentEvent = ChatMessageSentEvent.of(1L, 2L, chatMessageResponse);
+        ChatSocketEventResponse<ChatMessageResponse> chatSocketEventResponse =
+                ChatSocketEventResponse.from(chatMessageSentEvent);
         doThrow(new MessageDeliveryException("전달 실패"))
-                .when(messagingTemplate).convertAndSendToUser("1", "/queue/chat", response);
+                .when(messagingTemplate).convertAndSendToUser("1", "/queue/chat", chatSocketEventResponse);
 
-        chatEventListener.onChatEvent(event);
+        chatEventListener.onChatMessageSentEvent(chatMessageSentEvent);
 
-        verify(messagingTemplate).convertAndSendToUser("2", "/queue/chat", response);
+        verify(messagingTemplate).convertAndSendToUser("2", "/queue/chat", chatSocketEventResponse);
     }
 }

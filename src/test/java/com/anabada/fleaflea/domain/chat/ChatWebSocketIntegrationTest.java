@@ -6,7 +6,8 @@ import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
-import com.anabada.fleaflea.domain.chat.event.ChatEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatMessageSentEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatEventListener;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.security.ChatWebSocketAuthInterceptor;
@@ -202,7 +203,7 @@ class ChatWebSocketIntegrationTest {
         BlockingQueue<String> outsiderEvents = subscribe(connect(3L), 3L, "/user/queue/chat");
         ChatMessageResponse response = createMessageResponse(ChatFixture.createChatMessageSendRequest("안녕하세요"));
 
-        chatEventListener.onChatEvent(new ChatEvent(1L, 2L, ChatEvent.MESSAGE_SENT, response));
+        chatEventListener.onChatMessageSentEvent(ChatMessageSentEvent.of(1L, 2L, response));
 
         assertThat(senderEvents.poll(5, TimeUnit.SECONDS)).isNotNull().contains("chat-message", "안녕하세요");
         assertThat(receiverEvents.poll(5, TimeUnit.SECONDS)).isNotNull().contains("chat-message", "안녕하세요");
@@ -217,9 +218,8 @@ class ChatWebSocketIntegrationTest {
         BlockingQueue<String> receiverEvents = subscribe(connect(2L), 2L, "/user/queue/chat");
         BlockingQueue<String> outsiderEvents = subscribe(connect(3L), 3L, "/user/queue/chat");
         doAnswer(invocation -> {
-            chatEventListener.onChatEvent(new ChatEvent(
-                    1L, 2L, ChatEvent.TYPING_CHANGED,
-                    ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L,
+            chatEventListener.onChatTypingChangedEvent(ChatTypingChangedEvent.of(
+                    1L, 2L, ChatTypingResponse.from(ChatFixture.createChatRoomWithId(10L, 1L, 2L), 1L,
                             invocation.getArgument(2))
             ));
             return null;
