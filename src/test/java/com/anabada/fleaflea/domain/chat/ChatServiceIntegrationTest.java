@@ -280,9 +280,11 @@ class ChatServiceIntegrationTest {
     void getChatRooms_doesNotTreatPendingRequestAsFriend() {
         chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId());
         friendshipService.deleteFriend(sender.getMemberId(), friendship.getFriendshipId());
-        friendshipRepository.save(
-                FriendshipFixture.createFriendship(sender, receiver, FriendshipStatus.PENDING)
-        );
+        friendshipService.requestFollow(sender.getMemberId(), receiver.getMemberId());
+
+        assertThat(friendshipRepository.findByRequester_MemberIdAndAddressee_MemberIdAndStatus(
+                sender.getMemberId(), receiver.getMemberId(), FriendshipStatus.PENDING
+        )).isPresent();
 
         assertThat(chatService.getChatRooms(sender.getMemberId(), 0, 20).rooms())
                 .singleElement()
