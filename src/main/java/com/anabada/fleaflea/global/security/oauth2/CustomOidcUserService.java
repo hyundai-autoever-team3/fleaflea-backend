@@ -15,10 +15,19 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class CustomOidcUserService extends OidcUserService {
     private final OAuth2PrincipalFactory principalFactory;
     private final MemberRepository memberRepository;
+
+    public CustomOidcUserService(
+            OAuth2PrincipalFactory principalFactory,
+            MemberRepository memberRepository,
+            NaverOAuth2UserService naverOAuth2UserService
+    ) {
+        this.principalFactory = principalFactory;
+        this.memberRepository = memberRepository;
+        setOauth2UserService(naverOAuth2UserService);
+    }
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) {
@@ -54,6 +63,7 @@ public class CustomOidcUserService extends OidcUserService {
         return switch (registrationId) {
             case "google" -> SocialProvider.GOOGLE;
             case "kakao" -> SocialProvider.KAKAO;
+            case "naver" -> SocialProvider.NAVER;
             default -> throw new UnsupportedOAuth2ProviderException(registrationId);
         };
     }
@@ -85,7 +95,7 @@ public class CustomOidcUserService extends OidcUserService {
 
         String displayName = switch (provider) {
             case GOOGLE -> oidcUser.getFullName();
-            case KAKAO -> oidcUser.getClaimAsString("nickname");
+            case KAKAO, NAVER -> oidcUser.getClaimAsString("nickname");
             default -> throw new UnsupportedOAuth2ProviderException(provider.name());
         };
 

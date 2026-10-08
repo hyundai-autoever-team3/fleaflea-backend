@@ -54,9 +54,20 @@ spring:
               - openid
               - email
               - profile
+          naver:
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Naver
+            scope:
+              - openid
         provider:
           kakao:
             issuer-uri: https://kauth.kakao.com
+          naver:
+            issuer-uri: https://nid.naver.com
 
 
 server:
