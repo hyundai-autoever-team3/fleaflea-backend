@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.market.lock;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -10,6 +11,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Aspect
 @Component
 @RequiredArgsConstructor
@@ -39,8 +41,12 @@ public class MarketLockMetricsAspect {
         try {
             return joinPoint.proceed();
         } finally {
-            meterRegistry.timer(metricName)
-                    .record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+            try {
+                meterRegistry.timer(metricName)
+                        .record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+            } catch (RuntimeException exception) {
+                log.warn("마켓 처리 시간 계측 실패: metricName={}", metricName, exception);
+            }
         }
     }
 }

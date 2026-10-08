@@ -2,6 +2,8 @@ package com.anabada.fleaflea.global.lock;
 
 import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
 import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -121,6 +123,24 @@ class RedisLockAspectTest {
         assertThat(meterRegistry.get("redis.lock.acquire").tag("outcome", "acquired").timer().count())
                 .isEqualTo(1);
         assertThat(meterRegistry.get("redis.lock.hold").timer().count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("계측이 실패해도 작업 결과를 반환하고 획득한 락을 해제한다")
+    void executeWithLock_metricsFailure_preservesResultAndReleasesLock() throws Throwable {
+        meterRegistry.config().meterFilter(new MeterFilter() {
+            @Override
+            public Meter.Id map(Meter.Id meterId) {
+                throw new IllegalStateException("metrics unavailable");
+            }
+        });
+        when(lock.tryLock(50, TimeUnit.MILLISECONDS)).thenReturn(true);
+        when(joinPoint.proceed()).thenReturn("updated");
+
+        Object result = redisLockAspect.executeWithLock(joinPoint, redisLocked);
+
+        assertThat(result).isEqualTo("updated");
+        verify(lock).unlock();
     }
 
     public static class LockedOperation {

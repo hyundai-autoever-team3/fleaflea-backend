@@ -137,10 +137,14 @@ public class RedisLockAspect {
         } catch (RuntimeException exception) {
             throw new RedisLockUnavailableException(exception);
         } finally {
-            Timer.builder("redis.lock.acquire")
-                    .tag("outcome", outcome)
-                    .register(meterRegistry)
-                    .record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+            try {
+                Timer.builder("redis.lock.acquire")
+                        .tag("outcome", outcome)
+                        .register(meterRegistry)
+                        .record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+            } catch (RuntimeException exception) {
+                log.warn("Redis 락 획득 시간 계측 실패: outcome={}", outcome, exception);
+            }
         }
     }
 
@@ -149,8 +153,12 @@ public class RedisLockAspect {
             String lockKey,
             long acquiredAt
     ) {
-        meterRegistry.timer("redis.lock.hold")
-                .record(System.nanoTime() - acquiredAt, TimeUnit.NANOSECONDS);
+        try {
+            meterRegistry.timer("redis.lock.hold")
+                    .record(System.nanoTime() - acquiredAt, TimeUnit.NANOSECONDS);
+        } catch (RuntimeException exception) {
+            log.warn("Redis 락 보유 시간 계측 실패", exception);
+        }
 
         try {
             lock.unlock();
