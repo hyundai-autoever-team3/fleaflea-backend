@@ -4,11 +4,7 @@ import com.anabada.fleaflea.domain.member.domain.SocialProvider;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.security.oauth2.dto.CustomOidcUser;
 import com.anabada.fleaflea.global.security.oauth2.dto.OAuth2MemberInfo;
-import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotFoundException;
-import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2EmailNotVerifiedException;
-import com.anabada.fleaflea.global.security.oauth2.exception.OAuth2ProviderIdNotFoundException;
-import com.anabada.fleaflea.global.security.oauth2.exception.UnsupportedOAuth2ProviderException;
-import lombok.RequiredArgsConstructor;
+import com.anabada.fleaflea.global.security.oauth2.exception.*;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -16,15 +12,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CustomOidcUserService extends OidcUserService {
-    private final OAuth2PrincipalFactory principalFactory;
     private final MemberRepository memberRepository;
 
     public CustomOidcUserService(
-            OAuth2PrincipalFactory principalFactory,
             MemberRepository memberRepository,
             NaverOAuth2UserService naverOAuth2UserService
     ) {
-        this.principalFactory = principalFactory;
         this.memberRepository = memberRepository;
         setOauth2UserService(naverOAuth2UserService);
     }
@@ -99,14 +92,18 @@ public class CustomOidcUserService extends OidcUserService {
             default -> throw new UnsupportedOAuth2ProviderException(provider.name());
         };
 
-        return principalFactory.createSignupRequired(
+        if (memberRepository.existsByEmail(email)) {
+            throw new OAuth2EmailAlreadyRegisteredException();
+        }
+
+        return CustomOidcUser.signupRequired(
+                oidcUser,
                 new OAuth2MemberInfo(
                         provider,
                         providerId,
                         email,
                         displayName
-                ),
-                oidcUser
+                )
         );
 
     }
