@@ -5,7 +5,9 @@ import { Counter, Trend } from 'k6/metrics';
 
 const data = JSON.parse(open(__ENV.DATA_FILE || './data/market-lock-test-data.json'));
 const base = __ENV.BASE_URL;
+if (!base) throw new Error('BASE_URL is required');
 const distribution = __ENV.DISTRIBUTION || 'single';
+if (!['single', 'spread'].includes(distribution)) throw new Error('DISTRIBUTION must be single or spread');
 const marketPool = distribution === 'spread' ? data.spreadMarkets : [data.markets[2]];
 if (!marketPool || (distribution === 'spread' && marketPool.length !== 20)) throw new Error('Expected 20 prepared markets');
 const readDuration = new Trend('read_duration', true);
@@ -53,5 +55,5 @@ export default function () {
 }
 
 export function handleSummary(summary) {
-  return { [__ENV.SUMMARY_PATH]: JSON.stringify(summary, null, 2) };
+  return { [__ENV.SUMMARY_PATH || 'stdout']: JSON.stringify(summary, null, 2) };
 }
