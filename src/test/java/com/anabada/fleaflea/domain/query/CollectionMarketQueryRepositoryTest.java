@@ -1,8 +1,8 @@
 package com.anabada.fleaflea.domain.query;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
+import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.friendship.domain.Friendship;
 import com.anabada.fleaflea.domain.friendship.domain.FriendshipStatus;
 import com.anabada.fleaflea.domain.friendship.repository.FriendshipRepository;
@@ -12,9 +12,13 @@ import com.anabada.fleaflea.domain.market.dto.MarketSummaryProjection;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
 import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.fixture.CollectionItemFixture;
+import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.config.JpaAuditingConfig;
 import com.anabada.fleaflea.global.config.QueryDslConfig;
 import com.anabada.fleaflea.support.PostgresTestContainerConfiguration;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -25,8 +29,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,8 +55,9 @@ class CollectionMarketQueryRepositoryTest {
     private FriendshipRepository friendshipRepository;
 
     @Test
+    @DisplayName("도감 검색에 제목·공개 여부·페이지 조건을 적용한다")
     void collectionSearchAppliesTitlePublicAndPageConditions() {
-        Member owner = persistMember("owner@example.com", "owner");
+        Member owner = persistMember("owner");
         persistCollectionItem(owner, "공개 텀블러", true);
         persistCollectionItem(owner, "비공개 텀블러", false);
         persistCollectionItem(owner, "공개 가방", true);
@@ -73,12 +76,40 @@ class CollectionMarketQueryRepositoryTest {
                 .extracting(CollectionItem::getTitle)
                 .containsExactly("공개 텀블러");
         assertThat(result.getContent().getFirst().getOwner().getNickname())
-                .isEqualTo("owner");
+                .isEqualTo(owner.getNickname());
     }
 
     @Test
+    @DisplayName("제목이 같은 도감 물건도 페이지 간 중복 없이 ID 내림차순으로 조회한다")
+    void collectionSearchUsesIdToBreakTitleTies() {
+        Member owner = persistMember("owner");
+        CollectionItem firstItem = entityManager.persist(
+                CollectionItemFixture.createCollectionItem(owner, "같은 제목", true)
+        );
+        CollectionItem secondItem = entityManager.persist(
+                CollectionItemFixture.createCollectionItem(owner, "같은 제목", true)
+        );
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<CollectionItem> firstPage = collectionItemRepository.search(
+                owner.getMemberId(), true, null, PageRequest.of(0, 1, Sort.by("title"))
+        );
+        Page<CollectionItem> secondPage = collectionItemRepository.search(
+                owner.getMemberId(), true, null, PageRequest.of(1, 1, Sort.by("title"))
+        );
+
+        assertThat(firstPage.getTotalElements()).isEqualTo(2);
+        assertThat(firstPage.getContent()).extracting(CollectionItem::getCollectionItemId)
+                .containsExactly(secondItem.getCollectionItemId());
+        assertThat(secondPage.getContent()).extracting(CollectionItem::getCollectionItemId)
+                .containsExactly(firstItem.getCollectionItemId());
+    }
+
+    @Test
+    @DisplayName("참여한 마켓 중 검색어에 맞는 마켓을 조회한다")
     void marketSearchReturnsJoinedMarketsMatchingTitle() {
-        Member member = persistMember("member@example.com", "member");
+        Member member = persistMember("member");
         Market neighborhood = persistMarket(member, "동네 장터", "invite-1");
         Market book = persistMarket(member, "독서 모임", "invite-2");
         entityManager.persist(MarketMember.create(neighborhood, member));
@@ -102,16 +133,17 @@ class CollectionMarketQueryRepositoryTest {
                 .extracting(MarketSummaryProjection::title)
                 .containsExactly("동네 장터");
         assertThat(result.getContent().getFirst().hostNickname())
-                .isEqualTo("member");
+                .isEqualTo(member.getNickname());
     }
 
     @Test
+    @DisplayName("현재 페이지의 양방향 활성 친구 관계만 조회한다")
     void activeRelationshipSearchIncludesBothDirectionsAndExcludesFinishedRequests() {
-        Member requester = persistMember("requester@example.com", "requester");
-        Member friend = persistMember("friend@example.com", "friend");
-        Member receivedFrom = persistMember("received@example.com", "received");
-        Member rejected = persistMember("rejected@example.com", "rejected");
-        Member outsidePage = persistMember("outside@example.com", "outside");
+        Member requester = persistMember("requester");
+        Member friend = persistMember("friend");
+        Member receivedFrom = persistMember("received");
+        Member rejected = persistMember("rejected");
+        Member outsidePage = persistMember("outside");
 
         Friendship accepted = Friendship.create(
                 requester,
@@ -162,8 +194,8 @@ class CollectionMarketQueryRepositoryTest {
                 )).isTrue());
     }
 
-    private Member persistMember(String email, String nickname) {
-        return entityManager.persist(Member.create(email, "password", nickname));
+    private Member persistMember(String nickname) {
+        return entityManager.persist(MemberFixture.createMember(nickname));
     }
 
     private void persistCollectionItem(
@@ -171,13 +203,7 @@ class CollectionMarketQueryRepositoryTest {
             String title,
             boolean isPublic
     ) {
-        entityManager.persist(CollectionItem.create(
-                owner,
-                title,
-                "description",
-                null,
-                isPublic
-        ));
+        entityManager.persist(CollectionItemFixture.createCollectionItem(owner, title, isPublic));
     }
 
     private Market persistMarket(

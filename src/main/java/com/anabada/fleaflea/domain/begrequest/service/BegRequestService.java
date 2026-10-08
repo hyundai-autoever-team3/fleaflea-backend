@@ -16,9 +16,9 @@ import com.anabada.fleaflea.domain.begrequest.exception.BegRequestNotPendingExce
 import com.anabada.fleaflea.domain.begrequest.exception.BegRequestSelfItemException;
 import com.anabada.fleaflea.domain.begrequest.exception.CollectionItemNotPublicException;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.collection.exception.CollectionItemNotFoundException;
-import com.anabada.fleaflea.domain.collection.repository.CollectionItemRepository;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
+import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
@@ -51,12 +51,12 @@ public class BegRequestService {
     public BeggingResponse createBegging(
             Long memberId,
             Long collectionItemId,
-            BeggingRequest request
-            ) {
+            BeggingRequest beggingRequest
+    ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        CollectionItem collectionItem = collectionItemRepository.findById(collectionItemId)
+        CollectionItem collectionItem = collectionItemRepository.findLockedById(collectionItemId)
                 .orElseThrow(CollectionItemNotFoundException::new);
 
         if (memberId.equals(collectionItem.getOwner().getMemberId())) {
@@ -78,7 +78,7 @@ public class BegRequestService {
         BegRequest begRequest = BegRequest.create(
                 collectionItem,
                 member,
-                request.story(),
+                beggingRequest.story(),
                 BegRequestStatus.PENDING
         );
         begRequestRepository.save(begRequest);
@@ -117,7 +117,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse acceptBeggingRequest(Long memberId , Long begRequestId) {
+    public BeggingStatusResponse acceptBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -128,7 +131,6 @@ public class BegRequestService {
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
-
 
         begRequest.accept();
 
@@ -151,7 +153,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse rejectBeggingRequest(Long memberId ,Long begRequestId) {
+    public BeggingStatusResponse rejectBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -162,7 +167,6 @@ public class BegRequestService {
         if (begRequest.getStatus() != BegRequestStatus.PENDING) {
             throw new BegRequestNotPendingException();
         }
-
 
         begRequest.reject();
 
@@ -185,7 +189,10 @@ public class BegRequestService {
     }
 
     @Transactional
-    public BeggingStatusResponse cancelBeggingRequest(Long memberId, Long begRequestId) {
+    public BeggingStatusResponse cancelBeggingRequest(
+            Long memberId,
+            Long begRequestId
+    ) {
         BegRequest begRequest = begRequestRepository.findById(begRequestId)
                 .orElseThrow(BegRequestNotFoundException::new);
 
@@ -267,7 +274,6 @@ public class BegRequestService {
 
         return BeggingStatusResponse.from(begRequest);
     }
-
 
     private TradeTarget toTradeTarget(CollectionItem collectionItem) {
         return TradeTarget.of(

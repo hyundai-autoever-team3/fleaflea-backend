@@ -106,3 +106,12 @@ curl -i -X OPTIONS \
 ```
 
 Do not run `docker compose down -v`; it removes the PostgreSQL data volume.
+
+## Chat WebSocket
+
+Configure HTTP/1.1 Upgrade headers for `/ws/chat` in the existing HTTPS
+Nginx server block, then validate and reload Nginx as shown above. This
+host configuration is managed on EC2 and is not installed by the container
+deployment workflow. Chat clients use
+STOMP with an access token in the CONNECT headers; ordinary notification
+SSE remains unchanged. See `docs/friend-chat.md` for the client contract.

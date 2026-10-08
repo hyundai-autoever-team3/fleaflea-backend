@@ -1,11 +1,25 @@
 package com.anabada.fleaflea.domain.item.domain;
 
-import com.anabada.fleaflea.domain.collection.domain.CollectionItem;
-import com.anabada.fleaflea.domain.item.exception.*;
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.item.exception.ItemAlreadyCompletedException;
+import com.anabada.fleaflea.domain.item.exception.ItemNotAvailableException;
+import com.anabada.fleaflea.domain.item.exception.ItemNotOwnerException;
+import com.anabada.fleaflea.domain.item.exception.ItemTradeInProgressException;
+import com.anabada.fleaflea.domain.item.exception.ItemTradeNotInProgressException;
 import com.anabada.fleaflea.domain.market.domain.Market;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -53,14 +67,16 @@ public class Item extends BaseTimeEntity {
     private String imageKey;
 
     @Builder
-    private Item(CollectionItem collectionItem,
-                Market market,
-                Member seller,
-                String title,
-                String description,
-                ItemTradeType tradeType,
-                Long price,
-                String imageKey) {
+    private Item(
+            CollectionItem collectionItem,
+            Market market,
+            Member seller,
+            String title,
+            String description,
+            ItemTradeType tradeType,
+            Long price,
+            String imageKey
+    ) {
         this.collectionItem = collectionItem;
         this.market = market;
         this.seller = seller;
@@ -72,14 +88,16 @@ public class Item extends BaseTimeEntity {
         this.imageKey = imageKey;
     }
 
-    public static Item create(CollectionItem collectionItem,
-                              Market market,
-                              Member seller,
-                              String title,
-                              String description,
-                              ItemTradeType tradeType,
-                              Long price,
-                              String imageKey) {
+    public static Item create(
+            CollectionItem collectionItem,
+            Market market,
+            Member seller,
+            String title,
+            String description,
+            ItemTradeType tradeType,
+            Long price,
+            String imageKey
+    ) {
         return Item.builder()
                 .collectionItem(collectionItem)
                 .market(market)
@@ -92,11 +110,13 @@ public class Item extends BaseTimeEntity {
                 .build();
     }
 
-    public void update(String title,
-                       String description,
-                       ItemTradeType tradeType,
-                       Long price,
-                       String imageKey) {
+    public void update(
+            String title,
+            String description,
+            ItemTradeType tradeType,
+            Long price,
+            String imageKey
+    ) {
         if (status == ItemStatus.COMPLETED) {
             throw new ItemAlreadyCompletedException();
         }

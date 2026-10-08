@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.domain.trade.controller;
 
-import com.anabada.fleaflea.domain.trade.dto.TradeRequestListResponse;
 import com.anabada.fleaflea.domain.trade.dto.TradeRequestHistoryDetailResponse;
+import com.anabada.fleaflea.domain.trade.dto.TradeRequestListResponse;
 import com.anabada.fleaflea.domain.trade.service.TradeRequestListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,8 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,13 +42,14 @@ public class TradeRequestListController {
             @ApiResponse(responseCode = "400", description = "direction은 received 또는 sent여야 함"),
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
-    public ResponseEntity<List<TradeRequestListResponse>> list(
+    public ResponseEntity<List<TradeRequestListResponse>> getTradeRequests(
             @AuthenticationPrincipal Long memberId,
+
             @Parameter(description = "요청 방향: received 또는 sent", required = true,
-                    example = "received")
+            example = "received")
             @RequestParam String direction
     ) {
-        return ResponseEntity.ok(tradeRequestListService.list(memberId, direction));
+        return ResponseEntity.ok(tradeRequestListService.getTradeRequests(memberId, direction));
     }
 
     @GetMapping("/{requestType}/{requestId}")
@@ -65,13 +65,15 @@ public class TradeRequestListController {
             @ApiResponse(responseCode = "403", description = "거래 당사자가 아님"),
             @ApiResponse(responseCode = "404", description = "거래 요청을 찾을 수 없음")
     })
-    public ResponseEntity<TradeRequestHistoryDetailResponse> detail(
+    public ResponseEntity<TradeRequestHistoryDetailResponse> getTradeRequestHistoryDetail(
             @AuthenticationPrincipal Long memberId,
+
             @PathVariable String requestType,
+
             @PathVariable Long requestId
     ) {
         return ResponseEntity.ok(
-                tradeRequestListService.detail(
+                tradeRequestListService.getTradeRequestHistoryDetail(
                         memberId,
                         requestType,
                         requestId
