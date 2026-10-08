@@ -50,6 +50,7 @@ The deployment workflow installs these versioned files on every deployment:
 
 - `/opt/fleaflea/compose.yml`
 - `/opt/fleaflea/deploy.sh`
+- `/opt/fleaflea/alloy/config.alloy`
 - `/etc/fleaflea/deploy.env`
 
 These secret files must already exist on the instance:
@@ -57,6 +58,26 @@ These secret files must already exist on the instance:
 - `/etc/fleaflea/fleaflea.env`
 - `/etc/fleaflea/postgres.env`
 - `/etc/fleaflea/ghcr.env` for a private GHCR image
+- `/etc/fleaflea/monitoring.env` to enable Alloy, Node Exporter, cAdvisor,
+  PostgreSQL Exporter, and the OpenTelemetry Java agent; start from
+  `monitoring.env.example`. Set `OTEL_JAVAAGENT_ENABLED=true` to send traces
+  through Alloy to Tempo. The app image includes the pinned agent; without
+  this file the agent remains disabled. Keep `OTEL_METRICS_EXPORTER=none` and
+  `OTEL_LOGS_EXPORTER=none` because Prometheus and Alloy handle those signals.
+
+Create a read-only monitoring role before enabling the PostgreSQL Exporter.
+Connect as the database administrator, replace the example password, and run:
+
+```sql
+CREATE USER fleaflea_monitor WITH PASSWORD 'replace-with-a-long-random-password';
+GRANT CONNECT ON DATABASE fleaflea_db TO fleaflea_monitor;
+GRANT pg_monitor TO fleaflea_monitor;
+```
+
+Put the same credentials in `/etc/fleaflea/monitoring.env` as
+`DATA_SOURCE_USER` and `DATA_SOURCE_PASS`. The exporter uses
+`DATA_SOURCE_URI=postgres:5432/fleaflea_db?sslmode=disable`; it does not reuse
+the application or PostgreSQL administrator account.
 
 The PostgreSQL named volume is `fleaflea_postgres_data`. The first container
 deployment adopts that existing volume and replaces the legacy application
@@ -68,8 +89,33 @@ systemd process with the `fleaflea-app` container.
 sudo docker compose --env-file /etc/fleaflea/deploy.env \
   -f /opt/fleaflea/compose.yml ps
 
-curl -fsS http://localhost/actuator/health
+curl -fsS http://127.0.0.1:8080/readyz
+curl -fsS http://127.0.0.1:8081/actuator/health
+curl -fsS http://127.0.0.1:8081/actuator/prometheus | head
 ```
+
+The application API and readiness endpoint use port 8080. Actuator health and
+Prometheus use port 8081, bound to host loopback only. Nginx must proxy
+`/readyz`, but it must not proxy `/actuator/**`.
+
+When `/etc/fleaflea/monitoring.env` exists, use both env files and the profile
+for manual Compose commands:
+
+```bash
+sudo docker compose \
+  --env-file /etc/fleaflea/deploy.env \
+  --env-file /etc/fleaflea/monitoring.env \
+  --profile monitoring \
+  -f /opt/fleaflea/compose.yml ps
+```
+
+Alloy listens for application OTLP traffic only on the Compose network. Its UI
+and self-metrics are bound to `127.0.0.1:12345`. A restricted Docker socket
+proxy gives Alloy read access to container discovery and logs without mounting
+the socket into Alloy itself. Keep the proxy on its internal Docker network.
+cAdvisor requires privileged host access to read container cgroups and Docker
+state; it has no published host port and remains on the internal monitoring
+network. Review this privilege when the host runtime changes.
 
 ## Nginx forwarded headers
 
@@ -93,6 +139,11 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+Use `nginx/observability.conf.example` as the JSON access log and readiness
+route template. It records the route without a query string and never exposes
+the management port. Install `nginx/fleaflea-logrotate.example` under
+`/etc/logrotate.d/` after reviewing the host paths.
+
 Verify the OpenAPI server URL and an HTTPS preflight response:
 
 ```bash
@@ -103,6 +154,15 @@ curl -i -X OPTIONS \
   'https://api.fleaflea.app/api/v1/friend-requests/1/reject' \
   -H 'Origin: https://fleaflea.app' \
   -H 'Access-Control-Request-Method: POST'
+```
+
+Verify the public readiness route and confirm the management route is not
+public:
+
+```bash
+curl -fsS https://api.fleaflea.app/readyz
+test "$(curl -sS -o /dev/null -w '%{http_code}' \
+  https://api.fleaflea.app/actuator/prometheus)" = "404"
 ```
 
 Do not run `docker compose down -v`; it removes the PostgreSQL data volume.

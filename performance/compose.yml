@@ -3,7 +3,7 @@
 # Kept apart from the dev containers (fleaflea-local-db, fleaflea-local-s3) so
 # seed data and measurements never mix with day-to-day development data.
 #
-#   docker compose -f performance/compose.yml up -d
+#   docker compose -f performanc e/compose.yml up -d
 #       PostgreSQL 16 (localhost:5435) + MinIO (localhost:9010, console 9011)
 #
 #   docker compose -f performance/compose.yml --profile app up -d --build

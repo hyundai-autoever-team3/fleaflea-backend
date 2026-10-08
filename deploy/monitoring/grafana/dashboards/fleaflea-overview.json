@@ -1,0 +1,182 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "선택한 환경의 공개 /readyz 점검 결과입니다. 0은 접속 또는 준비 상태 점검 실패입니다.",
+      "fieldConfig": {"defaults": {"unit": "none", "noValue": "No data", "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}, "mappings": [{"type": "value", "options": {"0": {"text": "Down"}, "1": {"text": "Healthy"}}}]}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 20,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "min(probe_success{job=\"blackbox-http\",environment=~\"$environment\"})", "refId": "A", "instant": true}],
+      "title": "External Health",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "모든 환경의 현재 firing 알림 수입니다. 상세 내용은 Grafana Alerting에서 확인합니다.",
+      "fieldConfig": {"defaults": {"unit": "none", "noValue": "No data", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 21,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)", "refId": "A", "instant": true}],
+      "title": "Firing Alerts (All)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "최근 5분간 /readyz를 제외한 요청의 5xx 비율입니다. 오류가 없으면 0으로 표시합니다.",
+      "fieldConfig": {"defaults": {"unit": "percentunit", "noValue": "No data", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.05}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "id": 22,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "(sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",environment=~\"$environment\",status=~\"5..\",uri!=\"/readyz\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",environment=~\"$environment\",uri!=\"/readyz\"}[5m])), 0.001)", "refId": "A", "instant": true}],
+      "title": "API 5xx Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "최근 5분간 실제 API 경로의 p95입니다. /readyz, UNKNOWN, SSE 구독 요청은 제외합니다. 요청이 없으면 값이 나타나지 않습니다.",
+      "fieldConfig": {"defaults": {"unit": "s", "noValue": "No API requests", "thresholds": {"mode": "absolute", "steps": [{"color": "gray", "value": null}, {"color": "green", "value": 0}, {"color": "orange", "value": 0.5}, {"color": "red", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "id": 23,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{service=\"fleaflea\",environment=~\"$environment\",uri!~\"/readyz|/actuator/.*|UNKNOWN|/api/v1/notifications/subscribe\"}[5m])))", "refId": "A", "instant": true}],
+      "title": "API p95 Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps", "min": 0, "custom": {"axisSoftMax": 0.1}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 1,
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",environment=~\"$environment\",uri!=\"/readyz\"}[5m]))", "legendFormat": "Requests/s"}],
+      "title": "API Request Rate",
+      "type": "timeseries",
+      "description": "/readyz를 제외한 요청의 초당 건수입니다. UNKNOWN으로 기록된 요청은 포함합니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.05}]}, "min": 0, "max": 1, "noValue": "No requests"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 2,
+      "targets": [{"expr": "(sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",environment=~\"$environment\",status=~\"5..\",uri!=\"/readyz\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{service=\"fleaflea\",environment=~\"$environment\",uri!=\"/readyz\"}[5m])), 0.001)", "legendFormat": "5xx rate"}],
+      "title": "HTTP 5xx Rate",
+      "type": "timeseries",
+      "description": "최근 5분간 /readyz를 제외한 요청 중 5xx 비율입니다. 오류 지표가 없으면 0으로 표시합니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
+      "id": 3,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{service=\"fleaflea\",environment=~\"$environment\",uri!~\"/readyz|/actuator/.*|UNKNOWN|/api/v1/notifications/subscribe\"}[5m])))", "legendFormat": "p95 {{uri}}"}, {"expr": "histogram_quantile(0.99, sum by (le, uri) (rate(http_server_requests_seconds_bucket{service=\"fleaflea\",environment=~\"$environment\",uri!~\"/readyz|/actuator/.*|UNKNOWN|/api/v1/notifications/subscribe\"}[5m])))", "legendFormat": "p99 {{uri}}"}],
+      "title": "API Latency by Route",
+      "type": "timeseries",
+      "description": "헬스체크, UNKNOWN, SSE 구독을 제외한 API 경로의 p95·p99입니다. 실제 API 요청이 없으면 그래프가 비어 있습니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.75}, {"color": "red", "value": 0.9}]}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 21},
+      "id": 4,
+      "targets": [{"expr": "sum(jvm_memory_used_bytes{service=\"fleaflea\",environment=~\"$environment\",area=\"heap\"}) / sum(jvm_memory_max_bytes{service=\"fleaflea\",environment=~\"$environment\",area=\"heap\"})", "legendFormat": "Heap usage", "refId": "A"}],
+      "title": "JVM Heap Usage",
+      "type": "timeseries",
+      "description": "최대 힙 크기 대비 현재 사용량입니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 21},
+      "id": 5,
+      "targets": [{"expr": "hikaricp_connections_active{service=\"fleaflea\",environment=~\"$environment\"}", "legendFormat": "Active"}, {"expr": "hikaricp_connections_pending{service=\"fleaflea\",environment=~\"$environment\"}", "legendFormat": "Pending"}, {"expr": "hikaricp_connections_idle{service=\"fleaflea\",environment=~\"$environment\"}", "legendFormat": "Idle"}],
+      "title": "HikariCP Connection Pool",
+      "type": "timeseries",
+      "description": "HikariCP 활성·대기·유휴 연결 수입니다. 대기 연결이 지속되면 DB 병목을 확인합니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 21},
+      "id": 6,
+      "targets": [{"expr": "executor_queued_tasks{service=\"fleaflea\",environment=~\"$environment\",name=\"notificationSseExecutor\"}", "legendFormat": "Queued tasks"}, {"expr": "executor_active_threads{service=\"fleaflea\",environment=~\"$environment\",name=\"notificationSseExecutor\"}", "legendFormat": "Active threads"}],
+      "title": "SSE Executor",
+      "type": "timeseries",
+      "description": "알림 SSE 실행기의 실행 중 스레드와 대기 작업 수입니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 29},
+      "id": 9,
+      "targets": [{"expr": "probe_success{job=\"blackbox-http\",environment=~\"$environment\"}", "legendFormat": "{{environment}} / readiness probe"}, {"expr": "up{job=~\"fleaflea-.*\",environment=~\"$environment\"}", "legendFormat": "{{environment}} / {{job}}"}],
+      "title": "Endpoint and Scrape Status",
+      "type": "timeseries",
+      "description": "1은 정상, 0은 실패입니다. 외부 점검과 앱·DB Exporter 지표 수집을 함께 봅니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+      "id": 11,
+      "targets": [{"expr": "sum by (name) (rate(container_cpu_usage_seconds_total{job=\"fleaflea-cadvisor\",environment=~\"$environment\",image!=\"\"}[5m]))", "legendFormat": "{{name}}"}],
+      "title": "Container CPU (Production)",
+      "type": "timeseries",
+      "description": "운영 EC2의 cAdvisor 지표입니다. 로컬에서는 cAdvisor를 실행하지 않아 비어 있습니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+      "id": 12,
+      "targets": [{"expr": "container_memory_working_set_bytes{job=\"fleaflea-cadvisor\",environment=~\"$environment\",image!=\"\"}", "legendFormat": "{{name}}"}],
+      "title": "Container Memory (Production)",
+      "type": "timeseries",
+      "description": "운영 EC2의 cAdvisor 지표입니다. 로컬에서는 cAdvisor를 실행하지 않아 비어 있습니다."
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 44},
+      "id": 13,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "name"},
+      "targets": [{"expr": "fleaflea_build_info{service=\"fleaflea\",environment=~\"$environment\"}", "legendFormat": "{{environment}} / {{instance}} / {{version}}"}],
+      "title": "Deployment Version",
+      "type": "stat",
+      "description": "선택한 환경의 애플리케이션 버전입니다."
+    },
+    {
+      "gridPos": {"h": 5, "w": 16, "x": 8, "y": 44},
+      "id": 24,
+      "options": {"mode": "markdown", "content": "### 다음 확인\n- [Host Details](/d/fleaflea-node-exporter)에서 CPU·메모리·디스크를 확인하세요.\n- [PostgreSQL Details](/d/fleaflea-postgres)에서 연결·트랜잭션·잠금을 확인하세요.\n- [발생 중 알림](/alerting/list)에서 알림 내용을 확인하세요.\n- [Explore](/explore)에서 로그와 Tempo 트레이스를 검색하세요.\n- [장애 대응 안내](https://github.com/hyundai-autoever-team3/fleaflea-backend/blob/main/deploy/monitoring/RUNBOOK.md)에서 대응 순서를 확인하세요."},
+      "title": "Explore Details",
+      "type": "text"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 49},
+      "id": 10,
+      "options": {"showTime": true, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending"},
+      "targets": [{"expr": "{service=\"fleaflea\",environment=~\"$environment\"} | json", "refId": "A"}],
+      "title": "Application Logs",
+      "type": "logs",
+      "description": "선택한 환경의 최근 애플리케이션 로그입니다. 상세 분석은 Explore에서 확인합니다."
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["fleaflea", "observability"],
+  "templating": {"list": [{"name": "environment", "label": "Environment", "type": "query", "datasource": {"type": "prometheus", "uid": "prometheus"}, "query": "label_values(probe_success{job=\"blackbox-http\"}, environment)", "definition": "label_values(probe_success{job=\"blackbox-http\"}, environment)", "includeAll": true, "allValue": ".*", "multi": false, "refresh": 1, "sort": 1, "current": {"selected": true, "text": "All", "value": "$__all"}, "options": []}]},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "Fleaflea Overview",
+  "uid": "fleaflea-overview",
+  "version": 1,
+  "description": "외부 상태와 활성 알림에서 시작해 API, DB, JVM, 로그 순서로 문제를 확인합니다."
+}

@@ -7,6 +7,8 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
 
   servlet:
     multipart:
@@ -31,6 +33,10 @@ spring:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
+app:
+  environment: ${APP_ENV:local}
+  version: ${APP_VERSION:local}
+
 server:
   port: 8080
   forward-headers-strategy: framework
@@ -42,9 +48,18 @@ swagger:
   server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
 
 logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT_CONSOLE:}
+    ecs:
+      service:
+        name: fleaflea
+        version: ${APP_VERSION:local}
+        environment: ${APP_ENV:local}
   level:
     root: ${LOG_LEVEL_ROOT:WARN}
     com.anabada.fleaflea: ${LOG_LEVEL_APP:INFO}
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
     org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
 
 aws:
@@ -53,13 +68,32 @@ aws:
     bucket: ${S3_BUCKET}
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      service: ${spring.application.name}
+      environment: ${APP_ENV:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 jwt:
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}

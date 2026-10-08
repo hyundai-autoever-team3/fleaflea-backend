@@ -22,6 +22,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException {
         ErrorCode errorCode = ErrorCode.ACCESS_DENIED;
 
+        request.setAttribute("fleaflea.errorCode", errorCode.getCode());
         response.setStatus(errorCode.getStatus().value());
         response.setContentType("application/json;charset=UTF-8");
 
