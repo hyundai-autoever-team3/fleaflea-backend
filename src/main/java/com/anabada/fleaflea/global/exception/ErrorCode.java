@@ -44,6 +44,7 @@ public enum ErrorCode {
     OAUTH2_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "OAUTH2_LOGIN_FAILED", "소셜 로그인에 실패했습니다."),
     OAUTH2_SIGNUP_EXPIRED(HttpStatus.UNAUTHORIZED, "OAUTH2_SIGNUP_EXPIRED", "소셜 회원가입 요청이 만료되었습니다. 다시 로그인해주세요."),
     OAUTH2_PRINCIPAL_UNSUPPORTED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH2_PRINCIPAL_UNSUPPORTED", "소셜 로그인 처리 중 오류가 발생했습니다."),
+    OAUTH2_USER_INFO_FETCH_FAILED(HttpStatus.BAD_GATEWAY, "OAUTH2_USER_INFO_FETCH_FAILED", "소셜 사용자 정보 조회에 실패했습니다."),
 
     // MyPage
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
