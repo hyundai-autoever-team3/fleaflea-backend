@@ -18,6 +18,7 @@ import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.image.ImageService;
 import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import com.anabada.fleaflea.support.RedisTestContainerConfiguration;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,6 +48,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Sql(statements = "TRUNCATE TABLE members RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(statements = "TRUNCATE TABLE members RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class MarketConcurrencyTest {
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @Autowired
     private MarketService marketService;
@@ -112,6 +116,9 @@ class MarketConcurrencyTest {
     @Test
     @DisplayName("마켓 이름과 설명을 동시에 수정해도 두 변경이 모두 보존된다")
     void updateMarket_concurrentPartialChanges_preservesBothChanges() throws Exception {
+        long lookupCount = meterRegistry.timer("market.locked.lookup").count();
+        long executionCount = meterRegistry.timer("market.change.execution").count();
+
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
 
@@ -136,6 +143,8 @@ class MarketConcurrencyTest {
             Market updatedMarket = marketRepository.findById(market.getMarketId()).orElseThrow();
             assertThat(updatedMarket.getTitle()).isEqualTo("changed-title");
             assertThat(updatedMarket.getDescription()).isEqualTo("changed-description");
+            assertThat(meterRegistry.timer("market.locked.lookup").count()).isEqualTo(lookupCount + 2);
+            assertThat(meterRegistry.timer("market.change.execution").count()).isEqualTo(executionCount + 2);
         }
     }
 

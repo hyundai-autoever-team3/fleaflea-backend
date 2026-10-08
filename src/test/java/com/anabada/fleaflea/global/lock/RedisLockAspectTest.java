@@ -2,6 +2,7 @@ package com.anabada.fleaflea.global.lock;
 
 import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
 import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.springframework.integration.support.locks.DistributedLock;
@@ -42,12 +43,19 @@ class RedisLockAspectTest {
     @Mock
     private DistributedLock lock;
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private RedisLockAspect redisLockAspect;
     private RedisLocked redisLocked;
 
     @BeforeEach
     void setUp() throws Exception {
-        redisLockAspect = new RedisLockAspect(redisLockRegistry, beanFactory, Duration.ofMillis(50));
+        redisLockAspect = new RedisLockAspect(
+                redisLockRegistry,
+                beanFactory,
+                meterRegistry,
+                Duration.ofMillis(50)
+        );
         redisLocked = LockedOperation.class.getMethod("updateMarket", Long.class).getAnnotation(RedisLocked.class);
         when(joinPoint.getSignature()).thenReturn(methodSignature);
         when(joinPoint.getTarget()).thenReturn(new LockedOperation());
@@ -71,6 +79,9 @@ class RedisLockAspectTest {
 
         verify(joinPoint, never()).proceed();
         verify(lock, never()).unlock();
+        assertThat(meterRegistry.get("redis.lock.acquire").tag("outcome", "timeout").timer().count())
+                .isEqualTo(1);
+        assertThat(meterRegistry.find("redis.lock.hold").timer()).isNull();
     }
 
     @Test
@@ -107,6 +118,9 @@ class RedisLockAspectTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(lock).unlock();
+        assertThat(meterRegistry.get("redis.lock.acquire").tag("outcome", "acquired").timer().count())
+                .isEqualTo(1);
+        assertThat(meterRegistry.get("redis.lock.hold").timer().count()).isEqualTo(1);
     }
 
     public static class LockedOperation {

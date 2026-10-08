@@ -3,6 +3,8 @@ package com.anabada.fleaflea.global.lock;
 import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
 import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
 import com.anabada.fleaflea.global.exception.BusinessException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +38,7 @@ public class RedisLockAspect {
 
     private final RedisLockRegistry redisLockRegistry;
     private final BeanFactory beanFactory;
+    private final MeterRegistry meterRegistry;
     private final Duration waitTime;
     private final ExpressionParser expressionParser = new SpelExpressionParser();
     private final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
@@ -43,6 +46,7 @@ public class RedisLockAspect {
     public RedisLockAspect(
             RedisLockRegistry redisLockRegistry,
             BeanFactory beanFactory,
+            MeterRegistry meterRegistry,
             @Value("${app.redis-lock.wait-time:5s}") Duration waitTime
     ) {
         if (waitTime.isNegative()) {
@@ -50,6 +54,7 @@ public class RedisLockAspect {
         }
         this.redisLockRegistry = redisLockRegistry;
         this.beanFactory = beanFactory;
+        this.meterRegistry = meterRegistry;
         this.waitTime = waitTime;
     }
 
@@ -60,6 +65,7 @@ public class RedisLockAspect {
     ) throws Throwable {
         String lockKey = getLockKey(joinPoint, redisLocked);
         Lock lock = acquireLock(lockKey);
+        long acquiredAt = System.nanoTime();
         boolean releaseAfterTransaction = false;
 
         try {
@@ -67,7 +73,7 @@ public class RedisLockAspect {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCompletion(int status) {
-                        releaseLock(lock, lockKey);
+                        releaseLock(lock, lockKey, acquiredAt);
                     }
                 });
                 releaseAfterTransaction = true;
@@ -75,7 +81,7 @@ public class RedisLockAspect {
             return joinPoint.proceed();
         } finally {
             if (!releaseAfterTransaction) {
-                releaseLock(lock, lockKey);
+                releaseLock(lock, lockKey, acquiredAt);
             }
         }
     }
@@ -111,28 +117,41 @@ public class RedisLockAspect {
     }
 
     private Lock acquireLock(String lockKey) {
-        Lock lock;
-        boolean acquired;
+        long startedAt = System.nanoTime();
+        String outcome = "unavailable";
+
         try {
-            lock = redisLockRegistry.obtain(lockKey);
-            acquired = lock.tryLock(waitTime.toMillis(), TimeUnit.MILLISECONDS);
+            Lock lock = redisLockRegistry.obtain(lockKey);
+            if (!lock.tryLock(waitTime.toMillis(), TimeUnit.MILLISECONDS)) {
+                outcome = "timeout";
+                throw new RedisLockBusyException();
+            }
+            outcome = "acquired";
+            return lock;
         } catch (InterruptedException exception) {
+            outcome = "interrupted";
             Thread.currentThread().interrupt();
             throw new RedisLockUnavailableException(exception);
+        } catch (RedisLockBusyException exception) {
+            throw exception;
         } catch (RuntimeException exception) {
             throw new RedisLockUnavailableException(exception);
+        } finally {
+            Timer.builder("redis.lock.acquire")
+                    .tag("outcome", outcome)
+                    .register(meterRegistry)
+                    .record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
         }
-
-        if (!acquired) {
-            throw new RedisLockBusyException();
-        }
-        return lock;
     }
 
     private void releaseLock(
             Lock lock,
-            String lockKey
+            String lockKey,
+            long acquiredAt
     ) {
+        meterRegistry.timer("redis.lock.hold")
+                .record(System.nanoTime() - acquiredAt, TimeUnit.NANOSECONDS);
+
         try {
             lock.unlock();
         } catch (RuntimeException exception) {
