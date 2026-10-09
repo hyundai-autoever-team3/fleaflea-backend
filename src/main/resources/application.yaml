@@ -45,6 +45,12 @@ server:
   port: 8080
   forward-headers-strategy: framework
 
+app:
+  chat:
+    redis:
+      enabled: ${CHAT_REDIS_ENABLED:false}
+      channel-prefix: ${CHAT_REDIS_CHANNEL_PREFIX:fleaflea:chat}
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175,http://localhost:8080}
 

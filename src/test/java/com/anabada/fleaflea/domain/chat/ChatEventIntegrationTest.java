@@ -20,11 +20,17 @@ import com.anabada.fleaflea.fixture.FriendshipFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.image.ImageService;
 import com.anabada.fleaflea.support.PostgresIntegrationTest;
+import com.anabada.fleaflea.support.RedisTestContainerConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -36,10 +42,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 @PostgresIntegrationTest
+@Import(RedisTestContainerConfiguration.class)
+@TestPropertySource(properties = "app.chat.redis.enabled=true")
 @Sql(
         statements = "TRUNCATE TABLE chat_messages, chat_rooms, friendships, members RESTART IDENTITY CASCADE",
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
@@ -74,6 +83,9 @@ class ChatEventIntegrationTest {
     @MockitoBean
     private SimpMessagingTemplate messagingTemplate;
 
+    @MockitoSpyBean
+    private StringRedisTemplate stringRedisTemplate;
+
     private Member sender;
     private Member receiver;
     private Member outsider;
@@ -99,7 +111,7 @@ class ChatEventIntegrationTest {
         ChatSocketEventResponse<?> response = ChatSocketEventResponse.from(ChatTypingChangedEvent.of(
                 sender.getMemberId(), receiver.getMemberId(), ChatTypingResponse.from(chatRoomRepository.findById(roomId).orElseThrow(), sender.getMemberId(), true)
         ));
-        verify(messagingTemplate).convertAndSendToUser(receiver.getMemberId().toString(), "/queue/chat", response);
+        verify(messagingTemplate, timeout(3000)).convertAndSendToUser(receiver.getMemberId().toString(), "/queue/chat", response);
         verify(messagingTemplate, never()).convertAndSendToUser(eq(sender.getMemberId().toString()), eq("/queue/chat"), any());
         assertThat(chatMessageRepository.count()).isZero();
         assertThat(chatRoomRepository.findById(roomId).orElseThrow().getUpdatedAt()).isEqualTo(updatedAt);
@@ -111,11 +123,13 @@ class ChatEventIntegrationTest {
         Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             sendMessage(sender, roomId, "rolled back");
+            verify(stringRedisTemplate, never()).convertAndSend(anyString(), any());
             verify(messagingTemplate, never()).convertAndSendToUser(anyString(), eq("/queue/chat"), any());
             status.setRollbackOnly();
         });
 
         assertThat(chatMessageRepository.count()).isZero();
+        verify(stringRedisTemplate, never()).convertAndSend(anyString(), any());
         verify(messagingTemplate, never()).convertAndSendToUser(anyString(), eq("/queue/chat"), any());
     }
 
@@ -187,6 +201,21 @@ class ChatEventIntegrationTest {
                         new ChatSocketEventResponse<>(ChatEventType.MESSAGES_READ, response)
                 );
         assertThat(response.lastReadMessageId()).isEqualTo(message.id());
+    }
+
+    @Test
+    @DisplayName("Redis 발행이 실패해도 저장된 메시지를 커서 조회로 복구할 수 있다")
+    void sendMessage_redisPublishFails_preservesMessageForCursorRecovery() {
+        Long roomId = chatService.getOrCreateChatRoom(sender.getMemberId(), receiver.getMemberId()).id();
+        doThrow(new RedisConnectionFailureException("test publish failure"))
+                .when(stringRedisTemplate).convertAndSend(anyString(), any());
+
+        ChatMessageResponse chatMessageResponse = sendMessage(sender, roomId, "복구할 메시지");
+
+        assertThat(chatMessageRepository.count()).isEqualTo(1);
+        assertThat(chatService.getMessages(receiver.getMemberId(), roomId, null, null, 20).content())
+                .containsExactly(chatMessageResponse);
+        verify(messagingTemplate, never()).convertAndSendToUser(anyString(), anyString(), any());
     }
 
     private ChatMessageSendRequest createChatMessageSendRequest(String content) {

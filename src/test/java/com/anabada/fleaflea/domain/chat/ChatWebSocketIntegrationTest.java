@@ -9,6 +9,8 @@ import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatMessageSentEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatEventListener;
+import com.anabada.fleaflea.domain.chat.event.ChatSocketEventSender;
+import com.anabada.fleaflea.domain.chat.event.LocalChatEventPublisher;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.security.ChatWebSocketAuthInterceptor;
 import com.anabada.fleaflea.domain.chat.security.ChatWebSocketSessionDecorator;
@@ -371,7 +373,8 @@ class ChatWebSocketIntegrationTest {
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration(excludeName = "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration")
     @Import({ChatWebSocketConfig.class, ChatWebSocketAuthInterceptor.class, ChatWebSocketSessionDecorator.class,
-            ChatSocketController.class, ChatEventListener.class, JwtTokenProvider.class, SchedulingConfig.class,
+            ChatSocketController.class, ChatEventListener.class, ChatSocketEventSender.class,
+            LocalChatEventPublisher.class, JwtTokenProvider.class, SchedulingConfig.class,
             SecurityConfig.class, JwtAuthenticationFilter.class, CustomAuthenticationEntryPoint.class,
             CustomAccessDeniedHandler.class})
     static class TestApplication {
