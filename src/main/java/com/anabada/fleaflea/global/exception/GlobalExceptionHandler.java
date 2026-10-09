@@ -44,15 +44,28 @@ public class GlobalExceptionHandler {
     }
 
     // @RequestBody 객체를 @Valid 또는 @Validated로 검증할 때 발생하는 오류
-    // @Validated가 적용된 서비스 메서드 등의 제약 조건 검증 오류
-    // 컨트롤러의 @RequestParam, @PathVariable 또는 반환값 제약 조건 검증 오류
-    @ExceptionHandler({
-            MethodArgumentNotValidException.class,
-            ConstraintViolationException.class,
-            HandlerMethodValidationException.class
-    })
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationFailure(
-            Exception e
+            MethodArgumentNotValidException e
+    ) {
+        return toResponse(ErrorCode.INVALID_REQUEST);
+    }
+
+    // 컨트롤러 메서드 파라미터 검증 오류
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException e
+    ) {
+        if (e.getStatusCode().is5xxServerError()) {
+            return handleException(e);
+        }
+        return toResponse(ErrorCode.INVALID_REQUEST);
+    }
+
+    // @Validated 서비스 메서드 등의 제약 조건 검증 오류
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            ConstraintViolationException e
     ) {
         return toResponse(ErrorCode.INVALID_REQUEST);
     }
