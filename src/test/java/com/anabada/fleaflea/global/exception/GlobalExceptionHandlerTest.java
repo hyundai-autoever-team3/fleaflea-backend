@@ -41,7 +41,7 @@ class GlobalExceptionHandlerTest {
                 new ConstraintViolationException(Set.of());
 
         ResponseEntity<ErrorResponse> response =
-                handler.handleConstraintViolation(exception);
+                handler.handleValidationFailure(exception);
 
         assertThat(response.getStatusCode())
                 .isEqualTo(HttpStatus.BAD_REQUEST);
