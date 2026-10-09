@@ -1,0 +1,598 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PostgreSQL Availability",
+      "description": "pg_up 1은 exporter의 DB 연결 성공, 0은 실패입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "min(pg_up{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\"})",
+          "legendFormat": "Connections",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Current Connections",
+      "description": "선택한 데이터베이스의 현재 세션 수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(pg_stat_database_numbackends{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"})",
+          "legendFormat": "Connections",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Database Size",
+      "description": "선택한 데이터베이스의 디스크 사용량입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(pg_database_size_bytes{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"})",
+          "legendFormat": "Size",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Exporter Scrape Error",
+      "description": "1이면 PostgreSQL exporter 수집 오류입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "max(pg_exporter_last_scrape_error{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\"})",
+          "legendFormat": "Error",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Transaction Rate",
+      "description": "초당 커밋 및 롤백 건수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Commits/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Rollbacks/s",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Connections vs Limit",
+      "description": "현재 세션 수와 max_connections 설정을 비교합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(pg_stat_database_numbackends{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"})",
+          "legendFormat": "Current {{instance}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(pg_settings_max_connections{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\"})",
+          "legendFormat": "Connection limit",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Cache Hit Ratio",
+      "description": "블록 읽기 중 메모리 캐시에서 처리한 비율입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_blks_hit{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m])) / clamp_min(sum(rate(pg_stat_database_blks_hit{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m])) + sum(rate(pg_stat_database_blks_read{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m])), 0.001)",
+          "legendFormat": "Hit ratio",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Row Change Rate",
+      "description": "선택한 DB의 초당 삽입, 수정, 삭제 행 수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rows",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_tup_inserted{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Inserts/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(pg_stat_database_tup_updated{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Updates/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(pg_stat_database_tup_deleted{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Deletes/s",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Locks by Mode",
+      "description": "잠금 모드별 현재 개수입니다. 단순 잠금 수만으로 장애를 판단하지 않습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum by (mode) (pg_locks_count{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"})",
+          "legendFormat": "{{mode}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Deadlocks",
+      "description": "초당 데드락 발생 수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_deadlocks{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Deadlocks/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Temporary File Write Rate",
+      "description": "정렬 등에 쓰인 임시 파일의 초당 생성량입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m]))",
+          "legendFormat": "Bytes/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Largest Tables",
+      "description": "상위 10개 사용자 테이블 크기입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 29,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (schemaname,relname) (pg_stat_user_tables_size_bytes{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}))",
+          "legendFormat": "{{schemaname}}.{{relname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Dead Tuples by Table",
+      "description": "VACUUM 관찰에 도움이 되는 추정 죽은 행 수입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (schemaname,relname) (pg_stat_user_tables_n_dead_tup{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}))",
+          "legendFormat": "{{schemaname}}.{{relname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Table Scan Rate",
+      "description": "상위 사용자 테이블의 순차 스캔과 인덱스 스캔 속도입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 37,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "topk(5, sum by (schemaname,relname) (rate(pg_stat_user_tables_seq_scan{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m])))",
+          "legendFormat": "Sequential {{relname}}",
+          "refId": "A"
+        },
+        {
+          "expr": "topk(5, sum by (schemaname,relname) (rate(pg_stat_user_tables_idx_scan{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\",datname=~\"$database\"}[5m])))",
+          "legendFormat": "Index {{relname}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "fleaflea",
+    "postgresql"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(pg_up{job=\"fleaflea-postgres\"}, environment)",
+        "definition": "label_values(pg_up{job=\"fleaflea-postgres\"}, environment)",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(pg_up{job=\"fleaflea-postgres\",environment=~\"$environment\"}, instance)",
+        "definition": "label_values(pg_up{job=\"fleaflea-postgres\",environment=~\"$environment\"}, instance)",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "database",
+        "label": "Database",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(pg_stat_database_numbackends{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\"}, datname)",
+        "definition": "label_values(pg_stat_database_numbackends{job=\"fleaflea-postgres\",environment=~\"$environment\",instance=~\"$instance\"}, datname)",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "fleaflea_db",
+          "value": "fleaflea_db"
+        },
+        "options": []
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Fleaflea PostgreSQL Details",
+  "uid": "fleaflea-postgres",
+  "version": 1,
+  "description": "PostgreSQL Exporter 지표로 연결, 처리량, 캐시, 잠금, 테이블 상태를 확인합니다."
+}
