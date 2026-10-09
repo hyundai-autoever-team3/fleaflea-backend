@@ -18,6 +18,7 @@ import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import com.anabada.fleaflea.global.lock.RedisLocked;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -94,13 +95,14 @@ public class MarketService {
         return inviteCode;
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public MarketUpdateResponse updateMarket(
             Long memberId,
             Long marketId,
             MarketUpdateRequest marketUpdateRequest
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
@@ -148,12 +150,13 @@ public class MarketService {
         return MarketInvitationResponse.from(market);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public MarketInvitationResponse reissueInvitation(
             Long memberId,
             Long marketId
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
@@ -163,6 +166,7 @@ public class MarketService {
         return MarketInvitationResponse.from(market);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public void leaveMarket(
             Long memberId,
@@ -171,7 +175,7 @@ public class MarketService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         if (market.getHost().getMemberId().equals(memberId)) {
             throw new MarketHostCannotLeaveException();
@@ -184,12 +188,13 @@ public class MarketService {
         marketMemberRepository.delete(membership);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public void deleteMarket(
             Long memberId,
             Long marketId
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
@@ -202,6 +207,11 @@ public class MarketService {
 
     private Market getMarket(Long marketId) {
         return marketRepository.findById(marketId)
+                .orElseThrow(MarketNotFoundException::new);
+    }
+
+    private Market getLockedMarket(Long marketId) {
+        return marketRepository.findLockedById(marketId)
                 .orElseThrow(MarketNotFoundException::new);
     }
 

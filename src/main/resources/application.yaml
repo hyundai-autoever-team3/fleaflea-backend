@@ -46,6 +46,10 @@ server:
   forward-headers-strategy: framework
 
 app:
+  redis-lock:
+    wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
+    lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
+
   chat:
     redis:
       enabled: ${CHAT_REDIS_ENABLED:false}
