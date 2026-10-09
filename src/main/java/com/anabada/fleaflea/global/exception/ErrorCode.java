@@ -17,6 +17,8 @@ public enum ErrorCode {
     CHAT_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "CHAT_RATE_LIMIT_EXCEEDED", "메시지를 너무 자주 보내고 있습니다. 잠시 후 다시 시도해 주세요."),
 
     // Common
+    RESOURCE_BUSY(HttpStatus.CONFLICT, "RESOURCE_BUSY", "다른 요청을 처리 중입니다. 잠시 후 다시 시도해 주세요."),
+    REDIS_LOCK_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "REDIS_LOCK_UNAVAILABLE", "잠금 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "지원하지 않는 HTTP 메서드입니다."),
     DATA_INTEGRITY_VIOLATION(HttpStatus.CONFLICT, "DATA_INTEGRITY_VIOLATION", "요청한 데이터가 기존 데이터와 충돌합니다."),

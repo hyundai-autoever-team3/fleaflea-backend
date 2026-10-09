@@ -2,6 +2,7 @@ package com.anabada.fleaflea.support;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.containers.GenericContainer;
 
@@ -19,7 +20,7 @@ public class RedisTestContainerConfiguration {
     }
 
     @Bean
-    DynamicPropertyRegistrar redisProperties(GenericContainer<?> redisContainer) {
+    DynamicPropertyRegistrar redisProperties(@Qualifier("redisContainer") GenericContainer<?> redisContainer) {
         return registry -> {
             registry.add("spring.data.redis.host", redisContainer::getHost);
             registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(REDIS_PORT));

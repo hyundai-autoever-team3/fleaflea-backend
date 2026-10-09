@@ -179,6 +179,10 @@ public class MarketController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @Operation(summary = "플리마켓 수정")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<MarketUpdateResponse> updateMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
@@ -200,6 +204,10 @@ public class MarketController {
 
     @PostMapping("/{marketId}/invitation")
     @Operation(summary = "초대 코드 재발급")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<MarketInvitationResponse> reissueInvitation(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
@@ -213,6 +221,10 @@ public class MarketController {
 
     @DeleteMapping("/{marketId}/members/me")
     @Operation(summary = "플리마켓 나가기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<Void> leaveMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
@@ -226,6 +238,10 @@ public class MarketController {
 
     @DeleteMapping("/{marketId}")
     @Operation(summary = "플리마켓 삭제")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<Void> deleteMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
