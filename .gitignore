@@ -42,3 +42,4 @@ performance/k6/data/
 .env
 .env.*
 !.env.example
+deploy/monitoring/secrets/

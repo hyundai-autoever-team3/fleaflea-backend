@@ -1,0 +1,106 @@
+groups:
+  - name: fleaflea-service
+    rules:
+      - alert: FleafleaExternalDown
+        expr: probe_success{job="blackbox-http", service="fleaflea"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fleaflea 외부 준비 상태 확인에 실패했습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#external-down
+
+      - alert: FleafleaHigh5xxRate
+        expr: |
+          (
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!="/readyz"}[5m]))
+            /
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", uri!="/readyz"}[5m]))
+          ) > 0.05
+          and
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", uri!="/readyz"}[5m])) >= 100
+          or
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!="/readyz"}[5m])) >= 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fleaflea 서버의 5xx 오류가 설정한 기준치를 초과했습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#high-5xx
+
+      - alert: FleafleaRouteP95Slow
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, uri, environment) (
+              rate(http_server_requests_seconds_bucket{service="fleaflea", uri!~"/readyz|/actuator/.*|UNKNOWN|/api/v1/notifications/subscribe"}[5m])
+            )
+          ) > 1
+          and
+          sum by (uri, environment) (
+            increase(http_server_requests_seconds_count{service="fleaflea", uri!~"/readyz|/actuator/.*|UNKNOWN|/api/v1/notifications/subscribe"}[5m])
+          ) >= 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fleaflea API 경로의 p95 응답 시간이 1초를 초과했습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#slow-api
+
+      - alert: FleafleaDatabaseConnectionPending
+        expr: hikaricp_connections_pending{service="fleaflea"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fleaflea 요청이 데이터베이스 연결을 기다리고 있습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#database-pool
+
+      - alert: FleafleaTelemetryMissing
+        expr: |
+          min by (environment) (up{job="fleaflea-app"}) == 0
+          or
+          (
+            max by (environment) (up{job="blackbox-http", service="fleaflea"})
+            unless on (environment)
+            max by (environment) (up{job="fleaflea-app"})
+          )
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: 애플리케이션 지표가 3분 동안 Prometheus에 도착하지 않았습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#telemetry-missing
+
+  - name: infrastructure
+    rules:
+      - alert: HostDiskSpaceLow
+        expr: |
+          100 * node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|erofs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|erofs"} < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 호스트 디스크 여유 공간이 20% 미만입니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#disk-space
+
+      - alert: HostDiskSpaceCritical
+        expr: |
+          100 * node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|erofs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|erofs"} < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 호스트 디스크 여유 공간이 10% 미만입니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#disk-space
+
+      - alert: MonitoringTargetDown
+        expr: up{job=~"prometheus|loki|tempo|monitoring-node"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: 중앙 모니터링 대상의 지표 수집에 실패했습니다
+          runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#monitoring-target-down

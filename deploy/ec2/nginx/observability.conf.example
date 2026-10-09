@@ -1,0 +1,29 @@
+# Place the map and log_format in nginx.conf's http block. Use the access_log
+# and location directives in the api.fleaflea.app server block.
+map $request_uri $fleaflea_path_without_query {
+    ~^([^?]*) $1;
+}
+
+log_format fleaflea_json escape=json
+    '{"timestamp":"$time_iso8601",'
+    '"service":"nginx",'
+    '"method":"$request_method",'
+    '"path":"$fleaflea_path_without_query",'
+    '"status":$status,'
+    '"request_time":$request_time,'
+    '"upstream_time":"$upstream_response_time",'
+    '"bytes_sent":$bytes_sent}';
+
+access_log /var/log/nginx/fleaflea-access.log fleaflea_json;
+error_log /var/log/nginx/fleaflea-error.log warn;
+
+location = /readyz {
+    proxy_pass http://127.0.0.1:8080/readyz;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+# Do not proxy management endpoints from the public virtual host.
+location ^~ /actuator/ {
+    return 404;
+}

@@ -81,7 +81,11 @@ public class NotificationSseService {
                     .data(data));
         } catch (IOException | IllegalStateException e) {
             emitterRepository.delete(memberId, emitterId);
-            log.debug("SSE 전송 실패 - memberId={}, event={}", memberId, eventName, e);
+
+            log.atDebug()
+                    .addKeyValue("event", eventName)
+                    .addKeyValue("exceptionType", e.getClass().getSimpleName())
+                    .log("sse_send_failed");
         }
     }
 }

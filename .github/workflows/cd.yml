@@ -97,16 +97,19 @@ jobs:
 
           COMPOSE_B64="$(base64 -w 0 deploy/ec2/compose.yml)"
           DEPLOY_SCRIPT_B64="$(base64 -w 0 deploy/ec2/deploy.sh)"
+          ALLOY_CONFIG_B64="$(base64 -w 0 deploy/ec2/alloy/config.alloy)"
 
           PARAMETERS="$(jq -n \
             --arg compose "$COMPOSE_B64" \
             --arg script "$DEPLOY_SCRIPT_B64" \
+            --arg alloy "$ALLOY_CONFIG_B64" \
             --arg image "$IMAGE_URI" \
             '{commands: [
               "set -eu",
-              "mkdir -p /opt/fleaflea",
+              "mkdir -p /opt/fleaflea/alloy",
               ("printf %s " + ($compose | @sh) + " | base64 -d > /opt/fleaflea/compose.yml"),
               ("printf %s " + ($script | @sh) + " | base64 -d > /opt/fleaflea/deploy.sh"),
+              ("printf %s " + ($alloy | @sh) + " | base64 -d > /opt/fleaflea/alloy/config.alloy"),
               "chmod 700 /opt/fleaflea/deploy.sh",
               ("/opt/fleaflea/deploy.sh " + ($image | @sh))
             ]}')"

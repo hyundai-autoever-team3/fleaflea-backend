@@ -7,6 +7,8 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
 
   data:
     redis:
@@ -41,14 +43,16 @@ spring:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
-server:
-  port: 8080
-  forward-headers-strategy: framework
-
 app:
+  environment: ${APP_ENV:local}
+  version: ${APP_VERSION:local}
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
+
+server:
+  port: 8080
+  forward-headers-strategy: framework
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175,http://localhost:8080}
@@ -57,9 +61,20 @@ swagger:
   server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
 
 logging:
+  pattern:
+    level: "%5p [trace_id=%X{trace_id:-} span_id=%X{span_id:-}]"
+  structured:
+    format:
+      console: ${LOG_FORMAT_CONSOLE:}
+    ecs:
+      service:
+        name: fleaflea
+        version: ${APP_VERSION:local}
+        environment: ${APP_ENV:local}
   level:
     root: ${LOG_LEVEL_ROOT:WARN}
     com.anabada.fleaflea: ${LOG_LEVEL_APP:INFO}
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
     org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
 
 aws:
@@ -71,13 +86,32 @@ management:
   health:
     redis:
       enabled: ${REDIS_HEALTH_ENABLED:false}
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      service: ${spring.application.name}
+      environment: ${APP_ENV:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 jwt:
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}

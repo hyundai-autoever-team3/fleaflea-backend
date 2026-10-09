@@ -1,0 +1,77 @@
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: health checks do not dilute API error rate
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_count{service="fleaflea",environment="local",uri="/api/v1/items/{itemId}",status="200"}'
+        values: '0+20x15'
+      - series: 'http_server_requests_seconds_count{service="fleaflea",environment="local",uri="/api/v1/items/{itemId}",status="500"}'
+        values: '0+1.5x15'
+      - series: 'http_server_requests_seconds_count{service="fleaflea",environment="local",uri="/readyz",status="200"}'
+        values: '0+1000x15'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: FleafleaHigh5xxRate
+        exp_alerts:
+          - exp_labels:
+              environment: local
+              severity: critical
+            exp_annotations:
+              summary: Fleaflea 서버의 5xx 오류가 설정한 기준치를 초과했습니다
+              runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#high-5xx
+  - name: healthy environments do not alert
+    interval: 1m
+    input_series:
+      - series: 'up{job="blackbox-http",service="fleaflea",environment="local"}'
+        values: '1+0x10'
+      - series: 'up{job="blackbox-http",service="fleaflea",environment="production"}'
+        values: '1+0x10'
+      - series: 'up{job="fleaflea-app",environment="local"}'
+        values: '1+0x10'
+      - series: 'up{job="fleaflea-app",environment="production"}'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: FleafleaTelemetryMissing
+        exp_alerts: []
+  - name: failed local scrape alerts while production is healthy
+    interval: 1m
+    input_series:
+      - series: 'up{job="blackbox-http",service="fleaflea",environment="local"}'
+        values: '1+0x10'
+      - series: 'up{job="fleaflea-app",environment="local"}'
+        values: '0+0x10'
+      - series: 'up{job="fleaflea-app",environment="production"}'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: FleafleaTelemetryMissing
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: FleafleaTelemetryMissing
+        exp_alerts:
+          - exp_labels:
+              environment: local
+              severity: warning
+            exp_annotations:
+              summary: 애플리케이션 지표가 3분 동안 Prometheus에 도착하지 않았습니다
+              runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#telemetry-missing
+  - name: missing production metrics alert while local is healthy
+    interval: 1m
+    input_series:
+      - series: 'up{job="blackbox-http",service="fleaflea",environment="production"}'
+        values: '1+0x10'
+      - series: 'up{job="fleaflea-app",environment="local"}'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: FleafleaTelemetryMissing
+        exp_alerts:
+          - exp_labels:
+              environment: production
+              severity: warning
+            exp_annotations:
+              summary: 애플리케이션 지표가 3분 동안 Prometheus에 도착하지 않았습니다
+              runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#telemetry-missing

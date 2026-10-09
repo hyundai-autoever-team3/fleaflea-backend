@@ -1,0 +1,51 @@
+services:
+  prometheus:
+    volumes:
+      - ./local/prometheus:/etc/prometheus/targets:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  postgres-exporter-local:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: fleaflea-local-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: host.docker.internal:5432/fleaflea_db?sslmode=disable
+      DATA_SOURCE_USER: ${LOCAL_DB_USERNAME:-postgres}
+      DATA_SOURCE_PASS: ${LOCAL_DB_PASSWORD:-password}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+  alloy-local:
+    image: grafana/alloy:v1.19.2
+    container_name: fleaflea-local-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./local/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ../../build/logs:/var/log/fleaflea:ro
+      - local_alloy_data:/var/lib/alloy
+    ports:
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:12346:12345"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - postgres-exporter-local
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
+volumes:
+  local_alloy_data:

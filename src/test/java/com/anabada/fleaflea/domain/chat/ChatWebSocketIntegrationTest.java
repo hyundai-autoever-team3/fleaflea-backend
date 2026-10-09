@@ -80,6 +80,8 @@ import static org.mockito.Mockito.when;
         classes = ChatWebSocketIntegrationTest.TestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
+                "management.server.port=0",
+                "management.endpoint.health.group.readiness.include=readinessState",
                 "cors.allowed-origins[0]=http://localhost",
                 "jwt.secret=chat-websocket-test-secret-key-at-least-32-bytes",
                 "jwt.access-expiration=60000",

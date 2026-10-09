@@ -11,6 +11,7 @@ COMPOSE_FILE="/opt/fleaflea/compose.yml"
 DEPLOY_ENV="/etc/fleaflea/deploy.env"
 GHCR_ENV="/etc/fleaflea/ghcr.env"
 REDIS_ENV="/etc/fleaflea/redis.env"
+MONITORING_ENV="/etc/fleaflea/monitoring.env"
 
 if [[ ! -s "$REDIS_ENV" ]]; then
   echo "Missing Redis environment file: $REDIS_ENV" >&2
@@ -47,17 +48,25 @@ previous_image="$(docker inspect --format '{{.Config.Image}}' fleaflea-app 2>/de
 
 write_image_env() {
   local image_uri="$1"
+  local version="${image_uri##*:}"
   local temporary_file
   temporary_file="$(mktemp)"
-  printf 'APP_IMAGE=%s\n' "$image_uri" > "$temporary_file"
+  printf 'APP_IMAGE=%s\nAPP_VERSION=%s\n' "$image_uri" "$version" > "$temporary_file"
   install -o root -g root -m 600 "$temporary_file" "$DEPLOY_ENV"
   rm -f "$temporary_file"
 }
 
 start_stack() {
-  docker compose --env-file "$DEPLOY_ENV" --env-file "$REDIS_ENV" -f "$COMPOSE_FILE" pull app
-  docker compose --env-file "$DEPLOY_ENV" --env-file "$REDIS_ENV" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 180
-  curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null
+  local -a compose_args=(--env-file "$DEPLOY_ENV" --env-file "$REDIS_ENV")
+
+  if [[ -f "$MONITORING_ENV" ]]; then
+    compose_args+=(--env-file "$MONITORING_ENV" --profile monitoring)
+  fi
+
+  docker compose "${compose_args[@]}" -f "$COMPOSE_FILE" pull
+  docker compose "${compose_args[@]}" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 180
+  curl -fsS http://127.0.0.1:8080/readyz >/dev/null \
+    || curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null
 }
 
 write_image_env "$IMAGE_URI"
