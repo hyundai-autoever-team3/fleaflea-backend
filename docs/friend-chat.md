@@ -50,7 +50,7 @@ CONNECTED 이후 아래 세 경로를 구독하고 메시지를 전송한다.
 | 메시지 전송 (SEND) | `/app/chat/rooms/{roomId}/messages` | `{ "content": "어디서 만날까?", "clientMessageId": "UUID" }` |
 | 입력 상태 (SEND) | `/app/chat/rooms/{roomId}/typing` | `{ "typing": true }` 또는 `{ "typing": false }` |
 | 읽음 처리 (SEND) | `/app/chat/rooms/{roomId}/read` | `{ "messageId": 123 }` |
-| 실시간 이벤트 (SUBSCRIBE) | `/user/queue/chat` | `{ "type": "chat-message", "chat-read" 또는 "chat-typing", "payload": ... }` |
+| 실시간 이벤트 (SUBSCRIBE) | `/user/queue/chat` | `{ "type": "chat-message", "payload": ... }`, type은 `chat-message`·`chat-read`·`chat-typing` 중 하나 |
 | 요청 결과 (SUBSCRIBE) | `/user/queue/chat-acks` | 저장된 메시지 또는 읽음 상태 응답 |
 | 요청 오류 (SUBSCRIBE) | `/user/queue/chat-errors` | `{ "code": "CHAT_FRIEND_REQUIRED", "message": "..." }` |
 
@@ -128,8 +128,17 @@ client.publish({
 - V18 채팅 테이블을 그대로 사용한다. 이번 전환에 새 마이그레이션은 필요 없다.
 - 친구 삭제와 전송은 같은 친구 관계 행을 잠가 삭제 완료 후 전송이 통과하지 않게 한다.
 - 메시지 전송과 읽음 처리는 채팅방 행을 잠가 메시지 순서와 읽음 상태를 보호한다.
-- Spring 기본 브로커를 사용한다. RabbitMQ/SQS/Redis는 추가하지 않는다.
-  기본 브로커는 서버 메모리에서 동작하므로 서버를 여러 대로 늘릴 때 외부 브로커를 검토한다.
+- 각 서버의 WebSocket 연결은 Spring 기본 브로커로 관리한다.
+  `CHAT_REDIS_ENABLED=false`(기본값)이면 현재 서버의 연결에만 이벤트를 전달하므로 단일 백엔드에서 사용한다.
+- 여러 백엔드에 사용자가 나뉘어 접속하는 환경에서는 모든 백엔드에 `CHAT_REDIS_ENABLED=true`를 설정한다.
+  서버들은 같은 Redis에 연결하고 같은 `CHAT_REDIS_CHANNEL_PREFIX`(기본값 `fleaflea:chat`)를 사용한다.
+  Redis Pub/Sub으로 이벤트를 공유한 뒤 각 서버가 자신의 연결로 전달하며, 프론트의 STOMP 경로·응답 형식은 바뀌지 않는다.
+  운영·개발·테스트 환경의 접두어는 서로 구분한다.
+- EC2 compose는 `/etc/fleaflea/fleaflea.env`와 `/etc/fleaflea/redis.env`를 앱 컨테이너에 전달한다.
+  채팅 환경변수는 서버 환경 파일에서 관리하며, 변경한 환경변수는 컨테이너를 재생성해야 반영된다.
+  PR 병합만으로 Redis 채팅 전달이 자동 활성화되지는 않는다.
+- Redis Pub/Sub은 오프라인 이벤트를 보관하거나 재전송하지 않는다. 발행 실패 후에도 이미 커밋된 메시지는 DB에 남으며,
+  클라이언트는 REST 커서 조회로 복구한다. 입력 상태 이벤트는 복구 대상이 아니다.
 - 프레임 크기는 16KB, 세션별 전송 버퍼는 256KB로 제한한다. 메시지 내용 제한은 기존 2000자다.
 - EC2에서 Nginx 설정을 별도로 관리한다. `/ws/chat` 경로에 HTTP/1.1 Upgrade 헤더가 필요하며,
   설정 변경 시 `sudo nginx -t` 후 `sudo systemctl reload nginx`를 실행한다. 서버 설정은 자동 배포 대상이 아니다.

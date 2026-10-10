@@ -50,6 +50,11 @@ app:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
 
+  chat:
+    redis:
+      enabled: ${CHAT_REDIS_ENABLED:false}
+      channel-prefix: ${CHAT_REDIS_CHANNEL_PREFIX:fleaflea:chat}
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175,http://localhost:8080}
 
