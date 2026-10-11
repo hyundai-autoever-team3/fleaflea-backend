@@ -15,7 +15,7 @@ class SwaggerConfigTest {
         OpenAPI openAPI = new SwaggerConfig().openAPI(SERVER_URL);
 
         assertThat(openAPI.getInfo().getTitle()).isEqualTo("FleaFlea API");
-        assertThat(openAPI.getInfo().getDescription()).isEqualTo("FleaFlea API 문서");
+        assertThat(openAPI.getInfo().getDescription()).contains("FleaFlea API 문서", "/oauth2/authorization/kakao", "/oauth2/authorization/google");
         assertThat(openAPI.getInfo().getVersion()).isEqualTo("v1");
     }
 

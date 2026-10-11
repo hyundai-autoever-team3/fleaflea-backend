@@ -4,6 +4,9 @@ import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -11,6 +14,7 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +52,10 @@ class CorsConfigurationTest {
                 mock(JwtAuthenticationFilter.class),
                 mock(CustomAuthenticationEntryPoint.class),
                 mock(CustomAccessDeniedHandler.class),
-                properties
+                properties,
+                mock(CustomOidcUserService.class),
+                mock(OAuth2SuccessHandler.class),
+                mock(OAuth2FailureHandler.class)
         );
 
         CorsConfigurationSource source =

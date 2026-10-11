@@ -33,6 +33,7 @@ public class MemberAuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenIssueService tokenIssueService;
 
 
     @Transactional
@@ -68,28 +69,7 @@ public class MemberAuthService {
         Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(MemberNotFoundException::new);
 
-        String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
-
-        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
-
-        RefreshToken existing = refreshTokenRepository.findByMemberId(member.getMemberId()).orElse(null);
-        if (existing != null) {
-            existing.update(refreshToken, expiresAt);
-        }else {
-            refreshTokenRepository.save(
-                    RefreshToken.create(
-                            member.getMemberId(),
-                            refreshToken,
-                            expiresAt
-                    )
-            );
-        }
-
-        return new TokenPair(
-                accessToken,
-                refreshToken
-        );
+        return tokenIssueService.issueTokenPair(member.getMemberId());
     }
 
     @Transactional
@@ -114,9 +94,5 @@ public class MemberAuthService {
     public void logout(Long memberId) {
         refreshTokenRepository.deleteByMemberId(memberId);
     }
-
-
-
-
 
 }

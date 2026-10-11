@@ -14,6 +14,9 @@ import com.anabada.fleaflea.domain.chat.service.ChatService;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.fixture.ChatFixture;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -234,6 +237,21 @@ class ChatRedisWebSocketIntegrationTest {
         @Bean
         CustomMemberDetailsService customMemberDetailsService() {
             return mock(CustomMemberDetailsService.class);
+        }
+
+        @Bean
+        CustomOidcUserService customOidcUserService() {
+            return mock(CustomOidcUserService.class);
+        }
+
+        @Bean
+        OAuth2SuccessHandler oauth2SuccessHandler() {
+            return mock(OAuth2SuccessHandler.class);
+        }
+
+        @Bean
+        OAuth2FailureHandler oauth2FailureHandler() {
+            return mock(OAuth2FailureHandler.class);
         }
     }
 }
