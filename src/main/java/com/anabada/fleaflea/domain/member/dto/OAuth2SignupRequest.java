@@ -9,10 +9,14 @@ public record OAuth2SignupRequest(
         @Schema(
                 description = "우리 서비스에서 사용할 닉네임",
                 example = "홍길동",
-                maxLength = 50
+                maxLength = 20
         )
-        @NotBlank
-        @Size(max = 50)
+        @NotBlank(message = "닉네임은 필수 값입니다.")
+        @Size(
+                min = 2,
+                max = 20,
+                message = "닉네임은 2자 이상 20자 이하로 입력해주세요."
+        )
         String nickname
 ) {
 }
