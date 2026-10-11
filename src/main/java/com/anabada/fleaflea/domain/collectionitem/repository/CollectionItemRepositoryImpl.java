@@ -1,0 +1,116 @@
+package com.anabada.fleaflea.domain.collectionitem.repository;
+
+import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
+import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSearchCondition;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
+import org.springframework.stereotype.Repository;
+
+import static com.anabada.fleaflea.domain.collectionitem.domain.QCollectionItem.collectionItem;
+
+@Repository
+@RequiredArgsConstructor
+public class CollectionItemRepositoryImpl implements CollectionItemRepositoryCustom {
+
+    private final JPAQueryFactory queryFactory;
+
+    @Override
+    public Page<CollectionItem> search(
+            Long ownerId,
+            boolean publicOnly,
+            CollectionItemSearchCondition condition,
+            Pageable pageable
+    ) {
+        List<CollectionItem> content = queryFactory
+                .selectFrom(collectionItem)
+                .join(collectionItem.owner).fetchJoin()
+                .where(
+                        collectionItem.owner.memberId.eq(ownerId),
+                        createPublicOnlyPredicate(publicOnly),
+                        createTitleContainsPredicate(condition)
+                )
+                .orderBy(createOrderSpecifiers(pageable))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        JPAQuery<Long> countQuery = queryFactory
+                .select(collectionItem.count())
+                .from(collectionItem)
+                .where(
+                        collectionItem.owner.memberId.eq(ownerId),
+                        createPublicOnlyPredicate(publicOnly),
+                        createTitleContainsPredicate(condition)
+                );
+
+        return PageableExecutionUtils.getPage(
+                content,
+                pageable,
+                () -> {
+                    Long total = countQuery.fetchOne();
+                    return total == null ? 0 : total;
+                }
+        );
+    }
+
+    private BooleanExpression createPublicOnlyPredicate(boolean publicOnly) {
+        return publicOnly ? collectionItem.isPublic.isTrue() : null;
+    }
+
+    private BooleanExpression createTitleContainsPredicate(
+            CollectionItemSearchCondition condition
+    ) {
+        if (condition == null
+                || condition.title() == null
+                || condition.title().isBlank()) {
+            return null;
+        }
+
+        return collectionItem.title.containsIgnoreCase(
+                condition.title().trim()
+        );
+    }
+
+    private OrderSpecifier<?>[] createOrderSpecifiers(Pageable pageable) {
+        List<OrderSpecifier<?>> orders = new ArrayList<>();
+
+        for (org.springframework.data.domain.Sort.Order order
+                : pageable.getSort()) {
+            switch (order.getProperty()) {
+                case "title" -> orders.add(new OrderSpecifier<>(
+                        getOrderDirection(order),
+                        collectionItem.title
+                ));
+                case "updatedAt" -> orders.add(new OrderSpecifier<>(
+                        getOrderDirection(order),
+                        collectionItem.updatedAt
+                ));
+                default -> orders.add(new OrderSpecifier<>(
+                        getOrderDirection(order),
+                        collectionItem.createdAt
+                ));
+            }
+        }
+
+        if (orders.isEmpty()) {
+            return new OrderSpecifier<?>[]{collectionItem.createdAt.desc(), collectionItem.collectionItemId.desc()};
+        }
+
+        orders.add(collectionItem.collectionItemId.desc());
+
+        return orders.toArray(OrderSpecifier[]::new);
+    }
+
+    private Order getOrderDirection(org.springframework.data.domain.Sort.Order order) {
+        return order.isAscending() ? Order.ASC : Order.DESC;
+    }
+}

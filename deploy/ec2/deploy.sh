@@ -10,6 +10,14 @@ IMAGE_URI="$1"
 COMPOSE_FILE="/opt/fleaflea/compose.yml"
 DEPLOY_ENV="/etc/fleaflea/deploy.env"
 GHCR_ENV="/etc/fleaflea/ghcr.env"
+REDIS_ENV="/etc/fleaflea/redis.env"
+
+if [[ ! -s "$REDIS_ENV" ]]; then
+  echo "Missing Redis environment file: $REDIS_ENV" >&2
+  exit 2
+fi
+
+APP_IMAGE="$IMAGE_URI" docker compose --env-file "$REDIS_ENV" -f "$COMPOSE_FILE" config --quiet
 
 legacy_service_was_active=false
 if systemctl is-active --quiet fleaflea 2>/dev/null; then
@@ -47,8 +55,8 @@ write_image_env() {
 }
 
 start_stack() {
-  docker compose --env-file "$DEPLOY_ENV" -f "$COMPOSE_FILE" pull app
-  docker compose --env-file "$DEPLOY_ENV" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 180
+  docker compose --env-file "$DEPLOY_ENV" --env-file "$REDIS_ENV" -f "$COMPOSE_FILE" pull app
+  docker compose --env-file "$DEPLOY_ENV" --env-file "$REDIS_ENV" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 180
   curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null
 }
 

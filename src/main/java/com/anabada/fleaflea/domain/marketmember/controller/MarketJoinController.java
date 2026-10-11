@@ -37,16 +37,21 @@ public class MarketJoinController {
             @ApiResponse(responseCode = "400", description = "초대 코드 미입력"),
             @ApiResponse(responseCode = "403", description = "인증되지 않은 사용자"),
             @ApiResponse(responseCode = "404", description = "회원 또는 초대 코드 없음"),
-            @ApiResponse(responseCode = "409", description = "이미 참여한 플리마켓")
+            @ApiResponse(responseCode = "409", description = "이미 참여한 플리마켓 또는 다른 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
     })
     public ResponseEntity<MarketJoinResponse> joinMarket(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal Long memberId,
-            @Valid @RequestBody MarketJoinRequest request
+            @AuthenticationPrincipal
+            Long memberId,
+
+            @Valid
+            @RequestBody
+            MarketJoinRequest marketJoinRequest
     ) {
         MarketJoinResponse response = marketJoinService.joinMarket(
                 memberId,
-                request
+                marketJoinRequest
         );
 
         return ResponseEntity

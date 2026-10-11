@@ -1,20 +1,28 @@
 package com.anabada.fleaflea.domain.chat.event;
 
-import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.*;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
 public class ChatEventListener {
-    private final NotificationSseService sseService;
 
-    @Async("notificationSseExecutor")
+    private final ChatEventPublisher chatEventPublisher;
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onChatEvent(ChatEvent event) {
-        sseService.sendEvent(event.firstMemberId(), event.name(), event.payload());
-        sseService.sendEvent(event.secondMemberId(), event.name(), event.payload());
+    public void onChatMessageSentEvent(ChatMessageSentEvent chatMessageSentEvent) {
+        chatEventPublisher.publishMessageSent(chatMessageSentEvent);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onChatMessagesReadEvent(ChatMessagesReadEvent chatMessagesReadEvent) {
+        chatEventPublisher.publishMessagesRead(chatMessagesReadEvent);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onChatTypingChangedEvent(ChatTypingChangedEvent chatTypingChangedEvent) {
+        chatEventPublisher.publishTypingChanged(chatTypingChangedEvent);
     }
 }

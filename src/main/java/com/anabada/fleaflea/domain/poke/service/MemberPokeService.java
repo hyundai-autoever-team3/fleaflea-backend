@@ -1,17 +1,19 @@
 package com.anabada.fleaflea.domain.poke.service;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.domain.notification.notifier.PokeNotifier;
 import com.anabada.fleaflea.domain.poke.domain.MemberPoke;
 import com.anabada.fleaflea.domain.poke.dto.MemberPokeResponse;
 import com.anabada.fleaflea.domain.poke.event.MemberPokedEvent;
+import com.anabada.fleaflea.domain.poke.exception.PokeAccessDeniedException;
+import com.anabada.fleaflea.domain.poke.exception.PokeNotFoundException;
+import com.anabada.fleaflea.domain.poke.exception.PokeSelfRequestException;
 import com.anabada.fleaflea.domain.poke.ratelimit.PokeRateLimiter;
 import com.anabada.fleaflea.domain.poke.repository.MemberPokeRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import com.anabada.fleaflea.domain.notification.notifier.PokeNotifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,26 +25,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberPokeService {
 
     private final MemberRepository memberRepository;
-    private final MemberPokeRepository pokeRepository;
+    private final MemberPokeRepository memberPokeRepository;
     private final PokeNotifier pokeNotifier;
     private final PokeRateLimiter pokeRateLimiter;
 
     @Transactional
-    public void send(Long senderId, Long recipientId) {
+    public void sendPoke(
+            Long senderId,
+            Long recipientId
+    ) {
         if (senderId.equals(recipientId)) {
-            throw new BusinessException(ErrorCode.POKE_SELF);
+            throw new PokeSelfRequestException();
         }
 
         Member sender = memberRepository.findById(senderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new MemberNotFoundException());
         Member recipient = memberRepository.findById(recipientId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new MemberNotFoundException());
 
         pokeRateLimiter.acquire(senderId, recipientId);
 
         MemberPoke poke = MemberPoke.create(sender, recipient);
 
-        pokeRepository.save(poke);
+        memberPokeRepository.save(poke);
 
         pokeNotifier.notifyOf(
                 MemberPokedEvent.of(
@@ -54,19 +59,26 @@ public class MemberPokeService {
         );
     }
 
-    public PageResponse<MemberPokeResponse> received(Long recipientId, int page, int size) {
-        return PageResponse.from(pokeRepository.findByRecipient_MemberId(
+    public PageResponse<MemberPokeResponse> getReceivedPokes(
+            Long recipientId,
+            int page,
+            int size
+    ) {
+        return PageResponse.from(memberPokeRepository.findByRecipient_MemberId(
                 recipientId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
         ).map(MemberPokeResponse::from));
     }
 
     @Transactional
-    public void markRead(Long recipientId, Long pokeId) {
-        MemberPoke poke = pokeRepository.findById(pokeId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POKE_NOT_FOUND));
+    public void markPokeAsRead(
+            Long recipientId,
+            Long pokeId
+    ) {
+        MemberPoke poke = memberPokeRepository.findById(pokeId)
+                .orElseThrow(() -> new PokeNotFoundException());
         if (!poke.getRecipient().getMemberId().equals(recipientId)) {
-            throw new BusinessException(ErrorCode.POKE_ACCESS_DENIED);
+            throw new PokeAccessDeniedException();
         }
         poke.markRead();
     }

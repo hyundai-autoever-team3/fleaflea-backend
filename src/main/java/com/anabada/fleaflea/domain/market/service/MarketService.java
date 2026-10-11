@@ -1,7 +1,14 @@
 package com.anabada.fleaflea.domain.market.service;
 
 import com.anabada.fleaflea.domain.market.domain.Market;
-import com.anabada.fleaflea.domain.market.dto.*;
+import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
+import com.anabada.fleaflea.domain.market.exception.MarketHostCannotLeaveException;
+import com.anabada.fleaflea.domain.market.exception.MarketHostOnlyException;
+import com.anabada.fleaflea.domain.market.exception.MarketMembershipNotFoundException;
 import com.anabada.fleaflea.domain.market.exception.MarketNotFoundException;
 import com.anabada.fleaflea.domain.market.repository.MarketRepository;
 import com.anabada.fleaflea.domain.marketmember.domain.MarketMember;
@@ -9,15 +16,13 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import com.anabada.fleaflea.global.lock.RedisLocked;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +37,7 @@ public class MarketService {
     @Transactional
     public MarketCreateResponse createMarket(
             Long memberId,
-            MarketCreateRequest request
+            MarketCreateRequest marketCreateRequest
     ) {
         Member host = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -41,18 +46,18 @@ public class MarketService {
 
         String coverImageKey = null;
 
-        if (request.coverImage() != null
-                && !request.coverImage().isEmpty()) {
-            coverImageKey = imageService.upload(
-                    request.coverImage(),
+        if (marketCreateRequest.coverImage() != null
+                && !marketCreateRequest.coverImage().isEmpty()) {
+            coverImageKey = imageService.uploadInTransaction(
+                    marketCreateRequest.coverImage(),
                     ImageCategory.MARKET
             );
         }
 
         Market market = Market.create(
                 host,
-                request.title(),
-                request.description(),
+                marketCreateRequest.title(),
+                marketCreateRequest.description(),
                 coverImageKey,
                 inviteCode
         );
@@ -90,37 +95,38 @@ public class MarketService {
         return inviteCode;
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public MarketUpdateResponse updateMarket(
             Long memberId,
             Long marketId,
-            MarketUpdateRequest request
+            MarketUpdateRequest marketUpdateRequest
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
         String coverImageKey = market.getCoverImageKey();
 
-        if (request.coverImage() != null
-                && !request.coverImage().isEmpty()) {
+        if (marketUpdateRequest.coverImage() != null
+                && !marketUpdateRequest.coverImage().isEmpty()) {
             if (coverImageKey == null) {
-                coverImageKey = imageService.upload(
-                        request.coverImage(),
+                coverImageKey = imageService.uploadInTransaction(
+                        marketUpdateRequest.coverImage(),
                         ImageCategory.MARKET
                 );
             } else {
                 coverImageKey = imageService.replace(
                         coverImageKey,
-                        request.coverImage(),
+                        marketUpdateRequest.coverImage(),
                         ImageCategory.MARKET
                 );
             }
         }
 
         market.update(
-                request.title(),
-                request.description(),
+                marketUpdateRequest.title(),
+                marketUpdateRequest.description(),
                 coverImageKey
         );
 
@@ -141,30 +147,26 @@ public class MarketService {
 
         validateHost(market, memberId);
 
-        return new MarketInvitationResponse(
-                market.getMarketId(),
-                market.getInviteCode()
-        );
+        return MarketInvitationResponse.from(market);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public MarketInvitationResponse reissueInvitation(
             Long memberId,
             Long marketId
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
         String inviteCode = generateUniqueInviteCode();
         market.changeInviteCode(inviteCode);
 
-        return new MarketInvitationResponse(
-                market.getMarketId(),
-                inviteCode
-        );
+        return MarketInvitationResponse.from(market);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public void leaveMarket(
             Long memberId,
@@ -173,29 +175,26 @@ public class MarketService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         if (market.getHost().getMemberId().equals(memberId)) {
-            throw new BusinessException(
-                    ErrorCode.MARKET_HOST_CANNOT_LEAVE
-            );
+            throw new MarketHostCannotLeaveException();
         }
 
         MarketMember membership = marketMemberRepository
                 .findByMarketAndMember(market, member)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.MARKET_MEMBERSHIP_NOT_FOUND
-                ));
+                .orElseThrow(() -> new MarketMembershipNotFoundException());
 
         marketMemberRepository.delete(membership);
     }
 
+    @RedisLocked(key = "'market:' + #marketId")
     @Transactional
     public void deleteMarket(
             Long memberId,
             Long marketId
     ) {
-        Market market = getMarket(marketId);
+        Market market = getLockedMarket(marketId);
 
         validateHost(market, memberId);
 
@@ -211,14 +210,17 @@ public class MarketService {
                 .orElseThrow(MarketNotFoundException::new);
     }
 
+    private Market getLockedMarket(Long marketId) {
+        return marketRepository.findLockedById(marketId)
+                .orElseThrow(MarketNotFoundException::new);
+    }
+
     private void validateHost(
             Market market,
             Long memberId
     ) {
         if (!market.getHost().getMemberId().equals(memberId)) {
-            throw new BusinessException(
-                    ErrorCode.MARKET_HOST_ONLY
-            );
+            throw new MarketHostOnlyException();
         }
     }
 }

@@ -1,0 +1,29 @@
+name: fleaflea-local-redis
+
+services:
+  redis:
+    image: redis:7.4
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-redis-password}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        : "$${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+        exec redis-server --requirepass "$${REDIS_PASSWORD}" --appendonly yes --appendfsync everysec --maxmemory 128mb --maxmemory-policy noeviction
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    stop_grace_period: 30s
+    mem_limit: 256m
+
+volumes:
+  redis_data:

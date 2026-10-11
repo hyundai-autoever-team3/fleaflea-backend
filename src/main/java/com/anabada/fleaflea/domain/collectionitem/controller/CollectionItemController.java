@@ -20,7 +20,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(
         name = "도감 아이템",
@@ -43,12 +50,12 @@ public class CollectionItemController {
             @AuthenticationPrincipal Long memberId,
 
             @Valid @ModelAttribute
-            CollectionItemCreateRequest request
+            CollectionItemCreateRequest collectionItemCreateRequest
     ) {
         CollectionItemResponse response =
                 collectionItemService.createCollectionItem(
                         memberId,
-                        request
+                        collectionItemCreateRequest
                 );
 
         return ResponseEntity
@@ -67,9 +74,9 @@ public class CollectionItemController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "createdAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "createdAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         return ResponseEntity.ok(
@@ -94,9 +101,9 @@ public class CollectionItemController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "createdAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "createdAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         return ResponseEntity.ok(
@@ -138,13 +145,13 @@ public class CollectionItemController {
             @PathVariable Long collectionItemId,
 
             @Valid @ModelAttribute
-            CollectionItemUpdateRequest request
+            CollectionItemUpdateRequest collectionItemUpdateRequest
     ) {
         return ResponseEntity.ok(
                 collectionItemService.updateCollectionItem(
                         memberId,
                         collectionItemId,
-                        request
+                        collectionItemUpdateRequest
                 )
         );
     }

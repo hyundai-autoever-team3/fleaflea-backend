@@ -3,8 +3,11 @@ package com.anabada.fleaflea.domain.market.controller;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateRequest;
 import com.anabada.fleaflea.domain.market.dto.MarketCreateResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketDetailResponse;
-import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
 import com.anabada.fleaflea.domain.market.dto.MarketSearchCondition;
+import com.anabada.fleaflea.domain.market.dto.MarketSummaryResponse;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
+import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
 import com.anabada.fleaflea.domain.market.service.MarketQueryService;
 import com.anabada.fleaflea.domain.market.service.MarketService;
 import com.anabada.fleaflea.domain.marketmember.dto.MarketMemberResponse;
@@ -24,11 +27,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import com.anabada.fleaflea.domain.market.dto.MarketInvitationResponse;
-import com.anabada.fleaflea.domain.market.dto.MarketUpdateRequest;
-import com.anabada.fleaflea.domain.market.dto.MarketUpdateResponse;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(
         name = "플리마켓",
@@ -56,10 +63,12 @@ public class MarketController {
     public ResponseEntity<MarketCreateResponse> createMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
-            @Valid @ModelAttribute MarketCreateRequest request
+
+            @Valid @ModelAttribute
+            MarketCreateRequest marketCreateRequest
     ) {
         MarketCreateResponse response =
-                marketService.createMarket(memberId, request);
+                marketService.createMarket(memberId, marketCreateRequest);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -82,9 +91,9 @@ public class MarketController {
             @AuthenticationPrincipal Long memberId,
 
             @Parameter(
-                    description = "조회 범위",
-                    example = "joined",
-                    required = true
+            description = "조회 범위",
+            example = "joined",
+            required = true
             )
             @RequestParam(defaultValue = "joined") String scope,
 
@@ -92,9 +101,9 @@ public class MarketController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "joinedAt",
-                    direction = Sort.Direction.DESC
+            size = 20,
+            sort = "joinedAt",
+            direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
         PageResponse<MarketSummaryResponse> response =
@@ -150,9 +159,9 @@ public class MarketController {
 
             @ParameterObject
             @PageableDefault(
-                    size = 20,
-                    sort = "joinedAt",
-                    direction = Sort.Direction.ASC
+            size = 20,
+            sort = "joinedAt",
+            direction = Sort.Direction.ASC
             ) Pageable pageable
     ) {
         PageResponse<MarketMemberResponse> response =
@@ -170,19 +179,24 @@ public class MarketController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @Operation(summary = "플리마켓 수정")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<MarketUpdateResponse> updateMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
 
             @PathVariable Long marketId,
 
-            @Valid @ModelAttribute MarketUpdateRequest request
+            @Valid @ModelAttribute
+            MarketUpdateRequest marketUpdateRequest
     ) {
         MarketUpdateResponse response =
                 marketService.updateMarket(
                         memberId,
                         marketId,
-                        request
+                        marketUpdateRequest
                 );
 
         return ResponseEntity.ok(response);
@@ -190,6 +204,10 @@ public class MarketController {
 
     @PostMapping("/{marketId}/invitation")
     @Operation(summary = "초대 코드 재발급")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<MarketInvitationResponse> reissueInvitation(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
@@ -203,6 +221,10 @@ public class MarketController {
 
     @DeleteMapping("/{marketId}/members/me")
     @Operation(summary = "플리마켓 나가기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<Void> leaveMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
@@ -216,6 +238,10 @@ public class MarketController {
 
     @DeleteMapping("/{marketId}")
     @Operation(summary = "플리마켓 삭제")
+    @ApiResponses({
+            @ApiResponse(responseCode = "409", description = "다른 마켓 요청 처리 중"),
+            @ApiResponse(responseCode = "503", description = "잠금 서비스 연결 실패")
+    })
     public ResponseEntity<Void> deleteMarket(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Long memberId,
