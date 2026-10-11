@@ -85,6 +85,7 @@ server:
   forward-headers-strategy: framework
 
 app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5175}
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
@@ -128,5 +129,3 @@ jwt:
   access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
   refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
 
-app:
-  frontend-url: ${FRONTEND_URL:http://localhost:5175}
