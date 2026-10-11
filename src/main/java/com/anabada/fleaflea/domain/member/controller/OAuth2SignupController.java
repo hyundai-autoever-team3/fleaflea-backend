@@ -74,7 +74,8 @@ public class OAuth2SignupController {
     public ResponseEntity<OAuth2SignupResponse> signup(
             @Parameter(hidden = true)
             @CookieValue(
-                    name = OAuth2SignupCookieProvider.COOKIE_NAME
+                    name = OAuth2SignupCookieProvider.COOKIE_NAME,
+                    required = false
             )
             String signupTicket,
             @Valid @RequestBody OAuth2SignupRequest request,

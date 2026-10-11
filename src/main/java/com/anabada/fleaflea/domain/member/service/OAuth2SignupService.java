@@ -31,6 +31,10 @@ public class OAuth2SignupService {
             String ticket,
             OAuth2SignupRequest request
     ) {
+        if (ticket == null || ticket.isBlank()) {
+            throw new OAuth2SignupExpiredException();
+        }
+
         PendingOAuth2Signup pendingOAuth2Signup =
                 pendingOAuth2SignupStore.consume(ticket)
                         .orElseThrow(
