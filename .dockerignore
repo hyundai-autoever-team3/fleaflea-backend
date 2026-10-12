@@ -15,3 +15,7 @@ build/test-results
 build/tmp
 *.iml
 *.log
+.env
+.env.*
+gha-creds-*.json
+build/gcp-migration
