@@ -111,6 +111,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          gcloud artifacts docker tags add "$IMAGE_URI" \
+            "$GCP_IMAGE_REPOSITORY:prod-candidate" --project="$GCP_PROJECT_ID" --quiet
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
           printf 'compute.%s %s\n' "$GCP_INSTANCE_ID" "$GCP_SSH_HOST_KEY" \
@@ -118,15 +120,25 @@ jobs:
           chmod 600 "$HOME/.ssh/google_compute_known_hosts"
           COMPOSE_B64="$(base64 -w 0 deploy/gcp/compose.app.yml)"
           DEPLOY_SCRIPT_B64="$(base64 -w 0 deploy/gcp/deploy.sh)"
+          ROLLBACK_SCRIPT_B64="$(base64 -w 0 deploy/gcp/rollback.sh)"
+          OPERATIONS_SCRIPT_B64="$(base64 -w 0 deploy/gcp/operations.py)"
           REMOTE_COMMAND="set -eu
           DEPLOY_DIR=\$(mktemp -d)
           trap 'rm -rf \"\$DEPLOY_DIR\"' EXIT
           printf '%s' '$COMPOSE_B64' | base64 -d > \"\$DEPLOY_DIR/compose.app.yml\"
           printf '%s' '$DEPLOY_SCRIPT_B64' | base64 -d > \"\$DEPLOY_DIR/deploy.sh\"
+          printf '%s' '$ROLLBACK_SCRIPT_B64' | base64 -d > \"\$DEPLOY_DIR/rollback.sh\"
+          printf '%s' '$OPERATIONS_SCRIPT_B64' | base64 -d > \"\$DEPLOY_DIR/operations.py\"
           sudo install -m 600 \"\$DEPLOY_DIR/compose.app.yml\" /opt/fleaflea/compose.app.yml
           sudo install -m 700 \"\$DEPLOY_DIR/deploy.sh\" /opt/fleaflea/deploy.sh
+          sudo install -m 700 \"\$DEPLOY_DIR/rollback.sh\" /opt/fleaflea/rollback.sh
+          sudo install -m 700 \"\$DEPLOY_DIR/operations.py\" /opt/fleaflea/operations.py
           sudo /opt/fleaflea/deploy.sh '$IMAGE_URI'"
           gcloud compute ssh "$GCP_INSTANCE" \
             --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" \
             --tunnel-through-iap --strict-host-key-checking=yes \
             --ssh-key-expire-after=10m --quiet --command="$REMOTE_COMMAND"
+          gcloud artifacts docker tags add "$GCP_IMAGE_REPOSITORY:prod-current" \
+            "$GCP_IMAGE_REPOSITORY:prod-rollback" --project="$GCP_PROJECT_ID" --quiet
+          gcloud artifacts docker tags add "$IMAGE_URI" \
+            "$GCP_IMAGE_REPOSITORY:prod-current" --project="$GCP_PROJECT_ID" --quiet

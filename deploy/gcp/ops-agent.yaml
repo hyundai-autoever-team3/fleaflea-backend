@@ -1,0 +1,29 @@
+logging:
+  receivers:
+    fleaflea_docker:
+      type: files
+      include_paths: [/var/lib/docker/containers/*/*-json.log]
+      record_log_file_path: true
+    fleaflea_nginx:
+      type: files
+      include_paths: [/var/log/nginx/fleaflea-access.log]
+    fleaflea_operations:
+      type: files
+      include_paths: [/var/log/fleaflea/operations.log]
+  processors:
+    json:
+      type: parse_json
+  service:
+    pipelines:
+      fleaflea:
+        receivers: [fleaflea_docker, fleaflea_nginx, fleaflea_operations]
+        processors: [json]
+metrics:
+  receivers:
+    hostmetrics:
+      type: hostmetrics
+      collection_interval: 60s
+  service:
+    pipelines:
+      host:
+        receivers: [hostmetrics]

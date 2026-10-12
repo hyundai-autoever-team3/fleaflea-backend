@@ -12,6 +12,8 @@ services:
       REDIS_HEALTH_ENABLED: "true"
       CHAT_REDIS_ENABLED: "true"
       IMAGE_STORAGE: gcs
+      SERVER_SHUTDOWN: graceful
+      SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 30s
     ports:
       - "127.0.0.1:${APP_PORT:?APP_PORT is required}:8080"
     networks:
@@ -22,7 +24,7 @@ services:
       timeout: 3s
       retries: 36
       start_period: 30s
-    stop_grace_period: 45s
+    stop_grace_period: 75s
     mem_limit: 1g
     logging:
       driver: json-file
