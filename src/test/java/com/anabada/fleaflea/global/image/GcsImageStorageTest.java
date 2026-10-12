@@ -10,6 +10,9 @@ import com.google.cloud.storage.StorageException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 class GcsImageStorageTest {
 
@@ -118,5 +122,140 @@ class GcsImageStorageTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new GcsImageStorage(storage, "test-bucket", Duration.ofDays(8)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("반복 조회는 URL을 재사용하고 조회가 계속되어도 만료 전에 갱신한다")
+    void repeatedReadsDoNotExtendExpiration() throws Exception {
+        AtomicLong elapsedNanos = new AtomicLong();
+        GcsImageStorage cachedStorage = new GcsImageStorage(
+                storage, "test-bucket", Duration.ofHours(1), elapsedNanos::get);
+        stubSignedUrls();
+
+        assertThat(cachedStorage.getUrl("items/image.png")).endsWith("first");
+        elapsedNanos.set(TimeUnit.MINUTES.toNanos(58));
+        assertThat(cachedStorage.getUrl("items/image.png")).endsWith("first");
+        elapsedNanos.set(TimeUnit.MINUTES.toNanos(59));
+        assertThat(cachedStorage.getUrl("items/image.png")).endsWith("second");
+        verifySigningCount(2);
+    }
+
+    @Test
+    @DisplayName("서명 요청에 걸린 시간도 캐시 유효 기간에 포함한다")
+    void signingLatencyCountsTowardExpiration() throws Exception {
+        AtomicLong elapsedNanos = new AtomicLong();
+        GcsImageStorage cachedStorage = new GcsImageStorage(
+                storage, "test-bucket", Duration.ofSeconds(10), elapsedNanos::get);
+        when(storage.signUrl(any(BlobInfo.class), eq(10L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class))).thenAnswer(invocation -> {
+                    elapsedNanos.addAndGet(TimeUnit.SECONDS.toNanos(8));
+                    return URI.create("https://example.com/image").toURL();
+                });
+
+        cachedStorage.getUrl("items/image.png");
+        elapsedNanos.addAndGet(TimeUnit.SECONDS.toNanos(1));
+        cachedStorage.getUrl("items/image.png");
+        verify(storage, times(2)).signUrl(any(BlobInfo.class), eq(10L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class));
+    }
+
+    @Test
+    @DisplayName("서명 실패는 캐시하지 않고 다음 조회에서 재시도한다")
+    void signingFailureIsRetried() throws Exception {
+        when(storage.signUrl(any(BlobInfo.class), eq(3600L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class)))
+                .thenThrow(new StorageException(503, "unavailable"))
+                .thenReturn(URI.create("https://example.com/recovered").toURL());
+
+        assertThatThrownBy(() -> imageStorage.getUrl("items/image.png"))
+                .isInstanceOf(StorageException.class);
+        assertThat(imageStorage.getUrl("items/image.png")).endsWith("recovered");
+        verifySigningCount(2);
+    }
+
+    @Test
+    @DisplayName("이미지 업로드와 삭제 및 복사는 변경된 키의 URL 캐시를 무효화한다")
+    void mutationsInvalidateCachedUrl() throws Exception {
+        stubSignedUrls();
+        CopyWriter copyWriter = mock(CopyWriter.class);
+        when(storage.copy(any(Storage.CopyRequest.class))).thenReturn(copyWriter);
+
+        imageStorage.getUrl("items/image.png");
+        imageStorage.upload("items/image.png", new byte[]{1}, "image/png");
+        imageStorage.getUrl("items/image.png");
+        imageStorage.delete("items/image.png");
+        imageStorage.getUrl("items/image.png");
+        imageStorage.copy("items/source.png", "items/image.png");
+        imageStorage.getUrl("items/image.png");
+
+        verifySigningCount(4);
+    }
+
+    @Test
+    @DisplayName("같은 이미지에 동시 요청이 들어와도 서명은 한 번만 요청한다")
+    void concurrentReadsShareSigningRequest() throws Exception {
+        CountDownLatch signingStarted = new CountDownLatch(1);
+        CountDownLatch finishSigning = new CountDownLatch(1);
+        when(storage.signUrl(any(BlobInfo.class), eq(3600L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class))).thenAnswer(invocation -> {
+                    signingStarted.countDown();
+                    assertThat(finishSigning.await(5, TimeUnit.SECONDS)).isTrue();
+                    return URI.create("https://example.com/shared").toURL();
+                });
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var firstUrl = executor.submit(() -> imageStorage.getUrl("items/image.png"));
+            try {
+                assertThat(signingStarted.await(5, TimeUnit.SECONDS)).isTrue();
+                var secondUrl = executor.submit(() -> imageStorage.getUrl("items/image.png"));
+                finishSigning.countDown();
+                assertThat(firstUrl.get(5, TimeUnit.SECONDS)).isEqualTo(secondUrl.get(5, TimeUnit.SECONDS));
+            } finally {
+                finishSigning.countDown();
+            }
+        }
+        verifySigningCount(1);
+    }
+
+    private void stubSignedUrls() throws Exception {
+        when(storage.signUrl(any(BlobInfo.class), eq(3600L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class)))
+                .thenReturn(URI.create("https://example.com/first").toURL(),
+                        URI.create("https://example.com/second").toURL());
+    }
+
+    @Test
+    @DisplayName("유효 기간이 1초이면 만료 URL 재사용을 피하도록 캐시하지 않는다")
+    void oneSecondValidityBypassesCache() throws Exception {
+        GcsImageStorage shortLivedStorage = new GcsImageStorage(storage, "test-bucket", Duration.ofSeconds(1));
+        when(storage.signUrl(any(BlobInfo.class), eq(1L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class)))
+                .thenReturn(URI.create("https://example.com/short").toURL());
+
+        shortLivedStorage.getUrl("items/image.png");
+        shortLivedStorage.getUrl("items/image.png");
+
+        verify(storage, times(2)).signUrl(any(BlobInfo.class), eq(1L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class));
+    }
+
+    @Test
+    @DisplayName("다른 이미지 키는 각각 서명하고 변경 실패 시 기존 URL을 재사용한다")
+    void differentKeysAndFailedMutationPreserveCache() throws Exception {
+        stubSignedUrls();
+        String originalUrl = imageStorage.getUrl("items/image.png");
+        assertThat(imageStorage.getUrl("items/other.png")).isNotEqualTo(originalUrl);
+        when(storage.delete(BlobId.of("test-bucket", "items/image.png")))
+                .thenThrow(new StorageException(503, "unavailable"));
+
+        assertThatThrownBy(() -> imageStorage.delete("items/image.png"))
+                .isInstanceOf(ImageException.class);
+        assertThat(imageStorage.getUrl("items/image.png")).isEqualTo(originalUrl);
+        verifySigningCount(2);
+    }
+
+    private void verifySigningCount(int count) {
+        verify(storage, times(count)).signUrl(any(BlobInfo.class), eq(3600L), eq(TimeUnit.SECONDS),
+                any(Storage.SignUrlOption.class));
     }
 }
