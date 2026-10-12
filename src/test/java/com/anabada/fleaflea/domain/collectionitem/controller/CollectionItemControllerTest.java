@@ -8,6 +8,9 @@ import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,6 +52,15 @@ class CollectionItemControllerTest {
 
     @MockitoBean
     private CustomMemberDetailsService customMemberDetailsService;
+
+    @MockitoBean
+    private CustomOidcUserService customOidcUserService;
+
+    @MockitoBean
+    private OAuth2SuccessHandler oauth2SuccessHandler;
+
+    @MockitoBean
+    private OAuth2FailureHandler oauth2FailureHandler;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
