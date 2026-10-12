@@ -9,8 +9,6 @@ import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateExceptio
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
-import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
@@ -23,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -72,7 +69,6 @@ public class MemberAuthService {
         return tokenIssueService.issueTokenPair(member.getMemberId());
     }
 
-    @Transactional
     public TokenPair reissue(String refreshToken) {
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new InvalidTokenException();
@@ -84,6 +80,10 @@ public class MemberAuthService {
             );
         } catch (io.jsonwebtoken.JwtException | IllegalArgumentException exception) {
             throw new InvalidTokenException();
+        }
+
+        if (!memberRepository.existsById(memberId)) {
+            refreshTokenRepository.deleteByMemberId(memberId);
         }
 
         String newAccessToken = jwtTokenProvider.createAccessToken(memberId);
