@@ -46,7 +46,7 @@ class ImageServiceIntegrationTest {
         );
 
         try (S3Client s3 = new S3Config().s3Client(region)) {
-            ImageService imageService = new ImageService(s3, bucket);
+            ImageService imageService = new ImageService(new S3ImageStorage(s3, bucket));
 
             String key = imageService.upload(file, ImageCategory.ITEM);
 

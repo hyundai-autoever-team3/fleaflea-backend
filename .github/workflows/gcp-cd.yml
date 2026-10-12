@@ -1,0 +1,132 @@
+name: Backend GCP CD
+
+on:
+  workflow_run:
+    workflows: ["Backend CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to GCP
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (vars.DEPLOY_TARGET == 'gcp' &&
+       github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_ZONE: ${{ vars.GCP_ZONE }}
+      GCP_INSTANCE: ${{ vars.GCP_INSTANCE }}
+      GCP_INSTANCE_ID: ${{ vars.GCP_INSTANCE_ID }}
+      GCP_SSH_HOST_KEY: ${{ vars.GCP_SSH_HOST_KEY }}
+      GCP_IMAGE_REPOSITORY: ${{ vars.GCP_IMAGE_REPOSITORY }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      - name: Validate deployment settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${GCP_PROJECT_ID:?GCP_PROJECT_ID is required}"
+          : "${GCP_ZONE:?GCP_ZONE is required}"
+          : "${GCP_INSTANCE:?GCP_INSTANCE is required}"
+          : "${GCP_INSTANCE_ID:?GCP_INSTANCE_ID is required}"
+          : "${GCP_SSH_HOST_KEY:?GCP_SSH_HOST_KEY is required}"
+          : "${GCP_IMAGE_REPOSITORY:?GCP_IMAGE_REPOSITORY is required}"
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build application image
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew bootJar --no-daemon
+          JAR_PATH="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)"
+          test -n "$JAR_PATH"
+          mkdir -p build/deploy
+          cp "$JAR_PATH" build/deploy/fleaflea.jar
+          docker build --pull --tag "$GCP_IMAGE_REPOSITORY:$DEPLOY_SHA" .
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Push application image
+        id: image
+        env:
+          GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          REGISTRY_HOST="${GCP_IMAGE_REPOSITORY%%/*}"
+          printf '%s' "$GCP_ACCESS_TOKEN" | docker login "$REGISTRY_HOST" \
+            --username oauth2accesstoken --password-stdin
+          IMAGE_TAG="$GCP_IMAGE_REPOSITORY:$DEPLOY_SHA"
+          docker push "$IMAGE_TAG"
+          IMAGE_URI="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE_TAG")"
+          test -n "$IMAGE_URI"
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy through IAP
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf 'compute.%s %s\n' "$GCP_INSTANCE_ID" "$GCP_SSH_HOST_KEY" \
+            > "$HOME/.ssh/google_compute_known_hosts"
+          chmod 600 "$HOME/.ssh/google_compute_known_hosts"
+          COMPOSE_B64="$(base64 -w 0 deploy/gcp/compose.app.yml)"
+          DEPLOY_SCRIPT_B64="$(base64 -w 0 deploy/gcp/deploy.sh)"
+          REMOTE_COMMAND="set -eu
+          DEPLOY_DIR=\$(mktemp -d)
+          trap 'rm -rf \"\$DEPLOY_DIR\"' EXIT
+          printf '%s' '$COMPOSE_B64' | base64 -d > \"\$DEPLOY_DIR/compose.app.yml\"
+          printf '%s' '$DEPLOY_SCRIPT_B64' | base64 -d > \"\$DEPLOY_DIR/deploy.sh\"
+          sudo install -m 600 \"\$DEPLOY_DIR/compose.app.yml\" /opt/fleaflea/compose.app.yml
+          sudo install -m 700 \"\$DEPLOY_DIR/deploy.sh\" /opt/fleaflea/deploy.sh
+          sudo /opt/fleaflea/deploy.sh '$IMAGE_URI'"
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" \
+            --tunnel-through-iap --strict-host-key-checking=yes \
+            --ssh-key-expire-after=10m --quiet --command="$REMOTE_COMMAND"
