@@ -56,7 +56,7 @@ public class RedisRefreshTokenRepository {
         redisTemplate.delete(key(memberId));
     }
 
-    public String key(Long memberId) {
+    private String key(Long memberId) {
         return KEY_PREFIX + memberId;
     }
 
