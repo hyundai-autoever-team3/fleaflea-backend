@@ -4,12 +4,15 @@ import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.exception.*;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final ImageService imageService;
+    private final RedisRefreshTokenRepository refreshTokenRepository;
 
     @Transactional(readOnly = true)
     public MyProfileResponse getMyProfile(Long memberId) {
@@ -100,7 +104,6 @@ public class MemberService {
         member.updatePassword(
                 passwordEncoder.encode(request.newPassword())
         );
-
     }
 
     @Transactional
@@ -109,9 +112,20 @@ public class MemberService {
                 .orElseThrow(MemberNotFoundException::new);
 
         String profileImageKey = member.getProfileImageKey();
-
         memberRepository.delete(member);
         imageService.deleteAfterCommit(profileImageKey);
+        revokeRefreshTokenAfterCommit(memberId);
+    }
+
+    private void revokeRefreshTokenAfterCommit(Long memberId) {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        refreshTokenRepository.deleteByMemberId(memberId);
+                    }
+                }
+        );
     }
 
     @Transactional(readOnly = true)
