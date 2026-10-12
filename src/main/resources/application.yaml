@@ -41,11 +41,51 @@ spring:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+            scope:
+              - openid
+              - account_email
+              - profile_nickname
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+          naver:
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Naver
+            scope:
+              - openid
+        provider:
+          kakao:
+            issuer-uri: https://kauth.kakao.com
+          naver:
+            issuer-uri: https://nid.naver.com
+
+
 server:
   port: 8080
   forward-headers-strategy: framework
 
 app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5175}
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
@@ -88,3 +128,4 @@ jwt:
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}
   access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
   refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+

@@ -4,6 +4,9 @@ import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +23,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.List;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,6 +38,10 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CorsProperties corsProperties;
+    private final CustomOidcUserService customOidcUserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
@@ -62,7 +70,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/signup",
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/reissue"
+                                "/api/v1/auth/reissue",
+                                "/api/v1/auth/oauth2/signup",
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/code/**"
                         ).permitAll()
                         .requestMatchers("/ws/chat").permitAll()
                         .requestMatchers(
@@ -72,6 +83,12 @@ public class SecurityConfig {
                                 "/actuator/health"
                         ).permitAll()
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(userInfo ->
+                                userInfo.oidcUserService(customOidcUserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 )
                 .userDetailsService(customMemberDetailsService)
                 .addFilterBefore(jwtAuthenticationFilter,
