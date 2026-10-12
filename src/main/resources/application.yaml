@@ -46,6 +46,9 @@ server:
   forward-headers-strategy: framework
 
 app:
+  image:
+    storage: ${IMAGE_STORAGE:s3}
+
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
@@ -71,6 +74,11 @@ aws:
   region: ${AWS_REGION:ap-northeast-2}
   s3:
     bucket: ${S3_BUCKET}
+
+gcp:
+  storage:
+    bucket: ${GCS_BUCKET:}
+    signed-url-duration: ${GCS_SIGNED_URL_DURATION:1h}
 
 management:
   health:

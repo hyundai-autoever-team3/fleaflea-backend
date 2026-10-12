@@ -2,12 +2,8 @@ package com.anabada.fleaflea.global.image;
 
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.exception.ImageException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -37,15 +33,10 @@ public class ImageService {
                     + "[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$"
     );
 
-    private final S3Client s3Client;
-    private final String bucket;
+    private final ImageStorage imageStorage;
 
-    public ImageService(
-            S3Client s3Client,
-            @Value("${aws.s3.bucket}") String bucket
-    ) {
-        this.s3Client = s3Client;
-        this.bucket = bucket;
+    public ImageService(ImageStorage imageStorage) {
+        this.imageStorage = imageStorage;
     }
 
     public String upload(
@@ -76,18 +67,9 @@ public class ImageService {
         String imageKey = category.getPrefix()
                 + "/" + UUID.randomUUID() + "." + extension;
 
-        try {
-            s3Client.putObject(
-                    request -> request.bucket(bucket)
-                            .key(imageKey)
-                            .contentType(contentType),
-                    RequestBody.fromBytes(bytes)
-            );
+        imageStorage.upload(imageKey, bytes, contentType);
 
-            return imageKey;
-        } catch (SdkException e) {
-            throw new ImageException(ErrorCode.IMAGE_UPLOAD_FAILED, e);
-        }
+        return imageKey;
     }
 
     public String uploadInTransaction(
@@ -133,17 +115,11 @@ public class ImageService {
             throw new ImageException(ErrorCode.INVALID_IMAGE_KEY);
         }
 
-        try {
-            s3Client.deleteObject(
-                    request -> request.bucket(bucket).key(imageKey)
-            );
-        } catch (SdkException e) {
-            throw new ImageException(ErrorCode.IMAGE_DELETE_FAILED, e);
-        }
+        imageStorage.delete(imageKey);
     }
 
     /**
-     * DB 트랜잭션이 커밋된 경우에만 S3 이미지를 삭제한다.
+     * DB 트랜잭션이 커밋된 경우에만 이미지를 삭제한다.
      * 롤백되면 DB가 계속 참조하는 이미지이므로 삭제하지 않는다.
      */
     public void deleteAfterCommit(String imageKey) {
@@ -169,7 +145,7 @@ public class ImageService {
                             delete(imageKey);
                         } catch (RuntimeException e) {
                             log.error(
-                                    "DB 삭제 이후 S3 이미지 정리 실패: 재처리 필요. imageKey={}",
+                                    "DB 삭제 이후 이미지 정리 실패: 재처리 필요. imageKey={}",
                                     imageKey,
                                     e
                             );
@@ -318,11 +294,7 @@ public class ImageService {
         if (imageKey == null) {
             return null;
         }
-        return s3Client.utilities()
-                .getUrl(builder -> builder
-                        .bucket(bucket)
-                        .key(imageKey))
-                .toExternalForm();
+        return imageStorage.getUrl(imageKey);
     }
 
     public String copy(
@@ -346,20 +318,8 @@ public class ImageService {
                 + "/" + UUID.randomUUID()
                 + "." + extension;
 
-        try {
-            s3Client.copyObject(request -> request
-                    .sourceBucket(bucket)
-                    .sourceKey(sourceKey)
-                    .destinationBucket(bucket)
-                    .destinationKey(targetKey)
-            );
+        imageStorage.copy(sourceKey, targetKey);
 
-            return targetKey;
-        } catch (SdkException e) {
-            throw new ImageException(
-                    ErrorCode.IMAGE_UPLOAD_FAILED,
-                    e
-            );
-        }
+        return targetKey;
     }
 }
