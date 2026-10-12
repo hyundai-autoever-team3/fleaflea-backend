@@ -2,476 +2,201 @@
 
 친구끼리 플리마켓을 열고, 도감에 등록한 물건을 거래할 수 있는 **FleaFlea**의 백엔드 저장소입니다.
 
-Spring Boot를 기반으로 API 서버를 구성했으며, Docker Compose를 이용해 애플리케이션과 PostgreSQL을 함께 운영하고 있습니다.
-실제 서비스는 AWS EC2에 배포되어 있으며, Vercel에 배포된 프론트엔드와 HTTPS로 통신합니다.
+Java와 Spring Boot로 API와 실시간 채팅을 구현했습니다. 프론트엔드는 Vercel, 백엔드는 GCP Compute Engine에서 운영하며, 이미지는 Google Cloud Storage에 저장합니다. 백엔드 배포는 GitHub Actions와 Artifact Registry를 사용하고, 한 VM 안에서 Blue/Green 컨테이너를 전환합니다.
 
----
+## 서비스 주소
 
-## 1. 시스템 아키텍처
+| 구분 | 주소 |
+|---|---|
+| 웹 서비스 | [fleaflea.app](https://fleaflea.app) |
+| 백엔드 API | [api.fleaflea.app](https://api.fleaflea.app) |
+| Swagger UI | [API 확인 및 테스트](https://api.fleaflea.app/swagger-ui/index.html) |
+| OpenAPI | [API 명세 JSON](https://api.fleaflea.app/v3/api-docs) |
+| 상태 확인 | [Actuator Health](https://api.fleaflea.app/actuator/health) |
+| 기술 기록 | [팀 Wiki](https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki) |
 
-FleaFlea는 프론트엔드와 백엔드를 분리하여 운영합니다.
+## 기술 스택
 
-- 프론트엔드: `https://fleaflea.app`
-- 백엔드 API: `https://api.fleaflea.app`
-- 이미지 저장소: Amazon S3
-- 애플리케이션 및 데이터베이스: AWS EC2의 Docker Compose
-- 배포: GitHub Actions, GHCR, AWS SSM
+| 구분 | 기술 |
+|---|---|
+| 언어·프레임워크 | Java 25, Spring Boot 4.1.1 |
+| 인증 | Spring Security, JWT, OAuth2/OIDC |
+| 데이터 접근 | Spring Data JPA, QueryDSL |
+| 데이터베이스 | PostgreSQL 16, Flyway |
+| 동시성·이벤트 전달 | Redis 7.4, Spring Integration Redis |
+| 실시간 채팅 | WebSocket, STOMP |
+| 이미지 저장 | Google Cloud Storage, V4 Signed URL |
+| 서버·컨테이너 | Compute Engine, Docker Compose, Nginx |
+| HTTPS | Let's Encrypt, Certbot |
+| CI/CD | GitHub Actions, Artifact Registry, Workload Identity Federation, IAP |
+| 운영 관측 | Cloud Logging, Cloud Monitoring, Ops Agent |
+| 테스트 | JUnit, Testcontainers, k6 |
+| API 문서 | Springdoc OpenAPI, Swagger UI |
 
-### 운영 아키텍처
+## 주요 기능
+
+| 영역 | 기능 |
+|---|---|
+| 회원·인증 | JWT 인증, Google·카카오·네이버 OAuth2/OIDC 로그인 |
+| 마켓 | 마켓 생성·수정·삭제, 초대 코드 발급, 참여·탈퇴 |
+| 도감 | 물건 등록·수정·삭제, 이미지 및 공개 여부 관리 |
+| 상품·거래 | 상품 등록과 조회, 거래 요청 처리 |
+| 친구·채팅 | 친구 관계 기반 1:1 채팅방, 메시지 이력, 읽음 및 입력 중 이벤트 |
+| 이미지 | 이미지 업로드·조회·삭제 |
+
+채팅 백엔드는 구현과 서버 간 전달 검증을 마쳤습니다. 프론트엔드 연동과 실제 화면에서의 재접속 검증은 별도로 진행합니다.
+
+## 운영 아키텍처
 
 ```mermaid
 flowchart TB
     USER["사용자 브라우저"]
+    WEB["fleaflea.app · Vercel"]
+    DNS["api.fleaflea.app · Gabia DNS"]
 
-    subgraph FRONTEND["Frontend"]
-        WEB_DNS["fleaflea.app<br/>Gabia DNS"]
-        VERCEL["Vercel<br/>React 18 + Vite"]
+    subgraph GCP["Google Cloud"]
+        subgraph VM["Compute Engine · 운영 VM"]
+            NGINX["Nginx · HTTPS / WebSocket Proxy"]
+            BLUE["Spring Boot · Blue · 8081"]
+            GREEN["Spring Boot · Green · 8082"]
+            DB[("PostgreSQL 16")]
+            REDIS[("Redis 7.4")]
+            VOLUME[("Docker Named Volumes")]
+            AGENT["Ops Agent"]
 
-        WEB_DNS --> VERCEL
-    end
-
-    subgraph AWS["AWS Cloud"]
-        API_DNS["api.fleaflea.app<br/>Gabia DNS"]
-
-        subgraph EC2["EC2 · Ubuntu 24.04 LTS"]
-            NGINX["Nginx<br/>HTTPS · Reverse Proxy"]
-
-            subgraph DOCKER["Docker Compose"]
-                APP["Spring Boot API<br/>Java 25 · Port 8080"]
-                DB["PostgreSQL 16<br/>Port 5432"]
-                VOLUME[("Named Volume<br/>PostgreSQL Data")]
-
-                APP -->|"JDBC"| DB
-                DB --- VOLUME
-            end
+            NGINX -->|"활성 슬롯으로 전달"| BLUE
+            NGINX -.->|"배포 시 전환"| GREEN
+            BLUE --> DB
+            GREEN --> DB
+            BLUE --> REDIS
+            GREEN --> REDIS
+            DB --- VOLUME
+            REDIS --- VOLUME
         end
 
-        S3["Amazon S3<br/>Image Storage"]
-
-        API_DNS --> NGINX
-        NGINX -->|"127.0.0.1:8080"| APP
-        APP -->|"AWS SDK"| S3
+        IMAGES["Cloud Storage · 서비스 이미지"]
+        BACKUP["Cloud Storage · DB 백업"]
+        OBSERVE["Cloud Logging / Monitoring"]
+        BLUE --> IMAGES
+        GREEN --> IMAGES
+        DB -.->|"정기 pg_dump"| BACKUP
+        AGENT --> OBSERVE
     end
 
-    USER -->|"웹 접속"| WEB_DNS
-    USER -->|"REST API · HTTPS"| API_DNS
-
-    classDef user fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
-    classDef dns fill:#ecfeff,stroke:#0891b2,stroke-width:2px,color:#164e63;
-    classDef frontend fill:#fafafa,stroke:#18181b,stroke-width:2px,color:#18181b;
-    classDef proxy fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
-    classDef application fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#14532d;
-    classDef database fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
-    classDef storage fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
-
-    class USER user;
-    class WEB_DNS,API_DNS dns;
-    class VERCEL frontend;
-    class NGINX proxy;
-    class APP application;
-    class DB,VOLUME database;
-    class S3 storage;
-
-    style FRONTEND fill:#ffffff,stroke:#a1a1aa,stroke-width:1px
-    style AWS fill:#fffbeb,stroke:#f59e0b,stroke-width:2px
-    style EC2 fill:#ffffff,stroke:#f59e0b,stroke-width:2px
-    style DOCKER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,stroke-dasharray:5 5
+    USER -->|"웹 접속"| WEB
+    USER -->|"HTTPS / WSS"| DNS
+    DNS --> NGINX
 ```
 
-### 요청 흐름
+Blue와 Green은 같은 VM에서 실행되며 PostgreSQL과 Redis를 공유합니다. 평소에는 활성 앱 컨테이너가 요청을 처리하고, 배포할 때 반대쪽 슬롯을 실행해 트래픽을 전환합니다. 그림의 Blue는 활성 슬롯의 예시입니다.
 
-```text
-사용자 브라우저
- ├─ https://fleaflea.app
- │   └─ Gabia DNS
- │       └─ Vercel
- │           └─ React + Vite 프론트엔드
- │
- └─ https://api.fleaflea.app
-     └─ Gabia DNS
-         └─ AWS EC2
-             └─ Nginx
-                 └─ Spring Boot
-                     ├─ PostgreSQL
-                     │   └─ Named Volume
-                     └─ Amazon S3
-```
+### 네트워크
 
-### CI/CD 배포 구조
+| 대상 | 포트 | 접근 방식 |
+|---|---:|---|
+| 프론트엔드 | 443 | Vercel HTTPS |
+| Nginx | 80 | 인증서 검증 및 HTTPS 리다이렉트 |
+| Nginx | 443 | REST API, Swagger, WebSocket |
+| SSH | 22 | IAP 경유, OS Login으로 접근 제어 |
+| 앱 Blue / Green | 8081 / 8082 | 호스트의 `127.0.0.1`에 바인딩, 컨테이너 내부는 8080 |
+| PostgreSQL | 5432 | Docker 내부 및 호스트 Loopback |
+| Redis | 6379 | Docker 내부 및 호스트 Loopback |
+
+앱·PostgreSQL·Redis 포트를 인터넷에 직접 공개하지 않습니다. DB 관리 도구는 IAP와 SSH 포트 포워딩으로 연결합니다. 브라우저 접근은 CORS와 WebSocket 허용 Origin 설정으로 관리합니다.
+
+## 데이터와 실시간 처리
+
+### PostgreSQL과 Flyway
+
+서비스 데이터는 PostgreSQL에 저장하고, 스키마 변경은 Flyway 마이그레이션으로 관리합니다. PostgreSQL 데이터는 Docker Named Volume에 보관하므로 컨테이너 재생성과 데이터 삭제는 구분됩니다.
+
+Named Volume은 컨테이너 교체 시 데이터를 유지하기 위한 저장소입니다. VM이나 디스크 장애에 대비한 외부 백업은 별도로 수행합니다.
+
+### Redis
+
+Redis는 다음 두 가지 용도로 사용합니다.
+
+- **마켓 분산 락:** 같은 마켓에 대한 변경 요청을 직렬화합니다. DB 잠금과 제약 조건도 함께 사용합니다.
+- **채팅 Pub/Sub:** 서로 다른 앱 프로세스에 연결된 사용자에게 메시지·읽음·입력 중 이벤트를 전달합니다.
+
+마켓 분산 락은 데이터 정합성을 위한 장치입니다. 응답 속도를 높이기 위한 조회 캐시와는 목적이 다르며, 경합이 발생하면 락 대기 시간이 추가됩니다. 도감의 동시성 제어는 DB 잠금으로 처리합니다.
+
+### WebSocket 채팅
+
+클라이언트는 `wss://api.fleaflea.app/ws/chat`에 연결한 뒤 STOMP 프로토콜을 사용합니다. STOMP `CONNECT`에서 JWT를 검증하며, 채팅방 접근 권한도 확인합니다.
+
+메시지 이력은 PostgreSQL에 저장합니다. Redis Pub/Sub은 실시간 이벤트 전달에 사용하며, 재접속 후 누락된 메시지는 REST API로 조회합니다. Pub/Sub 자체를 영구 메시지 저장소로 사용하지 않습니다.
+
+배포로 이전 프로세스가 종료되면 기존 WebSocket 연결이 끊길 수 있습니다. 클라이언트는 재접속·재구독과 메시지 이력 복구를 처리해야 합니다.
+
+## 이미지 저장
+
+운영 이미지는 비공개 **Google Cloud Storage(GCS)** 버킷에 저장합니다. 애플리케이션은 VM에 연결된 서비스 계정으로 접근하며, 이미지 조회에는 만료 시간이 있는 V4 Signed URL을 발급합니다.
+
+DB에는 이미지 키를 보관하고, 조회 시 접근 URL을 생성합니다. 기본 URL 유효 기간은 1시간이며 환경 변수로 조정할 수 있습니다.
+
+이미지 저장 구현은 `IMAGE_STORAGE` 설정으로 선택합니다. 운영은 `gcs`를 사용하고, S3 구현은 로컬 MinIO 테스트 등에 사용할 수 있도록 남아 있습니다.
+
+## CI/CD와 Blue/Green 배포
 
 ```mermaid
 flowchart LR
-    GIT["main 브랜치<br/>Push 또는 PR 병합"]
-
-    subgraph ACTIONS["GitHub Actions"]
-        CI["Build & Test"]
-        IMAGE["Docker Image Build"]
-
-        CI --> IMAGE
-    end
-
-    GHCR["GHCR<br/>Docker Image"]
-    SSM["AWS SSM<br/>Deploy Command"]
-
-    subgraph SERVER["AWS EC2"]
-        COMPOSE["Docker Compose"]
-        APP["Spring Boot"]
-        DB["PostgreSQL"]
-
-        COMPOSE --> APP
-        COMPOSE --> DB
-    end
-
-    GIT --> CI
-    IMAGE -->|"Push"| GHCR
-    IMAGE -->|"배포 요청"| SSM
-    SSM --> COMPOSE
-    GHCR -->|"Pull"| COMPOSE
-
-    classDef source fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
-    classDef github fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95;
-    classDef registry fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
-    classDef aws fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
-    classDef container fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#14532d;
-
-    class GIT source;
-    class CI,IMAGE github;
-    class GHCR registry;
-    class SSM,COMPOSE aws;
-    class APP,DB container;
-
-    style ACTIONS fill:#ffffff,stroke:#8b5cf6,stroke-width:1px
-    style SERVER fill:#fffbeb,stroke:#f59e0b,stroke-width:2px
+    MAIN["main Push / PR 병합"] --> CI["Gradle Build / Test"]
+    CI --> BUILD["Docker Image Build"]
+    BUILD --> REGISTRY["Artifact Registry"]
+    REGISTRY --> DEPLOY["IAP SSH · deploy.sh"]
+    DEPLOY --> START["비활성 슬롯 실행"]
+    START --> HEALTH["새 컨테이너 상태 확인"]
+    HEALTH --> SWITCH["Nginx upstream 전환"]
+    SWITCH --> WATCH["전환 후 상태 관찰"]
+    WATCH --> STOP["기존 연결 대기 후 이전 컨테이너 종료"]
 ```
 
-### 인프라 구성
+`main`의 CI가 성공하면 GCP CD가 해당 커밋의 이미지를 빌드·업로드하고 배포합니다. GitHub Actions는 Workload Identity Federation으로 GCP에 인증하므로 장기 서비스 계정 키 파일을 저장하지 않습니다.
 
-| 구성 요소 | 역할 |
+배포는 이미지 digest를 기준으로 진행하며 다음 순서로 실행합니다.
+
+1. 비활성 슬롯에서 새 앱을 실행하고 상태 확인을 기다립니다.
+2. Nginx upstream을 새 슬롯으로 전환합니다.
+3. 60초 동안 상태를 관찰합니다. 확인 실패 또는 새 upstream의 API 요청 20건 이상에서 5xx 비율이 5%를 초과하면 이전 upstream으로 복구합니다.
+4. 검증이 끝나면 활성 슬롯과 롤백 이미지 정보를 기록합니다.
+5. 기존 연결을 위해 90초 대기한 뒤 이전 앱을 graceful shutdown합니다. 컨테이너 종료 유예는 75초입니다.
+
+이 방식은 앱 교체 중 HTTP 요청의 중단을 줄이기 위한 구성입니다. 단일 VM 장애에 대한 자동 고가용성 전환이나 WebSocket 연결의 영구 유지를 제공하지는 않습니다. DB 스키마 변경도 이전 앱과의 호환성을 고려해야 합니다.
+
+## 백업·모니터링·자동 정리
+
+아래 시간은 **한국 시간(KST)** 기준입니다. 운영 설정은 적용했으며, 관련 코드 변경은 [PR #181](https://github.com/hyundai-autoever-team3/fleaflea-backend/pull/181)에서 관리합니다.
+
+| 항목 | 운영 방식 |
 |---|---|
-| **Gabia DNS** | `fleaflea.app`, `api.fleaflea.app` DNS 관리 |
-| **Vercel** | React 프론트엔드 배포, CDN 및 HTTPS 제공 |
-| **AWS EC2** | Nginx, Spring Boot, PostgreSQL 실행 |
-| **Nginx** | HTTPS 처리 및 Spring Boot Reverse Proxy |
-| **Docker Compose** | Spring Boot 및 PostgreSQL 컨테이너 관리 |
-| **Spring Boot** | REST API, JWT 인증 및 비즈니스 로직 처리 |
-| **PostgreSQL 16** | 서비스 데이터 저장 |
-| **Flyway** | 데이터베이스 스키마 버전 관리 |
-| **Named Volume** | PostgreSQL 데이터 영구 저장 |
-| **Amazon S3** | 프로필, 도감, 상품 및 마켓 이미지 저장 |
-| **GitHub Actions** | 빌드, 테스트 및 배포 자동화 |
-| **GHCR** | Spring Boot Docker 이미지 저장 |
-| **AWS SSM** | EC2에 배포 명령 전달 |
+| DB 백업 | 매일 03:00 `pg_dump` 후 별도 비공개 GCS 버킷에 저장 |
+| 백업 확인 | GCS에서 다시 다운로드하고 SHA-256 검증 |
+| 복원 검증 | 매주 일요일 03:30 임시 DB에 복원·조회 후 검증 DB 삭제 |
+| 백업 보관 | 30일 후 삭제, 버킷 soft delete 7일 별도 적용 |
+| 디스크 스냅샷 | 매일 03:00부터 예약 실행, 예약 스냅샷 14일 보관 |
+| 로그 | Ops Agent로 Nginx·Docker·유지보수 로그를 Cloud Logging에 수집 |
+| 장애 알림 | HTTPS 상태, CPU·메모리·디스크, 컨테이너 이상, 유지보수 실패·지연 이메일 알림 |
+| API 지표 | 관리 요청을 제외한 API 요청의 5xx 비율과 p95 응답 시간 수집 |
+| VM 이미지 정리 | 매일 04:00 실행·중지 컨테이너, 양쪽 슬롯, 최신 프로젝트 이미지 3개를 보존하고 미사용 이미지 정리 |
+| 레지스트리 정리 | 최신 10개와 `prod-*` 태그를 보존하고, 나머지 7일 경과 이미지 정리 |
 
-### 네트워크 구성
+예약 작업은 지연 시간이 붙거나 실행 창 안에서 시작될 수 있습니다. 최초 수동 스냅샷은 예약 스냅샷의 자동 보관 정책과 별개입니다.
 
-| 대상 | 포트 | 접근 범위 | 설명 |
-|---|---:|---|---|
-| **Vercel** | `443` | Public | 프론트엔드 HTTPS 제공 |
-| **Nginx** | `80` | Public | HTTPS로 리다이렉트 |
-| **Nginx** | `443` | Public | API 및 Swagger HTTPS 제공 |
-| **SSH** | `22` | 관리자 IP 제한 | EC2 운영 및 장애 대응 |
-| **Spring Boot** | `8080` | Loopback | `127.0.0.1:8080`에만 바인딩 |
-| **PostgreSQL** | `5432` | Loopback / Docker 내부 | 외부 접근 차단 |
-| **Amazon S3** | `443` | Outbound | 이미지 저장 및 조회 |
-| **AWS SSM** | `443` | Outbound | 배포 명령 수신 |
+이미지 정리와 배포는 같은 잠금을 사용합니다. 정리 작업은 데이터 볼륨이나 컨테이너를 prune하지 않고, 이미지를 강제로 삭제하지 않습니다.
 
-Spring Boot와 PostgreSQL은 외부에 직접 공개하지 않습니다. 모든 외부 API 요청은 Nginx를 거쳐 Spring Boot로 전달됩니다.
+## 설정 관리
 
-### 운영 주소
+운영 설정은 Git 저장소와 분리해 서버의 `/etc/fleaflea`에서 관리합니다. 주요 파일은 다음과 같습니다.
 
-| 구분 | 주소 |
+| 파일 | 역할 |
 |---|---|
-| **프론트엔드** | `https://fleaflea.app` |
-| **백엔드 API** | `https://api.fleaflea.app` |
-| **Swagger UI** | `https://api.fleaflea.app/swagger-ui/index.html` |
-| **OpenAPI JSON** | `https://api.fleaflea.app/v3/api-docs` |
-| **Health Check** | `https://api.fleaflea.app/actuator/health` |
-
-### 요청 흐름
-
-```text
-사용자 브라우저
- ├─ https://fleaflea.app
- │   └─ Gabia DNS
- │       └─ Vercel
- │           └─ React + Vite 프론트엔드 제공
- │
- └─ https://api.fleaflea.app
-     └─ Gabia DNS
-         └─ AWS EC2 Security Group
-             └─ Host Nginx
-                 └─ 127.0.0.1:8080
-                     └─ Spring Boot 컨테이너
-                         ├─ PostgreSQL 컨테이너
-                         │   └─ fleaflea_postgres_data 볼륨
-                         └─ Amazon S3
-```
-
-### 배포 흐름
-
-```text
-main 브랜치 Push 또는 PR 병합
- └─ GitHub Actions
-     ├─ Gradle Build 및 Test
-     ├─ Docker 이미지 생성
-     ├─ GHCR에 이미지 Push
-     └─ AWS Systems Manager 명령 실행
-         └─ EC2 Docker Compose 배포
-             ├─ GHCR 이미지 Pull
-             ├─ Spring Boot 컨테이너 재생성
-             └─ Health Check
-```
-
-### 인프라 구성
-
-| 구성 요소 | 역할 |
-|---|---|
-| **Gabia DNS** | `fleaflea.app`, `api.fleaflea.app` DNS 레코드 관리 |
-| **Vercel** | React 18 및 Vite 프론트엔드 배포, CDN과 HTTPS 제공 |
-| **AWS EC2** | Nginx, Spring Boot, PostgreSQL 실행 |
-| **Security Group** | EC2 인바운드 및 아웃바운드 트래픽 제어 |
-| **Nginx** | HTTPS 처리, HTTP에서 HTTPS 리다이렉트, Spring Boot Reverse Proxy |
-| **Let's Encrypt / Certbot** | `api.fleaflea.app` TLS 인증서 발급 및 갱신 |
-| **Docker Compose** | Spring Boot 및 PostgreSQL 컨테이너 실행과 상태 관리 |
-| **Spring Boot** | REST API, JWT 인증, 비즈니스 로직 처리 |
-| **PostgreSQL 16** | 회원, 마켓, 도감 및 거래 데이터 저장 |
-| **Flyway** | PostgreSQL 스키마 버전 관리 |
-| **Named Volume** | `fleaflea_postgres_data`에 PostgreSQL 데이터 영구 저장 |
-| **Amazon S3** | 프로필, 도감, 상품 및 마켓 이미지 저장 |
-| **EC2 Instance Role** | Spring Boot 컨테이너의 S3 접근 권한 제공 |
-| **GitHub Actions** | CI 빌드·테스트 및 운영 배포 자동화 |
-| **GHCR** | 커밋 SHA별 Spring Boot Docker 이미지 저장 |
-| **AWS SSM** | 공개 SSH 배포 없이 EC2에서 배포 명령 실행 |
-
-### 네트워크 구성
-
-| 대상 | 포트 | 접근 범위 | 설명 |
-|---|---:|---|---|
-| **Vercel** | `443` | Public | 프론트엔드 HTTPS 제공 |
-| **EC2 Nginx** | `80` | Public | HTTPS로 리다이렉트 |
-| **EC2 Nginx** | `443` | Public | 백엔드 API 및 Swagger HTTPS 제공 |
-| **SSH** | `22` | 관리자 IP 제한 | EC2 운영 및 장애 대응 |
-| **Spring Boot** | `8080` | Loopback | `127.0.0.1:8080`에만 바인딩 |
-| **PostgreSQL** | `5432` | Loopback / Docker 내부 | `127.0.0.1:5432` 및 Docker 네트워크에서만 접근 |
-| **Amazon S3** | `443` | Outbound | Spring Boot가 AWS SDK로 이미지 저장 및 조회 |
-| **AWS SSM** | `443` | Outbound | GitHub Actions에서 전달된 배포 명령 수신 |
-
-Spring Boot와 PostgreSQL 포트는 외부에 공개하지 않습니다. 외부 API 요청은 반드시 Nginx를 거쳐 Spring Boot로 전달됩니다.
-
-### 운영 주소
-
-| 구분 | 주소 |
-|---|---|
-| **프론트엔드** | `https://fleaflea.app` |
-| **백엔드 API** | `https://api.fleaflea.app` |
-| **Swagger UI** | `https://api.fleaflea.app/swagger-ui/index.html` |
-| **OpenAPI JSON** | `https://api.fleaflea.app/v3/api-docs` |
-| **Health Check** | `https://api.fleaflea.app/actuator/health` |
-## 2. 기술 스택
-
-| 구분                       | 기술 / 도구                             | 버전 / 비고                      |
-| :----------------------- | :---------------------------------- | :--------------------------- |
-| **Language & Framework** | Java, Spring Boot                   | Java 25, Spring Boot 3.4.3   |
-| **Database & ORM**       | PostgreSQL, Spring Data JPA, Flyway | PostgreSQL 16                |
-| **Web Server & SSL**     | Nginx, Certbot                      | Nginx 1.24+, Let's Encrypt   |
-| **Container**            | Docker, Docker Compose              | Bridge Network, Named Volume |
-| **Cloud**                | AWS EC2, Amazon S3, Gabia DNS       | Ubuntu 24.04 LTS             |
-| **CI/CD**                | GitHub Actions, GHCR, AWS SSM       | Docker 이미지 기반 자동 배포          |
-| **API Docs**             | Springdoc OpenAPI                   | Swagger UI                   |
-| **Frontend**             | React 18, Vite, Vercel              | HTTPS 통신                     |
-
-## 3. 구성 및 요청 흐름
-
-### 3-1. Frontend
-
-프론트엔드는 React와 Vite로 구성되어 있으며 Vercel을 통해 배포하고 있습니다.
-
-사용자가 `fleaflea.app`에 접속하면 Vercel이 프론트엔드를 제공하고, 브라우저는 백엔드 API 도메인인 `api.fleaflea.app`으로 요청을 보냅니다.
-
-프론트엔드와 백엔드 간 통신은 HTTPS 기반의 REST API 방식으로 이루어집니다.
-
-### 3-2. DNS / Nginx
-
-백엔드 서버는 AWS EC2에서 운영하며, Gabia DNS의 `api` 레코드로 EC2 IP와 연결합니다.
-
-```text
-api.fleaflea.app
-        ↓
-AWS EC2
-        ↓
-Nginx
-        ↓
-Spring Boot
-```
-
-AWS Security Group에서는 외부에 `80`, `443` 포트만 열어두고 있습니다.
-
-Nginx는 외부 요청을 가장 먼저 받아 다음 역할을 수행합니다.
-
-* HTTP 요청을 HTTPS로 리다이렉트
-* Let's Encrypt 인증서를 이용한 HTTPS 처리
-* `/` 요청을 Spring Boot의 `127.0.0.1:8080`으로 전달
-* 외부에서 Spring Boot의 8080 포트에 직접 접근하지 못하도록 구성
-
-HTTP로 들어온 요청은 HTTPS로 자동 전환됩니다.
-
-```text
-http://api.fleaflea.app
-        ↓
-https://api.fleaflea.app
-```
-
-### 3-3. Docker Compose
-
-EC2 내부에서는 Docker Compose를 이용해 Spring Boot와 PostgreSQL을 실행하고 있습니다.
-
-#### fleaflea-app
-
-Spring Boot 애플리케이션 컨테이너입니다.
-
-주요 역할은 다음과 같습니다.
-
-* JWT 기반 회원 인증
-* 플리마켓 생성 및 관리
-* 플리마켓 회원 관리
-* 도감 아이템 관리
-* 거래 요청 처리
-* 이미지 업로드
-* REST API 제공
-
-컨테이너의 8080 포트는 EC2의 `127.0.0.1:8080`에 연결되어 있어 Nginx를 통해서만 외부 요청을 받을 수 있습니다.
-
-CORS 설정에서는 Vercel 배포 주소와 로컬 개발 환경을 허용하고 있습니다.
-
-#### fleaflea-postgres
-
-서비스의 데이터를 저장하는 PostgreSQL 16 컨테이너입니다.
-
-Spring Boot와 PostgreSQL은 Docker 내부 네트워크를 통해 통신합니다.
-
-```text
-fleaflea-app
-     ↓
-fleaflea-postgres:5432
-```
-
-PostgreSQL 데이터는 Docker Named Volume에 저장합니다.
-
-```text
-fleaflea_postgres_data
-```
-
-따라서 PostgreSQL 컨테이너가 재생성되더라도 기존 데이터는 유지됩니다.
-
-데이터베이스 스키마는 Flyway를 이용해 관리하고 있으며, 애플리케이션 실행 시 필요한 마이그레이션이 자동으로 적용됩니다.
-
----
-
-## 4. 이미지 저장
-
-서비스에서 사용하는 이미지는 Amazon S3에 저장합니다.
-
-현재 다음과 같은 이미지가 S3에 저장됩니다.
-
-* 회원 프로필 이미지
-* 플리마켓 이미지
-* 도감 아이템 이미지
-
-Spring Boot 애플리케이션에서 AWS SDK를 이용해 S3에 접근합니다.
-
-AWS Access Key를 서버에 직접 저장하는 방식 대신 EC2에 IAM Role을 연결해 S3 접근 권한을 부여했습니다.
-
-```text
-Spring Boot
-     ↓
-EC2 IAM Role
-     ↓
-Amazon S3
-```
-
-이를 통해 애플리케이션에서 별도의 장기 AWS Access Key를 관리하지 않아도 S3를 사용할 수 있도록 구성했습니다.
-
----
-
-## 5. CI/CD
-
-백엔드 배포는 GitHub Actions를 이용해 자동화했습니다.
-
-`main` 브랜치에 코드가 반영되면 다음 순서로 배포가 진행됩니다.
-
-```text
-main branch
-     ↓
-GitHub Actions
-     ↓
-Gradle Build / Test
-     ↓
-Docker Image Build
-     ↓
-GHCR Push
-     ↓
-AWS SSM
-     ↓
-EC2 deploy.sh 실행
-     ↓
-Docker Container 교체
-     ↓
-Health Check
-```
-
-GitHub Actions에서 Spring Boot 애플리케이션을 빌드한 뒤 Docker 이미지를 생성하고 GHCR에 업로드합니다.
-
-이후 AWS Systems Manager의 `send-command`를 사용해 EC2의 배포 스크립트를 원격으로 실행합니다.
-
-EC2에서는 새 이미지를 내려받은 후 기존 애플리케이션 컨테이너를 교체합니다.
-
-배포 완료 후에는 Spring Boot Actuator를 이용해 서버 상태를 확인합니다.
-
-```text
-/actuator/health
-```
-
-정상적으로 배포된 경우 다음과 같이 `UP` 상태를 반환합니다.
-
-```json
-{
-  "status": "UP"
-}
-```
-
----
-
-## 6. 서버 환경 변수
-
-EC2에서는 애플리케이션 설정과 계정 정보를 코드와 분리해 `/etc/fleaflea` 디렉토리에서 관리하고 있습니다.
-
-```text
-/etc/fleaflea/
-├── fleaflea.env
-├── postgres.env
-├── deploy.env
-└── ghcr.env
-```
-
-각 파일의 역할은 다음과 같습니다.
-
-| 파일             | 용도                                     |
-| :------------- | :------------------------------------- |
-| `fleaflea.env` | Spring Boot 환경 변수, JWT Secret, S3 설정 등 |
-| `postgres.env` | PostgreSQL DB 이름 및 계정 정보               |
-| `deploy.env`   | 현재 배포할 Docker 이미지 정보                   |
-| `ghcr.env`     | Private GHCR 이미지 Pull을 위한 인증 정보        |
-
-민감한 값은 Git 저장소에 포함하지 않고 서버 환경에서 별도로 관리합니다.
-
----
-
-## 7. API 문서
-
-백엔드 API는 Springdoc OpenAPI를 이용해 문서화하고 있습니다.
-
-배포된 서버의 Swagger UI에서 현재 제공하는 API를 직접 확인하고 테스트할 수 있습니다.
-
-**Swagger UI**
-
-https://api.fleaflea.app/swagger-ui/index.html
+| `fleaflea.env` | 앱·DB 연결·JWT·OAuth·CORS·GCS 설정 |
+| `postgres.env` | PostgreSQL 컨테이너 설정 |
+| `redis.env` | Redis 연결 및 인증 설정 |
+| `blue.env`, `green.env` | 슬롯별 이미지 URI와 호스트 포트 |
+| `active-slot` | 현재 활성 슬롯 |
+| `rollback-image` | 이전 검증 이미지 |
+| `operations.env` | 백업 등 운영 작업 설정 |
+
+인증서 갱신은 Certbot 타이머로 수행하고, 갱신 후 Nginx 설정 검사와 reload를 실행합니다. 비밀 값과 실제 환경 파일은 저장소에 포함하지 않습니다.

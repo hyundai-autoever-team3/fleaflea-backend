@@ -67,12 +67,13 @@ public class MemberAuthController {
     }
 
     @PostMapping("/reissue")
-    @Operation(summary = "Access Token 재발급", description = """
-            HttpOnly 쿠키의 Refresh Token으로 새로운 Access Token을 발급합니다.
-            카카오·구글 기존 회원 로그인 후 /oauth/success로 이동했다면 이 API를 호출하세요.
-            같은 브라우저에서 호출하면 refresh_token 쿠키가 자동 전송되므로 직접 입력하지 않습니다.
-            Access Token 없이 호출할 수 있으며, Refresh Token은 이 응답에서 갱신하지 않습니다.
-            """)
+    @Operation(summary = "토큰 재발급", description = """
+        HttpOnly 쿠키의 Refresh Token으로 새로운 Access Token과 Refresh Token을 발급합니다.
+        Access Token은 응답 body로, Refresh Token은 HttpOnly 쿠키로 전달합니다.
+        재발급에 사용된 기존 Refresh Token은 즉시 무효화됩니다.
+        카카오·구글 기존 회원 로그인 후 /oauth/success로 이동했다면 이 API를 호출하세요.
+        Access Token 없이 호출할 수 있습니다.
+        """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Access Token 재발급 성공",
                     content = @Content(schema = @Schema(implementation = ReissueResponse.class))),
@@ -85,7 +86,15 @@ public class MemberAuthController {
             required = false
     ) String refreshToken
     ) {
-        return ResponseEntity.ok(memberAuthService.reissue(refreshToken));
+        TokenPair tokens = memberAuthService.reissue(refreshToken);
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider
+                                .create(tokens.refreshToken())
+                                .toString()
+                )
+                .body(new ReissueResponse(tokens.accessToken()));
     }
 
     @DeleteMapping("/logout")

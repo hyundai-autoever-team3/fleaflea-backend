@@ -11,16 +11,25 @@ exec 9>/run/lock/fleaflea-deploy.lock
 flock -n 9 || { echo "Another deployment is running" >&2; exit 2; }
 
 IMAGE_URI="$1"
+OBSERVE_SECONDS="${OBSERVE_SECONDS:-60}"
+DRAIN_SECONDS="${DRAIN_SECONDS:-90}"
+if [[ ! "$OBSERVE_SECONDS" =~ ^[0-9]+$ || "$OBSERVE_SECONDS" -gt 300 ||
+      ! "$DRAIN_SECONDS" =~ ^[0-9]+$ || "$DRAIN_SECONDS" -gt 300 ]]; then
+    echo "Invalid observation or drain interval" >&2
+    exit 2
+fi
 COMPOSE_FILE="/opt/fleaflea/compose.app.yml"
 STATE_FILE="/etc/fleaflea/active-slot"
 UPSTREAM_FILE="/etc/nginx/conf.d/fleaflea-backend.conf"
 PREVIOUS_SLOT=""
+PREVIOUS_IMAGE=""
 if [[ -f "$STATE_FILE" ]]; then
     PREVIOUS_SLOT="$(cat "$STATE_FILE")"
     if [[ "$PREVIOUS_SLOT" != blue && "$PREVIOUS_SLOT" != green ]]; then
         echo "Invalid active deployment slot" >&2
         exit 2
     fi
+    PREVIOUS_IMAGE="$(sed -n 's/^APP_IMAGE=//p' "/etc/fleaflea/$PREVIOUS_SLOT.env")"
 fi
 
 TARGET_SLOT=blue
@@ -78,10 +87,16 @@ restore_upstream() {
     nginx -t && systemctl reload nginx
 }
 
+ACCESS_LOG=/var/log/nginx/fleaflea-access.log
+ACCESS_OFFSET=0
+if [[ -f "$ACCESS_LOG" ]]; then
+    ACCESS_OFFSET="$(stat -c %s "$ACCESS_LOG")"
+fi
 printf 'upstream fleaflea_backend { server 127.0.0.1:%s; keepalive 32; }\n' \
     "$TARGET_PORT" > "$UPSTREAM_FILE"
 if ! nginx -t || ! systemctl reload nginx; then
     restore_upstream
+    compose_target stop app
     rm -f "$BACKUP_FILE"
     echo "Nginx switch failed; previous upstream restored" >&2
     exit 1
@@ -90,9 +105,59 @@ fi
 if ! curl --fail --silent --show-error --max-time 10 \
         http://127.0.0.1/actuator/health >/dev/null; then
     restore_upstream
+    compose_target stop app
     rm -f "$BACKUP_FILE"
     echo "Proxy verification failed; previous upstream restored" >&2
     exit 1
+fi
+
+# Keep the previous process available while checking the switched proxy repeatedly.
+OBSERVE_UNTIL=$((SECONDS + OBSERVE_SECONDS))
+while (( SECONDS < OBSERVE_UNTIL )); do
+    if ! curl --fail --silent --show-error --max-time 10 \
+        http://127.0.0.1/actuator/health >/dev/null; then
+        restore_upstream
+        compose_target stop app
+        rm -f "$BACKUP_FILE"
+        echo "Post-switch observation failed; previous upstream restored" >&2
+        exit 1
+    fi
+    sleep 5
+done
+
+if [[ -f "$ACCESS_LOG" ]] && ! python3 - "$ACCESS_LOG" "$ACCESS_OFFSET" "$TARGET_PORT" <<'PY'
+import json
+import os
+import sys
+
+path, offset, port = sys.argv[1:]
+total = failures = 0
+with open(path) as access_log:
+    offset = int(offset)
+    access_log.seek(offset if os.path.getsize(path) >= offset else 0)
+    for line in access_log:
+        try:
+            request = json.loads(line)
+        except ValueError:
+            continue
+        if request.get('upstream') != '127.0.0.1:' + port or not request.get('uri', '').startswith('/api/'):
+            continue
+        total += 1
+        failures += int(request.get('status', 0) >= 500)
+print(f'Post-switch API observations: requests={total}, 5xx={failures}')
+sys.exit(1 if total >= 20 and failures / total > 0.05 else 0)
+PY
+then
+    restore_upstream
+    compose_target stop app
+    rm -f "$BACKUP_FILE"
+    echo "New upstream API error ratio exceeded 5%; previous upstream restored" >&2
+    exit 1
+fi
+
+if [[ -n "$PREVIOUS_IMAGE" ]]; then
+    printf '%s\n' "$PREVIOUS_IMAGE" > /etc/fleaflea/rollback-image.tmp
+    mv /etc/fleaflea/rollback-image.tmp /etc/fleaflea/rollback-image
 fi
 
 printf '%s\n' "$TARGET_SLOT" > "$STATE_FILE.tmp"
@@ -102,7 +167,7 @@ echo "Deployment switched to $TARGET_SLOT: $IMAGE_URI"
 
 if [[ -n "$PREVIOUS_SLOT" ]]; then
     # Keep existing HTTP/WebSocket connections on the old process during drain.
-    sleep "${DRAIN_SECONDS:-90}"
+    sleep "$DRAIN_SECONDS"
     docker compose --project-name "fleaflea-$PREVIOUS_SLOT" \
         --env-file "/etc/fleaflea/$PREVIOUS_SLOT.env" -f "$COMPOSE_FILE" stop app
 fi

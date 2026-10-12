@@ -37,6 +37,9 @@ public enum ErrorCode {
 
     // Refresh Token
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+    INVALID_REFRESH_TOKEN_TTL(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_REFRESH_TOKEN_TTL", "토큰 저장 유효 시간을 설정할 수 없습니다."),
+    TOKEN_HASHING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TOKEN_HASHING_FAILED", "토큰 처리 중 오류가 발생했습니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_EXPIRED", "Refresh Token이 만료되었습니다."),
 
     // OAuth2
     UNSUPPORTED_OAUTH2_PROVIDER(HttpStatus.BAD_REQUEST, "UNSUPPORTED_OAUTH2_PROVIDER", "지원하지 않는 OAuth2 제공자입니다."),

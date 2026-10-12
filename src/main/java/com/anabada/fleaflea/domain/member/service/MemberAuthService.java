@@ -9,10 +9,8 @@ import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateExceptio
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.refreshtoken.domain.RefreshToken;
-import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
-import com.anabada.fleaflea.domain.refreshtoken.repository.RefreshTokenRepository;
+import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +29,7 @@ public class MemberAuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisRefreshTokenRepository refreshTokenRepository;
     private final TokenIssueService tokenIssueService;
 
 
@@ -72,22 +69,38 @@ public class MemberAuthService {
         return tokenIssueService.issueTokenPair(member.getMemberId());
     }
 
-    @Transactional
-    public ReissueResponse reissue(String refreshToken) {
+    public TokenPair reissue(String refreshToken) {
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new InvalidTokenException();
         }
-        RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(InvalidTokenException::new);
-        if (savedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+        Long memberId;
+        try {
+            memberId = Long.valueOf(
+                    jwtTokenProvider.getMemberId(refreshToken)
+            );
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException exception) {
             throw new InvalidTokenException();
         }
-        Long memberId = Long.valueOf(jwtTokenProvider.getMemberId(refreshToken));
-        if (!savedToken.getMemberId().equals(memberId)) {
+
+        if (!memberRepository.existsById(memberId)) {
+            refreshTokenRepository.deleteByMemberId(memberId);
+        }
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(memberId);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(memberId);
+
+        boolean rotated = refreshTokenRepository.rotate(
+                memberId,
+                refreshToken,
+                newRefreshToken,
+                jwtTokenProvider.getRemainingValidity(newRefreshToken)
+        );
+
+        if (!rotated) {
             throw new InvalidTokenException();
         }
-        String accessToken = jwtTokenProvider.createAccessToken(memberId);
-        return new ReissueResponse(accessToken);
+
+        return new TokenPair(newAccessToken, newRefreshToken);
 
     }
 
