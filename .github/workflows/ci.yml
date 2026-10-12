@@ -47,6 +47,12 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Check deployment recovery
+        run: |
+          bash -n deploy/gcp/deploy.sh deploy/gcp/rollback.sh deploy/gcp/install-operations.sh
+          python3 -m py_compile deploy/gcp/operations.py deploy/gcp/configure-monitoring.py
+          python3 -m unittest discover -s deploy/gcp/tests -v
+
       - name: Build and test
         run: ./gradlew build --no-daemon --stacktrace
 

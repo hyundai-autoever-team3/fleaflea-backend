@@ -1,0 +1,17 @@
+[
+  {
+    "name": "delete-old-backend",
+    "action": {"type": "Delete"},
+    "condition": {"tagState": "any", "packageNamePrefixes": ["backend"], "olderThan": "604800s"}
+  },
+  {
+    "name": "keep-production",
+    "action": {"type": "Keep"},
+    "condition": {"tagState": "tagged", "tagPrefixes": ["prod-"], "packageNamePrefixes": ["backend"]}
+  },
+  {
+    "name": "keep-ten-backend-versions",
+    "action": {"type": "Keep"},
+    "mostRecentVersions": {"packageNamePrefixes": ["backend"], "keepCount": 10}
+  }
+]
