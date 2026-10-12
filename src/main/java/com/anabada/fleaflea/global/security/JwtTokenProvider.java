@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -42,6 +45,7 @@ public class JwtTokenProvider {
     public String createRefreshToken(Long memberId) {
         Date now = new Date();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(memberId.toString())
                 .claim("type", "REFRESH")
                 .issuedAt(new Date())
@@ -50,6 +54,12 @@ public class JwtTokenProvider {
                 )
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public Duration getRemainingValidity(String token) {
+        Instant expiresAt = getExpiration(token).toInstant();
+
+        return Duration.between(Instant.now(), expiresAt);
     }
 
     public String getMemberId(String token) {
