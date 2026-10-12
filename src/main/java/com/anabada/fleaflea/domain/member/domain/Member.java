@@ -16,6 +16,13 @@ public class Member extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long memberId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "social_provider")
+    private SocialProvider socialProvider;
+
+    @Column(name = "provider_id")
+    private String providerId;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -32,11 +39,15 @@ public class Member extends BaseTimeEntity {
     private Member(
             String email,
             String password,
-            String nickname
+            String nickname,
+            SocialProvider socialProvider,
+            String providerId
     ) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
+        this.socialProvider = socialProvider;
+        this.providerId = providerId;
     }
 
     public static Member create(
@@ -45,6 +56,22 @@ public class Member extends BaseTimeEntity {
             String nickname
     ) {
         return Member.builder()
+                .email(email)
+                .password(password)
+                .nickname(nickname)
+                .build();
+    }
+
+    public static Member createOAuth2(
+            SocialProvider provider,
+            String providerId,
+            String email,
+            String password,
+            String nickname
+    ) {
+        return Member.builder()
+                .socialProvider(provider)
+                .providerId(providerId)
                 .email(email)
                 .password(password)
                 .nickname(nickname)

@@ -9,6 +9,9 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springdoc.core.customizers.OpenApiCustomizer;
+
+import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -22,7 +25,13 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("FleaFlea API")
-                        .description("FleaFlea API 문서")
+                        .description("""
+                                FleaFlea API 문서
+
+                                소셜 로그인 시작 경로:
+                                - 카카오: /oauth2/authorization/kakao
+                                - 구글: /oauth2/authorization/google
+                                """)
                         .version("v1"))
                 .addServersItem(new Server().url(serverUrl))
                 .components(new Components()
@@ -32,5 +41,25 @@ public class SwaggerConfig {
                                 .bearerFormat("JWT")))
                 .addSecurityItem(new SecurityRequirement()
                         .addList(ACCESS_TOKEN_SCHEME));
+    }
+
+    @Bean
+    public OpenApiCustomizer publicAuthOperations() {
+        return openApi -> {
+            if (openApi.getPaths() == null) {
+                return;
+            }
+            for (String path : List.of(
+                    "/api/v1/auth/signup",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/reissue",
+                    "/api/v1/auth/oauth2/signup"
+            )) {
+                var item = openApi.getPaths().get(path);
+                if (item != null && item.getPost() != null) {
+                    item.getPost().setSecurity(List.of());
+                }
+            }
+        };
     }
 }

@@ -9,6 +9,8 @@ import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatMessageSentEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
 import com.anabada.fleaflea.domain.chat.event.ChatEventListener;
+import com.anabada.fleaflea.domain.chat.event.ChatSocketEventSender;
+import com.anabada.fleaflea.domain.chat.event.LocalChatEventPublisher;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.security.ChatWebSocketAuthInterceptor;
 import com.anabada.fleaflea.domain.chat.security.ChatWebSocketSessionDecorator;
@@ -21,6 +23,9 @@ import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
+import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
+import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -107,6 +112,15 @@ class ChatWebSocketIntegrationTest {
 
     @MockitoBean
     private CustomMemberDetailsService customMemberDetailsService;
+
+    @MockitoBean
+    private CustomOidcUserService customOidcUserService;
+
+    @MockitoBean
+    private OAuth2SuccessHandler oauth2SuccessHandler;
+
+    @MockitoBean
+    private OAuth2FailureHandler oauth2FailureHandler;
 
     private WebSocketStompClient stompClient;
     private final List<StompSession> sessions = new ArrayList<>();
@@ -373,7 +387,8 @@ class ChatWebSocketIntegrationTest {
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration(excludeName = "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration")
     @Import({ChatWebSocketConfig.class, ChatWebSocketAuthInterceptor.class, ChatWebSocketSessionDecorator.class,
-            ChatSocketController.class, ChatEventListener.class, JwtTokenProvider.class, SchedulingConfig.class,
+            ChatSocketController.class, ChatEventListener.class, ChatSocketEventSender.class,
+            LocalChatEventPublisher.class, JwtTokenProvider.class, SchedulingConfig.class,
             SecurityConfig.class, JwtAuthenticationFilter.class, CustomAuthenticationEntryPoint.class,
             CustomAccessDeniedHandler.class})
     static class TestApplication {

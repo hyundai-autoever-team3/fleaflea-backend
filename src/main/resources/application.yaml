@@ -43,12 +43,60 @@ spring:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+            scope:
+              - openid
+              - account_email
+              - profile_nickname
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+          naver:
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Naver
+            scope:
+              - openid
+        provider:
+          kakao:
+            issuer-uri: https://kauth.kakao.com
+          naver:
+            issuer-uri: https://nid.naver.com
+
 app:
   environment: ${APP_ENV:local}
   version: ${APP_VERSION:local}
+  frontend-url: ${FRONTEND_URL:http://localhost:5175}
+
+  image:
+    storage: ${IMAGE_STORAGE:s3}
+
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
+
+  chat:
+    redis:
+      enabled: ${CHAT_REDIS_ENABLED:false}
+      channel-prefix: ${CHAT_REDIS_CHANNEL_PREFIX:fleaflea:chat}
 
 server:
   port: 8080
@@ -81,6 +129,11 @@ aws:
   region: ${AWS_REGION:ap-northeast-2}
   s3:
     bucket: ${S3_BUCKET}
+
+gcp:
+  storage:
+    bucket: ${GCS_BUCKET:}
+    signed-url-duration: ${GCS_SIGNED_URL_DURATION:1h}
 
 management:
   health:

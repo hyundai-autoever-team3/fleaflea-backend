@@ -64,6 +64,9 @@ dependencies {
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:signin'
 
+	// Google Cloud Storage
+	implementation 'com.google.cloud:google-cloud-storage:2.75.0'
+
 	// WebP 이미지 검증
 	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.14.0'
 
@@ -78,6 +81,9 @@ dependencies {
 	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.6:jpa'
 	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+	// OAuth
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 }
 
 tasks.named('test') {

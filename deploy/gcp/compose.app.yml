@@ -1,0 +1,36 @@
+services:
+  app:
+    image: ${APP_IMAGE:?APP_IMAGE is required}
+    restart: unless-stopped
+    env_file:
+      - /etc/fleaflea/fleaflea.env
+      - /etc/fleaflea/redis.env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/fleaflea_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_HEALTH_ENABLED: "true"
+      CHAT_REDIS_ENABLED: "true"
+      IMAGE_STORAGE: gcs
+    ports:
+      - "127.0.0.1:${APP_PORT:?APP_PORT is required}:8080"
+    networks:
+      - infrastructure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 36
+      start_period: 30s
+    stop_grace_period: 45s
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  infrastructure:
+    external: true
+    name: fleaflea_default

@@ -1,0 +1,16 @@
+{
+  "pairs": [
+    {
+      "roomId": 1,
+      "sender": {
+        "memberId": 1,
+        "token": "REPLACE_WITH_TEST_SENDER_ACCESS_TOKEN"
+      },
+      "receiver": {
+        "memberId": 2,
+        "token": "REPLACE_WITH_TEST_RECEIVER_ACCESS_TOKEN",
+        "shortToken": "REPLACE_WITH_SHORT_LIVED_TEST_ACCESS_TOKEN"
+      }
+    }
+  ]
+}

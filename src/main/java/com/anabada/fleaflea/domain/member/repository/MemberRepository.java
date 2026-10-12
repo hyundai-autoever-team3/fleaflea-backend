@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.member.repository;
 
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.domain.SocialProvider;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -18,7 +19,17 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsBySocialProviderAndProviderId(
+            SocialProvider socialProvider,
+            String providerId
+    );
+
     Optional<Member> findByEmail(String email);
 
     Optional<Member> findByNickname(String nickname);
+
+    Optional<Member> findBySocialProviderAndProviderId(
+            SocialProvider socialProvider,
+            String providerId
+    );
 }

@@ -40,7 +40,7 @@ class ImageServiceTest {
 
     private final S3Client s3Client = mock(S3Client.class);
     private final ImageService imageService =
-            new ImageService(s3Client, "test-bucket");
+            new ImageService(new S3ImageStorage(s3Client, "test-bucket"));
 
     @Test
     @DisplayName("이미지 확장자와 MIME 타입은 실제 파일 내용으로 결정한다")
