@@ -6,6 +6,8 @@ services:
       - /etc/fleaflea/fleaflea.env
       - /etc/fleaflea/redis.env
     environment:
+      APP_ENV: production
+      MANAGEMENT_PORT: "8081"
       DB_URL: jdbc:postgresql://postgres:5432/fleaflea_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -19,7 +21,7 @@ services:
     networks:
       - infrastructure
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/readyz >/dev/null"]
       interval: 5s
       timeout: 3s
       retries: 36

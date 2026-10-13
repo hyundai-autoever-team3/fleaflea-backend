@@ -1,0 +1,13 @@
+/var/log/nginx/fleaflea-*.log {
+    daily
+    rotate 14
+    size 50M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        test ! -s /run/nginx.pid || kill -USR1 $(cat /run/nginx.pid)
+    endscript
+}

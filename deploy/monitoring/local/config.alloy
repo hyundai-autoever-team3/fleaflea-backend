@@ -1,0 +1,132 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.remote_write "central" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+
+  external_labels = {
+    environment = "local",
+  }
+}
+
+prometheus.scrape "application" {
+  targets = [{
+    __address__ = "host.docker.internal:8081",
+    instance    = "local-app",
+    service     = "fleaflea",
+  }]
+  job_name        = "fleaflea-app"
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "5s"
+  scrape_timeout  = "3s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+prometheus.scrape "postgres" {
+  targets = [{
+    __address__ = "postgres-exporter-local:9187",
+    instance    = "local-app",
+    service     = "postgres",
+  }]
+  job_name        = "fleaflea-postgres"
+  scrape_interval = "10s"
+  forward_to      = [prometheus.remote_write.central.receiver]
+}
+
+local.file_match "application" {
+  path_targets = [{
+    __path__    = "/var/log/fleaflea/*.json",
+    environment = "local",
+    instance    = "local-app",
+    service     = "fleaflea",
+  }]
+}
+
+loki.source.file "application" {
+  targets    = local.file_match.application.targets
+  forward_to = [loki.write.central.receiver]
+}
+
+loki.write "central" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+
+  wal {
+    enabled = true
+  }
+}
+
+otelcol.receiver.otlp "application" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.tail_sampling.application.input]
+  }
+}
+
+// Decide per trace so routine-request child spans are not left behind without their parent.
+otelcol.processor.tail_sampling "application" {
+  decision_wait = "10s"
+  num_traces    = 1000
+
+  policy {
+    name = "drop-routine-checks"
+    type = "drop"
+
+    drop {
+      drop_sub_policy {
+        name = "routine-endpoints-and-background-maintenance"
+        type = "ottl_condition"
+
+        ottl_condition {
+          error_mode = "ignore"
+          span = [
+            `span.attributes["url.path"] == "/readyz"`,
+            `span.attributes["http.route"] == "/readyz"`,
+            `span.attributes["url.path"] != nil and IsMatch(span.attributes["url.path"], "^/actuator/health($|/)")`,
+            `span.attributes["http.route"] != nil and IsMatch(span.attributes["http.route"], "^/actuator/health($|/)")`,
+            `span.attributes["url.path"] == "/actuator/prometheus"`,
+            `span.attributes["http.route"] == "/actuator/prometheus"`,
+            `IsMatch(span.name, "NotificationSseHeartbeat")`,
+            `IsRootSpan() and span.attributes["db.name"] == "fleaflea_db" and span.attributes["thread.name"] != nil and IsMatch(span.attributes["thread.name"], "^HikariPool-[0-9]+:housekeeper$")`,
+          ]
+        }
+      }
+    }
+  }
+
+  policy {
+    name = "keep-other-traces"
+    type = "always_sample"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.traces.input]
+  }
+}
+
+otelcol.processor.batch "traces" {
+  timeout         = "2s"
+  send_batch_size = 256
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+}
