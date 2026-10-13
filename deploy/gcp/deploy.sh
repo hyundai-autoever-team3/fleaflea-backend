@@ -66,7 +66,7 @@ if ! compose_target up -d --wait --wait-timeout 240; then
 fi
 
 if ! curl --fail --silent --show-error --max-time 10 \
-        "http://127.0.0.1:$TARGET_PORT/actuator/health" >/dev/null; then
+        "http://127.0.0.1:$TARGET_PORT/readyz" >/dev/null; then
     compose_target stop app
     exit 1
 fi
@@ -102,8 +102,10 @@ if ! nginx -t || ! systemctl reload nginx; then
     exit 1
 fi
 
+# Nginx reload is asynchronous: an old worker may briefly use the previous slot.
 if ! curl --fail --silent --show-error --max-time 10 \
-        http://127.0.0.1/actuator/health >/dev/null; then
+        --retry 10 --retry-delay 1 --retry-all-errors \
+        http://127.0.0.1/readyz >/dev/null; then
     restore_upstream
     compose_target stop app
     rm -f "$BACKUP_FILE"
@@ -115,7 +117,7 @@ fi
 OBSERVE_UNTIL=$((SECONDS + OBSERVE_SECONDS))
 while (( SECONDS < OBSERVE_UNTIL )); do
     if ! curl --fail --silent --show-error --max-time 10 \
-        http://127.0.0.1/actuator/health >/dev/null; then
+        http://127.0.0.1/readyz >/dev/null; then
         restore_upstream
         compose_target stop app
         rm -f "$BACKUP_FILE"
