@@ -7,14 +7,14 @@
 #       PostgreSQL 16 (localhost:5435) + MinIO (localhost:9010, console 9011)
 #
 #   docker compose -f performance/compose.yml --profile app up -d --build
-#       + the backend built from the real Dockerfile with the EC2 limits
+#       + the backend built from the real Dockerfile with the performance limits
 #         (mem_limit 1g, -Xmx768m) on localhost:8081
 
 name: fleaflea-perf
 
 services:
   postgres:
-    # Same image and default settings as deploy/ec2/compose.yml.
+    # PostgreSQL image and defaults for the isolated performance environment.
     image: postgres:16
     container_name: fleaflea-perf-db
     # Docker Desktop을 다시 켜면 함께 올라온다. 멈추려면 stop 또는 down을 쓴다.
@@ -99,7 +99,7 @@ services:
       - "127.0.0.1:8081:8080"
     volumes:
       - ../build/perf:/perf
-    # Same memory limit as deploy/ec2/compose.yml. Set cpus to the EC2 vCPU count.
+    # Memory limit for the performance app. Set cpus to the target server vCPU count.
     mem_limit: 1g
     cpus: 2
 

@@ -1,25 +1,7 @@
 # EC2 container deployment
 
-Nginx remains a host systemd service. Spring Boot and PostgreSQL run with
-Docker Compose. GitHub Actions publishes the application image to GitHub
-Container Registry (GHCR), then invokes the deployment through AWS Systems
-Manager.
-
-## GitHub and AWS prerequisites
-
-1. The workflow uses `GITHUB_TOKEN` with `packages: write`; no AWS ECR
-   repository or ECR IAM permission is required.
-2. Keep these GitHub repository variables: `AWS_REGION`, `AWS_ROLE_ARN`, and
-   `EC2_INSTANCE_ID`. `DEPLOY_BUCKET` and `ECR_REPOSITORY` are not used.
-3. Keep the existing GitHub OIDC role permissions required for SSM deployment.
-4. Set the EC2 instance metadata response hop limit to `2` so the containerized
-   AWS SDK can use the EC2 instance role for S3 access.
-
-The published image name is:
-
-```text
-ghcr.io/hyundai-autoever-team3/fleaflea-backend:<commit-sha>
-```
+이 문서는 보존된 EC2 배포 파일의 참고 자료입니다. 현재 운영과 자동 배포는
+GCP 및 `.github/workflows/gcp-cd.yml`을 사용하며 EC2/SSM 배포 워크플로는 포함돼 있지 않습니다.
 
 ## Private GHCR image access
 
@@ -46,7 +28,7 @@ and `/etc/fleaflea/ghcr.env` may be omitted.
 
 ## EC2 files
 
-The deployment workflow installs these versioned files on every deployment:
+The legacy EC2 deployment files use these paths:
 
 - `/opt/fleaflea/compose.yml`
 - `/opt/fleaflea/deploy.sh`
