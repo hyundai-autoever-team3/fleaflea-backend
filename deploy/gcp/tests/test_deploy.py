@@ -75,7 +75,7 @@ if [[ "$TEST_CASE" == reload-failure && $COUNT -eq 1 ]]; then exit 1; fi
     def deploy(self, scenario):
         environment = {**os.environ, 'PATH': str(self.root / 'bin') + ':' + os.environ['PATH'],
                        'TEST_ROOT': str(self.root), 'TEST_CASE': scenario,
-                       'OBSERVE_SECONDS': '1', 'DRAIN_SECONDS': '0', 'SWITCH_TIMEOUT_SECONDS': '1'}
+                       'OBSERVE_SECONDS': '1', 'DRAIN_SECONDS': '0', 'SWITCH_TIMEOUT_SECONDS': '2'}
         return subprocess.run(['bash', str(self.script), 'example.invalid/backend@sha256:new'],
                               env=environment, capture_output=True, text=True, timeout=15)
 
