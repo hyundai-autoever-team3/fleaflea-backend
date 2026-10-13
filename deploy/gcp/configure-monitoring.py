@@ -60,7 +60,7 @@ def configure(project, instance, email, gcloud):
     uptime = upsert('uptimeCheckConfigs', {
         'displayName': 'FleaFlea API HTTPS', 'period': '60s', 'timeout': '10s',
         'monitoredResource': {'type': 'uptime_url', 'labels': {'project_id': project, 'host': 'api.fleaflea.app'}},
-        'httpCheck': {'requestMethod': 'GET', 'path': '/actuator/health', 'port': 443,
+        'httpCheck': {'requestMethod': 'GET', 'path': '/readyz', 'port': 443,
                       'useSsl': True, 'validateSsl': True},
         'contentMatchers': [{'content': '"status":"UP"', 'matcher': 'CONTAINS_STRING'}]})
 

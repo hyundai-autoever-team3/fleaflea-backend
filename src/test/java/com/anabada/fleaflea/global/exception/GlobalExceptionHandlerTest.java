@@ -1,6 +1,8 @@
 package com.anabada.fleaflea.global.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 class GlobalExceptionHandlerTest {
 
@@ -50,6 +53,32 @@ class GlobalExceptionHandlerTest {
                 .isEqualTo("INVALID_REQUEST");
         assertThat(response.getBody().message())
                 .isEqualTo("잘못된 요청입니다.");
+    }
+
+    @Test
+    @DisplayName("컨트롤러 입력 검증 실패는 400으로 처리한다")
+    void controllerInputValidationReturnsBadRequest() {
+        HandlerMethodValidationException exception =
+                mock(HandlerMethodValidationException.class);
+        when(exception.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
+
+        ResponseEntity<ErrorResponse> response = handler.handleMethodValidation(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().code()).isEqualTo("INVALID_REQUEST");
+    }
+
+    @Test
+    @DisplayName("Spring이 서버 오류로 분류한 메서드 검증 예외는 500으로 처리한다")
+    void methodValidationServerErrorReturnsInternalServerError() {
+        HandlerMethodValidationException exception =
+                mock(HandlerMethodValidationException.class);
+        when(exception.getStatusCode()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR);
+
+        ResponseEntity<ErrorResponse> response = handler.handleMethodValidation(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().code()).isEqualTo("INTERNAL_SERVER_ERROR");
     }
 
     @Test

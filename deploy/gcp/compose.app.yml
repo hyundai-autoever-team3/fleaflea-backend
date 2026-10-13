@@ -6,6 +6,8 @@ services:
       - /etc/fleaflea/fleaflea.env
       - /etc/fleaflea/redis.env
     environment:
+      APP_ENV: production
+      MANAGEMENT_PORT: "8081"
       DB_URL: jdbc:postgresql://postgres:5432/fleaflea_db
       REDIS_HOST: redis
       REDIS_PORT: 6379

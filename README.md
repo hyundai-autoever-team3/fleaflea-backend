@@ -12,7 +12,7 @@ Java와 Spring Boot로 API와 실시간 채팅을 구현했습니다. 프론트�
 | 백엔드 API | [api.fleaflea.app](https://api.fleaflea.app) |
 | Swagger UI | [API 확인 및 테스트](https://api.fleaflea.app/swagger-ui/index.html) |
 | OpenAPI | [API 명세 JSON](https://api.fleaflea.app/v3/api-docs) |
-| 상태 확인 | [Actuator Health](https://api.fleaflea.app/actuator/health) |
+| 상태 확인 | [Readiness](https://api.fleaflea.app/readyz) |
 | 기술 기록 | [팀 Wiki](https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki) |
 
 ## 기술 스택
