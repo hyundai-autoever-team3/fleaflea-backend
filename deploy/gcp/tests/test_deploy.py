@@ -22,6 +22,7 @@ class DeploymentRecoveryTest(unittest.TestCase):
         for prefix in ('/etc/fleaflea', '/etc/nginx', '/opt/fleaflea', '/run/lock', '/var/log/nginx'):
             script = script.replace(prefix, str(self.root) + prefix)
         script = script.replace('sleep 5', 'sleep 0.05')
+        script = script.replace('sleep 1', 'sleep 0.05')
         self.script = self.root / 'deploy.sh'
         self.script.write_text(script)
         self.stub('docker', '''echo "$*" >> "$TEST_ROOT/docker.log"
@@ -30,7 +31,27 @@ if [[ "$TEST_CASE" == startup-failure && "$*" == *"up -d --wait"* ]]; then exit 
         self.stub('curl', '''COUNT_FILE="$TEST_ROOT/curl-count"
 COUNT=$(cat "$COUNT_FILE" 2>/dev/null || echo 0)
 COUNT=$((COUNT + 1)); echo "$COUNT" > "$COUNT_FILE"
-if [[ "$TEST_CASE" == proxy-failure && $COUNT -eq 2 ]]; then exit 22; fi
+URL="${@: -1}"
+if [[ "$URL" == *":8082/readyz" ]]; then
+    if [[ "$TEST_CASE" == legacy-health ]]; then echo 404;
+    elif [[ "$TEST_CASE" == readiness-failure ]]; then echo 503;
+    else echo 200; fi
+    exit 0
+fi
+if [[ "$URL" == *":8082/actuator/health" ]]; then echo 200; exit 0; fi
+HEADER_FILE=""
+while (( $# )); do
+    if [[ "$1" == --dump-header ]]; then HEADER_FILE="$2"; shift; fi
+    shift
+done
+if [[ -n "$HEADER_FILE" ]]; then
+    PORT=8082
+    if [[ "$TEST_CASE" == wrong-upstream || ( "$TEST_CASE" == delayed-reload && $COUNT -le 3 ) ]]; then PORT=8081; fi
+    printf 'HTTP/1.1 200 OK\\r\\nX-FleaFlea-Upstream: 127.0.0.1:%s\\r\\n\\r\\n' "$PORT" > "$HEADER_FILE"
+    if [[ "$TEST_CASE" == missing-header ]]; then : > "$HEADER_FILE"; fi
+fi
+if [[ "$TEST_CASE" == proxy-failure && $COUNT -ge 2 ]]; then exit 22; fi
+if [[ "$TEST_CASE" == delayed-reload && $COUNT -eq 2 ]]; then exit 22; fi
 if [[ "$TEST_CASE" == observation-failure && $COUNT -eq 3 ]]; then exit 22; fi
 echo '{"status":"UP"}'
 if [[ "$TEST_CASE" == api-errors && $COUNT -eq 3 ]]; then
@@ -54,7 +75,7 @@ if [[ "$TEST_CASE" == reload-failure && $COUNT -eq 1 ]]; then exit 1; fi
     def deploy(self, scenario):
         environment = {**os.environ, 'PATH': str(self.root / 'bin') + ':' + os.environ['PATH'],
                        'TEST_ROOT': str(self.root), 'TEST_CASE': scenario,
-                       'OBSERVE_SECONDS': '1', 'DRAIN_SECONDS': '0'}
+                       'OBSERVE_SECONDS': '1', 'DRAIN_SECONDS': '0', 'SWITCH_TIMEOUT_SECONDS': '1'}
         return subprocess.run(['bash', str(self.script), 'example.invalid/backend@sha256:new'],
                               env=environment, capture_output=True, text=True, timeout=15)
 
@@ -80,6 +101,27 @@ if [[ "$TEST_CASE" == reload-failure && $COUNT -eq 1 ]]; then exit 1; fi
 
     def test_high_api_error_ratio_restores_upstream(self):
         self.assert_previous_preserved('api-errors')
+
+    def test_old_worker_error_and_old_upstream_success_are_retried(self):
+        result = self.deploy('delayed-reload')
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual('green', self.state.read_text().strip())
+
+    def test_old_upstream_success_cannot_verify_new_deployment(self):
+        self.assert_previous_preserved('wrong-upstream')
+
+    def test_missing_routing_evidence_restores_upstream(self):
+        self.assert_previous_preserved('missing-header')
+
+    def test_legacy_health_path_is_supported(self):
+        result = self.deploy('legacy-health')
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_unready_candidate_does_not_fall_back_to_aggregate_health(self):
+        result = self.deploy('readiness-failure')
+        self.assertNotEqual(0, result.returncode)
+        self.assertEqual('blue', self.state.read_text().strip())
+        self.assertFalse((self.root / 'reload-count').exists())
 
     def test_success_records_rollback_image_and_stops_previous_slot(self):
         result = self.deploy('success')

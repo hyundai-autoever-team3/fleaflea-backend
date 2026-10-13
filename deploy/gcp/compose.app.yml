@@ -19,9 +19,17 @@ services:
     networks:
       - infrastructure
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      test:
+        - CMD-SHELL
+        - >-
+          status=$$(curl -sS --max-time 3 -o /dev/null -w '%{http_code}' http://localhost:8080/readyz) || exit 1;
+          case "$$status" in
+            200) exit 0 ;;
+            401|404) curl -fsS --max-time 3 http://localhost:8080/actuator/health >/dev/null ;;
+            *) exit 1 ;;
+          esac
       interval: 5s
-      timeout: 3s
+      timeout: 7s
       retries: 36
       start_period: 30s
     stop_grace_period: 75s
