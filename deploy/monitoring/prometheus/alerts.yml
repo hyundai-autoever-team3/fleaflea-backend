@@ -1,26 +1,28 @@
 groups:
   - name: fleaflea-service
     rules:
-      - alert: FleafleaExternalDown
-        expr: probe_success{job="blackbox-http", service="fleaflea"} == 0
+      - alert: FleafleaReachabilityCheckFailed
+        expr: probe_success{job="blackbox-http", service="fleaflea", probe_location="local"} == 0
         for: 3m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: Fleaflea 외부 준비 상태 확인에 실패했습니다
+          summary: 로컬 위치에서 Fleaflea 접속 확인에 실패했습니다
+          description: '{{ $labels.instance }} 검사가 3분 동안 실패했습니다. {{ if eq $labels.environment "production" }}로컬 네트워크·접속 경로 문제일 수 있으므로 GCP Uptime Check 결과도 확인하세요.{{ else }}로컬 앱 실행 상태와 연결을 확인하세요.{{ end }}'
+          uptime_check_url: https://console.cloud.google.com/monitoring/uptime
           runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#external-down
 
       - alert: FleafleaHigh5xxRate
         expr: |
           (
-            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!="/readyz"}[5m]))
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!~"/readyz|/actuator(/.*)?"}[5m]))
             /
-            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", uri!="/readyz"}[5m]))
+            sum by (environment) (rate(http_server_requests_seconds_count{service="fleaflea", uri!~"/readyz|/actuator(/.*)?"}[5m]))
           ) > 0.05
           and
-          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", uri!="/readyz"}[5m])) >= 100
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", uri!~"/readyz|/actuator(/.*)?"}[5m])) >= 100
           or
-          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!="/readyz"}[5m])) >= 10
+          sum by (environment) (increase(http_server_requests_seconds_count{service="fleaflea", status=~"5..", uri!~"/readyz|/actuator(/.*)?"}[5m])) >= 10
         for: 5m
         labels:
           severity: critical
@@ -97,10 +99,61 @@ groups:
           runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#disk-space
 
       - alert: MonitoringTargetDown
-        expr: up{job=~"prometheus|loki|tempo|monitoring-node"} == 0
+        expr: up{job=~"prometheus|loki|tempo|monitoring-node|blackbox-http"} == 0
         for: 3m
         labels:
           severity: critical
         annotations:
           summary: 중앙 모니터링 대상의 지표 수집에 실패했습니다
           runbook_url: https://github.com/hyundai-autoever-team3/fleaflea-backend/wiki/%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81-%EA%B0%80%EC%9D%B4%EB%93%9C#monitoring-target-down
+
+  - name: gcp-infrastructure
+    rules:
+      - alert: GcpExporterScrapeFailed
+        expr: up{environment="production", job=~"fleaflea-node|fleaflea-postgres|fleaflea-redis"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP 서버·DB·Redis 지표 수집에 실패했습니다
+          description: '{{ $labels.instance }}의 {{ $labels.job }} 수집이 3분 동안 실패했습니다.'
+
+      # Keep the expected VM explicit: up == 0 alone cannot detect a stopped Alloy or SSH tunnel.
+      # When adding or renaming a VM, add or update its expected targets here.
+      - alert: GcpTelemetryMissing
+        expr: |
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-node"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP 서버·DB·Redis 지표가 도착하지 않습니다
+          description: '{{ $labels.instance }}의 {{ $labels.job }} 수집 상태 지표가 최근 5분 동안 없습니다. Alloy와 SSH 터널 연결을 확인하세요.'
+
+      - alert: GcpPostgresUnavailable
+        expr: |
+          pg_up{environment="production", job="fleaflea-postgres"} == 0
+          or
+          absent_over_time(pg_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP PostgreSQL 연결 상태를 확인하지 못했습니다
+          description: '{{ $labels.instance }}의 PostgreSQL 연결이 실패하거나 연결 상태 지표가 누락됐습니다. DB와 Exporter의 연결·인증 설정을 확인하세요.'
+
+      - alert: GcpRedisUnavailable
+        expr: |
+          redis_up{environment="production", job="fleaflea-redis"} == 0
+          or
+          absent_over_time(redis_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP Redis 연결 상태를 확인하지 못했습니다
+          description: '{{ $labels.instance }}의 Redis 연결이 실패하거나 연결 상태 지표가 누락됐습니다. Redis와 Exporter의 연결·인증 설정을 확인하세요.'
