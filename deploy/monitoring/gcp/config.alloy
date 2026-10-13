@@ -1,6 +1,33 @@
 logging {
   level = "info"
 }
+
+// Bind to the app network gateway in observer.env so OTLP stays inside Docker.
+otelcol.receiver.otlp "application" {
+  http {
+    endpoint = coalesce(sys.env("OTLP_HTTP_LISTEN_ADDRESS"), "127.0.0.1:4318")
+  }
+  output {
+    traces = [otelcol.processor.batch.traces.input]
+  }
+}
+
+otelcol.processor.batch "traces" {
+  timeout = "2s"
+  send_batch_size = 256
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "127.0.0.1:14317"
+    tls {
+      insecure = true
+    }
+  }
+}
 prometheus.remote_write "local" {
   endpoint {
     url = sys.env("PROMETHEUS_REMOTE_WRITE_URL")

@@ -15,7 +15,7 @@ cAdvisor는 컨테이너 자원을 읽기 위해 privileged로 실행합니다.
 서버 `/opt/fleaflea-observer`에 `compose.yml`과 `config.alloy`를 설치합니다.
 실행 전에 다음 환경 파일을 별도로 준비해야 합니다.
 
-- `/etc/fleaflea/observer.env`: 환경·서버 식별자, Prometheus·Loki 전송 주소와 PostgreSQL 모니터링 계정.
+- `/etc/fleaflea/observer.env`: 환경·서버 식별자, Prometheus·Loki 전송 주소, OTLP 수신 주소와 PostgreSQL 모니터링 계정.
 - `/etc/fleaflea/redis.env`: 기존 Redis 비밀번호.
 
 두 파일은 root 소유·권한 `600`으로 관리하고 Git에 올리지 않습니다.
@@ -52,7 +52,31 @@ Nginx는 API 포트에만 연결하며 별도의 `/actuator` 경로 차단 규�
 `deploy/gcp/nginx-proxy.conf`를 서버의 `/etc/nginx/fleaflea-proxy.conf`로 설치하고
 `sudo nginx -t` 성공 후 `sudo systemctl reload nginx`로 반영합니다.
 앱 CD는 GCP uptime check 설정을 갱신하지 않으므로, 신규 설치에서는 검사 경로를 `/readyz`로 별도 설정합니다.
-GCP 트레이스 수집에는 앱의 OpenTelemetry 활성화와 GCP Alloy의 트레이스 수신·전송 설정이 모두 필요합니다.
+
+## ECS 로그와 트레이스
+
+- 앱 `/etc/fleaflea/fleaflea.env`에 다음 설정을 추가합니다.
+
+```dotenv
+OTEL_JAVAAGENT_ENABLED=true
+OTEL_SERVICE_NAME=fleaflea
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production
+LOG_FORMAT_CONSOLE=ecs
+OTEL_TRACES_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<앱 Docker 네트워크 gateway>:4318/v1/traces
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_METRICS_EXPORTER=none
+OTEL_LOGS_EXPORTER=none
+```
+
+- `docker network inspect fleaflea_default`에서 앱 네트워크의 gateway를 확인합니다.
+- `/etc/fleaflea/observer.env`에 `OTLP_HTTP_LISTEN_ADDRESS=<gateway>:4318`을 추가합니다.
+- Alloy는 해당 내부 주소에서 트레이스를 받아 SSH 터널 `127.0.0.1:14317`을 통해 로컬 Tempo로 전송합니다.
+- 수신 주소를 생략하면 `127.0.0.1:4318`에 바인딩하며, Docker 앱에서는 접근할 수 없습니다.
+- 외부 IP에 OTLP 포트를 공개하지 않습니다.
+- 수집기는 `docker compose -f /opt/fleaflea-observer/compose.yml up -d --no-deps --force-recreate alloy`로 환경변수를 반영합니다.
+- 앱은 블루·그린 배포로 재생성해야 변경된 환경변수가 반영됩니다. 단순 재시작은 반영하지 않습니다.
+- Loki에서 HTTP 요청의 JSON 로그에 `trace_id`·`span_id`가 있는지 확인합니다. 시작 로그 등 트레이스 문맥이 없는 로그에는 ID가 없을 수 있습니다.
 
 ## 확인·중지
 
