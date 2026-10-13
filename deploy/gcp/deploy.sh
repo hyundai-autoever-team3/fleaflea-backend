@@ -13,8 +13,11 @@ flock -n 9 || { echo "Another deployment is running" >&2; exit 2; }
 IMAGE_URI="$1"
 OBSERVE_SECONDS="${OBSERVE_SECONDS:-60}"
 DRAIN_SECONDS="${DRAIN_SECONDS:-90}"
+SWITCH_TIMEOUT_SECONDS="${SWITCH_TIMEOUT_SECONDS:-30}"
 if [[ ! "$OBSERVE_SECONDS" =~ ^[0-9]+$ || "$OBSERVE_SECONDS" -gt 300 ||
-      ! "$DRAIN_SECONDS" =~ ^[0-9]+$ || "$DRAIN_SECONDS" -gt 300 ]]; then
+      ! "$DRAIN_SECONDS" =~ ^[0-9]+$ || "$DRAIN_SECONDS" -gt 300 ||
+      ! "$SWITCH_TIMEOUT_SECONDS" =~ ^[0-9]+$ || "$SWITCH_TIMEOUT_SECONDS" -lt 1 ||
+      "$SWITCH_TIMEOUT_SECONDS" -gt 120 ]]; then
     echo "Invalid observation or drain interval" >&2
     exit 2
 fi
@@ -65,9 +68,17 @@ if ! compose_target up -d --wait --wait-timeout 240; then
     exit 1
 fi
 
-if ! curl --fail --silent --show-error --max-time 10 \
-        "http://127.0.0.1:$TARGET_PORT/readyz" >/dev/null; then
+HEALTH_PATH=/readyz
+HEALTH_STATUS="$(curl --silent --show-error --max-time 10 -o /dev/null -w '%{http_code}' \
+    "http://127.0.0.1:$TARGET_PORT$HEALTH_PATH")" || HEALTH_STATUS=000
+if [[ "$HEALTH_STATUS" == 401 || "$HEALTH_STATUS" == 404 ]]; then
+    HEALTH_PATH=/actuator/health
+    HEALTH_STATUS="$(curl --silent --show-error --max-time 10 -o /dev/null -w '%{http_code}' \
+        "http://127.0.0.1:$TARGET_PORT$HEALTH_PATH")" || HEALTH_STATUS=000
+fi
+if [[ "$HEALTH_STATUS" != 200 ]]; then
     compose_target stop app
+    echo "Candidate health failed: path=$HEALTH_PATH status=$HEALTH_STATUS" >&2
     exit 1
 fi
 
@@ -94,6 +105,14 @@ if [[ -f "$ACCESS_LOG" ]]; then
 fi
 printf 'upstream fleaflea_backend { server 127.0.0.1:%s; keepalive 32; }\n' \
     "$TARGET_PORT" > "$UPSTREAM_FILE"
+cat > /etc/nginx/conf.d/fleaflea-deployment-probe.conf <<'NGINX'
+# Routing evidence is only returned to loopback deployment probes.
+map "$server_addr:$server_port" $fleaflea_deployment_upstream {
+    default "";
+    "127.0.0.1:80" $upstream_addr;
+}
+add_header X-FleaFlea-Upstream $fleaflea_deployment_upstream always;
+NGINX
 if ! nginx -t || ! systemctl reload nginx; then
     restore_upstream
     compose_target stop app
@@ -102,13 +121,32 @@ if ! nginx -t || ! systemctl reload nginx; then
     exit 1
 fi
 
-# Nginx reload is asynchronous: an old worker may briefly use the previous slot.
-if ! curl --fail --silent --show-error --max-time 10 \
-        --retry 10 --retry-delay 1 --retry-all-errors \
-        http://127.0.0.1/readyz >/dev/null; then
+PROBE_HEADERS="$(mktemp)"
+probe_proxy() {
+    local EXPECTED_PORT="$1" PATH_TO_CHECK="$2" UPSTREAM
+    if ! curl --fail --silent --show-error --max-time 5 \
+            -H 'Connection: close' --dump-header "$PROBE_HEADERS" \
+            "http://127.0.0.1$PATH_TO_CHECK" >/dev/null; then
+        return 1
+    fi
+    UPSTREAM="$(tr -d '\r' < "$PROBE_HEADERS" | awk '
+        tolower($1) == "x-fleaflea-upstream:" { print $2 }')"
+    [[ "$UPSTREAM" == "127.0.0.1:$EXPECTED_PORT" ]]
+}
+
+SWITCH_UNTIL=$((SECONDS + SWITCH_TIMEOUT_SECONDS))
+PROXY_VERIFIED=false
+while (( SECONDS < SWITCH_UNTIL )); do
+    if probe_proxy "$TARGET_PORT" "$HEALTH_PATH"; then
+        PROXY_VERIFIED=true
+        break
+    fi
+    sleep 1
+done
+if [[ "$PROXY_VERIFIED" != true ]]; then
     restore_upstream
     compose_target stop app
-    rm -f "$BACKUP_FILE"
+    rm -f "$BACKUP_FILE" "$PROBE_HEADERS"
     echo "Proxy verification failed; previous upstream restored" >&2
     exit 1
 fi
@@ -116,11 +154,10 @@ fi
 # Keep the previous process available while checking the switched proxy repeatedly.
 OBSERVE_UNTIL=$((SECONDS + OBSERVE_SECONDS))
 while (( SECONDS < OBSERVE_UNTIL )); do
-    if ! curl --fail --silent --show-error --max-time 10 \
-        http://127.0.0.1/readyz >/dev/null; then
+    if ! probe_proxy "$TARGET_PORT" "$HEALTH_PATH"; then
         restore_upstream
         compose_target stop app
-        rm -f "$BACKUP_FILE"
+        rm -f "$BACKUP_FILE" "$PROBE_HEADERS"
         echo "Post-switch observation failed; previous upstream restored" >&2
         exit 1
     fi
@@ -152,7 +189,7 @@ PY
 then
     restore_upstream
     compose_target stop app
-    rm -f "$BACKUP_FILE"
+    rm -f "$BACKUP_FILE" "$PROBE_HEADERS"
     echo "New upstream API error ratio exceeded 5%; previous upstream restored" >&2
     exit 1
 fi
@@ -164,7 +201,7 @@ fi
 
 printf '%s\n' "$TARGET_SLOT" > "$STATE_FILE.tmp"
 mv "$STATE_FILE.tmp" "$STATE_FILE"
-rm -f "$BACKUP_FILE"
+rm -f "$BACKUP_FILE" "$PROBE_HEADERS"
 echo "Deployment switched to $TARGET_SLOT: $IMAGE_URI"
 
 if [[ -n "$PREVIOUS_SLOT" ]]; then
