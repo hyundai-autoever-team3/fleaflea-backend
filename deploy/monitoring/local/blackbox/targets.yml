@@ -1,0 +1,12 @@
+- targets:
+    - http://host.docker.internal:8080/readyz
+  labels:
+    service: fleaflea
+    environment: local
+    probe_location: local
+- targets:
+    - https://api.fleaflea.app/readyz
+  labels:
+    service: fleaflea
+    environment: production
+    probe_location: local

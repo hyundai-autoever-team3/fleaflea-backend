@@ -1,5 +1,0 @@
-- targets:
-    - http://host.docker.internal:8080/readyz
-  labels:
-    service: fleaflea
-    environment: local

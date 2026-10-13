@@ -1,9 +1,28 @@
+# Combine with deploy/monitoring/compose.yml first; paths are relative to that base file.
 services:
   prometheus:
     volumes:
-      - ./local/prometheus:/etc/prometheus/targets:ro
+      - ./local/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./local/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
     extra_hosts:
       - host.docker.internal:host-gateway
+    depends_on:
+      - blackbox-exporter
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    container_name: fleaflea-blackbox-exporter
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox/config.yml
+    volumes:
+      - ./local/blackbox/config.yml:/etc/blackbox/config.yml:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    mem_limit: 64m
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
 
   postgres-exporter-local:
     image: prometheuscommunity/postgres-exporter:v0.17.1
@@ -30,7 +49,7 @@ services:
       - --storage.path=/var/lib/alloy
       - /etc/alloy/config.alloy
     volumes:
-      - ./local/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./local/config.alloy:/etc/alloy/config.alloy:ro
       - ../../build/logs:/var/log/fleaflea:ro
       - local_alloy_data:/var/lib/alloy
     ports:
