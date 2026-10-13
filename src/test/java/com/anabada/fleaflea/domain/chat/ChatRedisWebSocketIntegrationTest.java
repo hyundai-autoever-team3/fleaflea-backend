@@ -171,6 +171,8 @@ class ChatRedisWebSocketIntegrationTest {
                 ChatRedisConfiguration.class, RedisChatEventPublisher.class, RedisChatEventSubscriber.class
         ).run(
                 "--server.port=0",
+                "--management.server.port=0",
+                "--management.endpoint.health.group.readiness.include=readinessState",
                 "--app.chat.redis.enabled=true",
                 "--app.chat.redis.channel-prefix=test:chat:websocket",
                 "--spring.data.redis.host=" + redisContainer.getHost(),
