@@ -44,3 +44,5 @@ performance/k6/data/
 !.env.example
 deploy/monitoring/secrets/
 gha-creds-*.json
+deploy/monitoring/gcp/tunnel.sh
+deploy/monitoring/gcp/prepare.py
