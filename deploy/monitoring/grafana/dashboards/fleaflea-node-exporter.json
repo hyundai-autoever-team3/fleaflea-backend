@@ -55,14 +55,15 @@
       "id": 261,
       "panels": [],
       "title": "Quick CPU / Mem / Disk",
-      "type": "row"
+      "type": "row",
+      "description": "CPU·메모리·스왑·루트 디스크 사용률과 시스템 기본 정보를 빠르게 확인합니다."
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Resource pressure via PSI",
+      "description": "PSI 지표로 확인하는 CPU/메모리/입출력 자원 대기 상태입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -180,7 +181,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Overall CPU busy percentage (averaged across all cores)",
+      "description": "전체 CPU 코어의 평균 사용률입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -263,7 +264,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "System load over all CPU cores together",
+      "description": "전체 CPU 코어에 걸친 시스템 부하입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -346,7 +347,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Real RAM usage excluding cache and reclaimable memory",
+      "description": "캐시와 회수 가능한 메모리를 제외한 실제 RAM 사용량입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -419,7 +420,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Percentage of swap space currently used by the system",
+      "description": "시스템이 현재 사용 중인 스왑 공간의 비율입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -501,7 +502,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Used Root FS",
+      "description": "루트 파일시스템의 사용량입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -584,7 +585,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "선택한 서버에서 지표가 수집되는 CPU 코어 수입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -658,7 +659,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "선택한 서버의 전체 물리 메모리 용량입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -737,7 +738,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "선택한 서버에 설정된 전체 스왑 공간의 용량입니다. 스왑을 사용하지 않으면 0으로 표시됩니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -816,7 +817,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "루트 마운트 지점(/)의 전체 파일시스템 용량입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -900,7 +901,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "서버 부팅 이후 경과한 시간입니다. 앱이나 Exporter의 실행 시간이 아닌 호스트의 가동 시간입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -985,14 +986,15 @@
       "id": 263,
       "panels": [],
       "title": "Basic CPU / Mem / Net / Disk",
-      "type": "row"
+      "type": "row",
+      "description": "CPU·메모리·네트워크·디스크의 기본 사용 추이를 확인합니다."
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "CPU time spent busy vs idle, split by activity type",
+      "description": "작업 유형별 CPU 사용 시간과 유휴 시간을 보여줍니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1210,7 +1212,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "RAM and swap usage overview, including caches",
+      "description": "캐시를 포함한 RAM과 스왑 사용 현황입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1413,7 +1415,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Per-interface network traffic (receive and transmit) in bits per second",
+      "description": "네트워크 인터페이스별 수신·송신 트래픽입니다. 단위는 초당 비트입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1528,7 +1530,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "Percentage of filesystem space used for each mounted device",
+      "description": "마운트된 장치별 파일시스템 공간 사용률입니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1633,7 +1635,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "CPU time usage split by state, normalized across all CPU cores",
+          "description": "전체 CPU 코어를 기준으로 정규화한 상태별 CPU 시간 사용률입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1955,7 +1957,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Breakdown of physical memory and swap usage. Hardware-detected memory errors are also displayed",
+          "description": "물리 메모리와 스왑 사용량을 구분해 보여줍니다. 하드웨어에서 감지한 메모리 오류도 표시합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2292,7 +2294,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Incoming and outgoing network traffic per interface",
+          "description": "네트워크 인터페이스별 수신·송신 트래픽입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2411,7 +2413,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Network interface utilization as a percentage of its maximum capacity",
+          "description": "네트워크 인터페이스의 최대 용량 대비 사용률입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2530,7 +2532,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Disk I/O operations per second for each device",
+          "description": "장치별 초당 디스크 입출력 작업 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2647,7 +2649,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Disk I/O throughput per device",
+          "description": "장치별 디스크 입출력 처리량입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2766,7 +2768,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Amount of available disk space per mounted filesystem, excluding rootfs. Based on block availability to non-root users",
+          "description": "rootfs를 제외한 마운트된 파일시스템별 사용 가능한 디스크 공간입니다. 일반 사용자가 사용할 수 있는 블록을 기준으로 합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2885,7 +2887,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Disk usage (used = total - available) per mountpoint",
+          "description": "마운트 지점별 디스크 사용량입니다. 사용량은 전체 공간에서 사용 가능한 공간을 뺀 값입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2983,7 +2985,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Percentage of time the disk was actively processing I/O operations",
+          "description": "디스크가 입출력 작업을 처리한 시간의 비율입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3082,7 +3084,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "How often tasks experience CPU, memory, or I/O delays. 'Some' indicates partial slowdown; 'Full' indicates all tasks are stalled. Based on Linux PSI metrics:\nhttps://docs.kernel.org/accounting/psi.html",
+          "description": "CPU·메모리·입출력 자원 부족으로 작업이 지연되는 정도입니다. Some은 일부 작업이 대기하는 상태, Full은 모든 비유휴 작업이 대기하는 상태입니다. Linux PSI 지표를 사용합니다.\nhttps://docs.kernel.org/accounting/psi.html",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3246,7 +3248,8 @@
         }
       ],
       "title": "CPU / Memory / Net / Disk",
-      "type": "row"
+      "type": "row",
+      "description": "CPU 상태, 메모리 구성, 네트워크 트래픽, 디스크 입출력과 자원 대기를 상세히 확인합니다."
     },
     {
       "collapsed": true,
@@ -3263,7 +3266,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Displays committed memory usage versus the system's commit limit. Exceeding the limit is allowed under Linux overcommit policies but may increase OOM risks under high load",
+          "description": "커밋된 메모리와 시스템 커밋 한도를 비교합니다. Linux의 메모리 초과 할당 정책에 따라 한도 초과가 허용될 수 있지만, 부하가 높으면 메모리 부족(OOM) 위험이 커질 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3391,7 +3394,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Memory currently dirty (modified but not yet written to disk), being actively written back, or held by writeback buffers. High dirty or writeback memory may indicate disk I/O pressure or delayed flushing",
+          "description": "변경 후 아직 디스크에 기록하지 않은 메모리(dirty), 기록 중인 메모리와 쓰기 버퍼의 사용량입니다. 값이 높으면 디스크 입출력 부하나 기록 지연을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3516,7 +3519,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Kernel slab memory usage, separated into reclaimable and non-reclaimable categories. Reclaimable memory can be freed under memory pressure (e.g., caches), while unreclaimable memory is locked by the kernel for core functions",
+          "description": "커널 slab 메모리를 회수 가능·회수 불가능 영역으로 구분합니다. 캐시 등 회수 가능한 영역은 메모리가 부족하면 반환할 수 있으며, 회수 불가능 영역은 커널의 핵심 기능에 사용됩니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3623,7 +3626,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Memory used for mapped files (such as libraries) and shared memory (shmem and tmpfs), including variants backed by huge pages",
+          "description": "라이브러리 등 매핑된 파일과 공유 메모리(shmem·tmpfs)의 사용량입니다. 대형 페이지로 할당된 영역도 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3751,7 +3754,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Proportion of memory pages in the kernel's active and inactive LRU lists relative to total RAM. Active pages have been recently used, while inactive pages are less recently accessed but still resident in memory",
+          "description": "전체 RAM 대비 커널의 활성·비활성 LRU 목록에 있는 메모리 페이지의 비율입니다. 활성 페이지는 최근 사용됐고, 비활성 페이지는 사용 시점이 더 오래됐지만 아직 메모리에 남아 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3890,7 +3893,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Breakdown of memory pages in the kernel's active and inactive LRU lists, separated by anonymous (heap, tmpfs) and file-backed (caches, mmap) pages.",
+          "description": "커널의 활성·비활성 LRU 목록에 있는 메모리 페이지를 익명 페이지(힙·tmpfs)와 파일 기반 페이지(캐시·mmap)로 구분합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4016,7 +4019,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks kernel memory used for CPU-local structures, per-thread stacks, and bounce buffers used for I/O on DMA-limited devices. These areas are typically small but critical for low-level operations",
+          "description": "CPU별 커널 자료구조, 스레드 스택, DMA 제약 장치의 입출력용 bounce 버퍼가 사용하는 메모리입니다. 일반적으로 작은 영역이지만 저수준 동작에 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4135,7 +4138,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Usage of the kernel's vmalloc area, which provides virtual memory allocations for kernel modules and drivers. Includes total, used, and largest free block sizes",
+          "description": "커널 모듈과 드라이버에 가상 메모리를 할당하는 vmalloc 영역의 전체 크기·사용량·가장 큰 빈 블록 크기입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4281,7 +4284,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Memory used by anonymous pages (not backed by files), including standard and huge page allocations. Includes heap, stack, and memory-mapped anonymous regions",
+          "description": "파일에 연결되지 않은 익명 페이지의 메모리 사용량입니다. 일반·대형 페이지 할당과 힙·스택·익명 메모리 매핑 영역을 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4388,7 +4391,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Memory that is locked in RAM and cannot be swapped out. Includes both kernel-unevictable memory and user-level memory locked with mlock()",
+          "description": "RAM에 고정돼 스왑으로 내보낼 수 없는 메모리입니다. 커널의 회수 불가능 메모리와 mlock()으로 잠근 사용자 메모리를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4496,7 +4499,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "How much memory is directly mapped in the kernel using different page sizes (4K, 2M, 1G). Helps monitor large page utilization in the direct map region",
+          "description": "커널이 직접 매핑한 메모리를 페이지 크기(4K·2M·1G)별로 보여줍니다. 직접 매핑 영역의 대형 페이지 사용 현황을 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4618,7 +4621,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Displays HugePages memory usage in bytes, including allocated, free, reserved, and surplus memory. All values are calculated based on the number of huge pages multiplied by their configured size",
+          "description": "HugePages의 할당·여유·예약·초과 메모리 사용량입니다. 각 값은 대형 페이지 수에 설정된 페이지 크기를 곱한 바이트 단위 값입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4740,7 +4743,8 @@
         }
       ],
       "title": "Memory Meminfo",
-      "type": "row"
+      "type": "row",
+      "description": "Linux meminfo 지표로 메모리의 할당·캐시·커널·대형 페이지 사용 현황을 확인합니다."
     },
     {
       "collapsed": true,
@@ -4757,7 +4761,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of memory pages being read from or written to disk (page-in and page-out operations). High page-out may indicate memory pressure or swapping activity",
+          "description": "메모리 페이지를 디스크에서 읽거나 디스크에 기록하는 속도입니다. 페이지 출력이 많으면 메모리 부족이나 스왑 활동을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4876,7 +4880,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate at which memory pages are being swapped in from or out to disk. High swap-out activity may indicate memory pressure",
+          "description": "메모리 페이지를 스왑에서 읽거나 스왑으로 내보내는 속도입니다. 스왑 출력이 많으면 메모리 부족을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4995,7 +4999,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of memory page faults, split into total, major (disk-backed), and derived minor (non-disk) faults. High major fault rates may indicate memory pressure or insufficient RAM",
+          "description": "전체·주요(디스크 접근 필요)·경미한(디스크 접근 불필요) 페이지 폴트의 발생률입니다. 경미한 폴트는 전체에서 주요 폴트를 빼서 계산합니다. 주요 폴트가 많으면 RAM 부족을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5149,7 +5153,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of Out-of-Memory (OOM) kill events. A non-zero value indicates the kernel has terminated one or more processes due to memory exhaustion",
+          "description": "메모리 부족(OOM)으로 프로세스가 종료되는 발생률입니다. 0이 아니면 커널이 메모리 부족으로 하나 이상의 프로세스를 종료한 것입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5261,7 +5265,8 @@
         }
       ],
       "title": "Memory Vmstat",
-      "type": "row"
+      "type": "row",
+      "description": "Linux vmstat 지표로 페이지 입출력·스왑·페이지 폴트·메모리 부족에 따른 프로세스 종료를 확인합니다."
     },
     {
       "collapsed": true,
@@ -5278,7 +5283,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks the system clock's estimated and maximum error, as well as its offset from the reference clock (e.g., via NTP). Useful for detecting synchronization drift",
+          "description": "시스템 시계의 추정 오차·최대 오차와 NTP 등 기준 시계와의 시간 차이입니다. 시간 동기화가 어긋나는지 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5396,7 +5401,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "NTP phase-locked loop (PLL) time constant used by the kernel to control time adjustments. Lower values mean faster correction but less stability",
+          "description": "커널의 NTP 위상 고정 루프(PLL) 시간 상수입니다. 값이 작으면 시간 보정이 빨라지지만 안정성이 낮아질 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5494,7 +5499,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows whether the system clock is synchronized to a reliable time source, and the current frequency correction ratio applied by the kernel to maintain synchronization",
+          "description": "시스템 시계가 신뢰할 수 있는 시간 기준에 동기화됐는지와 동기화를 유지하기 위해 커널이 적용하는 주파수 보정 비율입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5624,7 +5629,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Displays the PPS signal's frequency offset and stability (jitter) in hertz. Useful for monitoring high-precision time sources like GPS or atomic clocks",
+          "description": "PPS 신호의 주파수 편차와 안정성(지터)입니다. 단위는 Hz이며 GPS·원자 시계 같은 고정밀 시간 기준을 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5732,7 +5737,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks PPS signal timing jitter and shift compared to system clock",
+          "description": "시스템 시계 대비 PPS 신호의 시간 지터와 이동량입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5840,7 +5845,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of PPS synchronization diagnostics including calibration events, jitter violations, errors, and frequency stability exceedances",
+          "description": "PPS 동기화 진단 이벤트의 발생률입니다. 보정·지터 한도 초과·오류·주파수 안정성 한도 초과를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5969,7 +5974,8 @@
         }
       ],
       "title": "System Timesync",
-      "type": "row"
+      "type": "row",
+      "description": "시스템 시계의 동기화 상태, 시간 오차와 NTP·PPS 관련 지표를 확인합니다."
     },
     {
       "collapsed": true,
@@ -5986,7 +5992,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Processes currently in runnable or blocked states. Helps identify CPU contention or I/O wait bottlenecks.",
+          "description": "실행 가능한 상태 또는 차단된 상태의 프로세스 수입니다. CPU 경합이나 입출력 대기 병목을 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6097,7 +6103,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Current number of processes in each state (e.g., running, sleeping, zombie). Requires --collector.processes to be enabled in node_exporter",
+          "description": "실행·대기·좀비 등 상태별 현재 프로세스 수입니다. node_exporter의 --collector.processes 활성화가 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6281,7 +6287,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of new processes being created on the system (forks/sec).",
+          "description": "시스템에서 새 프로세스가 생성되는 속도입니다. 단위는 초당 fork 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6379,7 +6385,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows CPU saturation per core, calculated as the proportion of time spent waiting to run relative to total time demanded (running + waiting).",
+          "description": "CPU 코어별 포화도입니다. 실행 시간과 실행 대기 시간을 합한 전체 요구 시간 중 대기 시간이 차지하는 비율로 계산합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6516,7 +6522,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of active PIDs on the system and the configured maximum allowed. Useful for detecting PID exhaustion risk. Requires --collector.processes in node_exporter",
+          "description": "시스템의 사용 중인 PID 수와 설정된 최대 허용 수입니다. PID 고갈 위험을 확인할 수 있으며 node_exporter의 --collector.processes가 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6655,7 +6661,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of active threads on the system and the configured thread limit. Useful for monitoring thread pressure. Requires --collector.processes in node_exporter",
+          "description": "시스템의 사용 중인 스레드 수와 설정된 한도입니다. 스레드 자원 부족을 확인할 수 있으며 node_exporter의 --collector.processes가 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6791,7 +6797,8 @@
         }
       ],
       "title": "System Processes",
-      "type": "row"
+      "type": "row",
+      "description": "프로세스·스레드 수, 실행·대기 상태와 CPU 스케줄링 대기를 확인합니다. 일부 패널은 추가 수집기 활성화가 필요합니다."
     },
     {
       "collapsed": true,
@@ -6808,7 +6815,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Per-second rate of context switches and hardware interrupts. High values may indicate intense CPU or I/O activity",
+          "description": "초당 문맥 전환과 하드웨어 인터럽트 발생 수입니다. 값이 높으면 CPU 또는 입출력 활동이 많을 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6915,7 +6922,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "System load average over 1, 5, and 15 minutes. Reflects the number of active or waiting processes. Values above CPU core count may indicate overload",
+          "description": "최근 1·5·15분의 시스템 평균 부하입니다. 실행 중이거나 대기 중인 프로세스 수를 나타내며 CPU 코어 수를 초과하면 과부하를 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7070,7 +7077,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Real-time CPU frequency scaling per core, including average minimum and maximum allowed scaling frequencies",
+          "description": "CPU 코어별 실시간 동작 주파수와 허용되는 최소·최대 주파수의 평균입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7255,7 +7262,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of scheduling timeslices executed per CPU. Reflects how frequently the scheduler switches tasks on each core",
+          "description": "CPU별 스케줄링 시간 구간 실행률입니다. 각 코어에서 스케줄러가 작업을 얼마나 자주 전환하는지 보여줍니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7353,7 +7360,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Breaks down hardware interrupts by type and device. Useful for diagnosing IRQ load on network, disk, or CPU interfaces. Requires --collector.interrupts to be enabled in node_exporter",
+          "description": "하드웨어 인터럽트를 유형·장치별로 구분합니다. 네트워크·디스크·CPU 장치의 IRQ 부하를 진단할 수 있으며 node_exporter의 --collector.interrupts가 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7452,7 +7459,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of bits of entropy currently available to the system's random number generators (e.g., /dev/random). Low values may indicate that random number generation could block or degrade performance of cryptographic operations",
+          "description": "/dev/random 등 난수 생성기가 현재 사용할 수 있는 엔트로피의 비트 수입니다. 값이 낮으면 난수 생성이 대기하거나 암호 연산의 성능이 저하될 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7586,7 +7593,8 @@
         }
       ],
       "title": "System Misc",
-      "type": "row"
+      "type": "row",
+      "description": "시스템 부하, 문맥 전환, 인터럽트, CPU 주파수와 난수 생성용 엔트로피를 확인합니다."
     },
     {
       "collapsed": true,
@@ -7603,7 +7611,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Monitors hardware sensor temperatures and critical thresholds as exposed by Linux hwmon. Includes CPU, GPU, and motherboard sensors where available",
+          "description": "Linux hwmon이 제공하는 하드웨어 센서 온도와 임계값입니다. 제공되는 경우 CPU·GPU·메인보드 센서를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7759,7 +7767,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows how hard each cooling device (fan/throttle) is working relative to its maximum capacity",
+          "description": "각 냉각 장치(팬·스로틀)가 최대 용량 대비 어느 정도로 동작하는지 보여줍니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7877,7 +7885,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows the online status of power supplies (e.g., AC, battery). A value of 1-Yes indicates the power supply is active/online",
+          "description": "AC·배터리 등 전원 공급 장치의 연결 상태입니다. 1(Yes)이면 전원 공급 장치가 활성 상태입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -7979,7 +7987,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Displays the current fan speeds (RPM) from hardware sensors via the hwmon interface",
+          "description": "hwmon 인터페이스의 하드웨어 센서가 제공하는 현재 팬 회전 속도입니다. 단위는 RPM입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8086,7 +8094,8 @@
         }
       ],
       "title": "Hardware Misc",
-      "type": "row"
+      "type": "row",
+      "description": "운영체제가 제공하는 하드웨어 온도·팬·냉각·전원 상태를 확인합니다. 가상 서버에서는 일부 지표가 없을 수 있습니다."
     },
     {
       "collapsed": true,
@@ -8103,7 +8112,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Current number of systemd units in each operational state, such as active, failed, inactive, or transitioning",
+          "description": "활성·실패·비활성·전환 중 등 동작 상태별 systemd 유닛 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8317,7 +8326,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Current number of active connections per systemd socket, as reported by the Node Exporter systemd collector",
+          "description": "Node Exporter systemd 수집기가 제공하는 systemd 소켓별 현재 활성 연결 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8416,7 +8425,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of accepted connections per second for each systemd socket",
+          "description": "systemd 소켓별 초당 수락한 연결 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8515,7 +8524,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of systemd socket connection refusals per second, typically due to service unavailability or backlog overflow",
+          "description": "systemd 소켓별 초당 연결 거부 수입니다. 서비스가 응답하지 않거나 연결 대기열이 넘치는 경우 발생할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8611,7 +8620,8 @@
         }
       ],
       "title": "Systemd",
-      "type": "row"
+      "type": "row",
+      "description": "systemd 유닛 상태와 소켓 연결 상태를 확인합니다. systemd 수집기가 활성화된 환경에서 표시됩니다."
     },
     {
       "collapsed": true,
@@ -8628,7 +8638,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of I/O operations completed per second for the device (after merges), including both reads and writes",
+          "description": "장치별 초당 완료된 읽기·쓰기 입출력 작업 수입니다. 요청 병합 후의 작업을 기준으로 합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8760,7 +8770,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of bytes read from or written to the device per second",
+          "description": "장치별 초당 읽거나 기록한 바이트 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -8896,7 +8906,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Average time for requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them.",
+          "description": "장치에 보낸 요청의 평균 처리 시간입니다. 대기열에서 기다린 시간과 실제 처리 시간을 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9030,7 +9040,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Average queue length of the requests that were issued to the device",
+          "description": "장치에 보낸 요청의 평균 대기열 길이입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9144,7 +9154,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of read and write requests merged per second that were queued to the device",
+          "description": "장치의 대기열에 있는 읽기·쓰기 요청이 병합되는 초당 횟수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9276,7 +9286,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Percentage of time the disk spent actively processing I/O operations, including general I/O, discards (TRIM), and write cache flushes",
+          "description": "디스크가 입출력을 처리한 시간의 비율입니다. 일반 입출력·discard(TRIM)·쓰기 캐시 flush를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9408,7 +9418,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Per-second rate of discard (TRIM) and flush (write cache) operations. Useful for monitoring low-level disk activity on SSDs and advanced storage",
+          "description": "초당 discard(TRIM)·flush(쓰기 캐시 기록) 작업 수입니다. SSD와 저장 장치의 저수준 입출력 활동을 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9539,7 +9549,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows how many disk sectors are discarded (TRIMed) per second. Useful for monitoring SSD behavior and storage efficiency",
+          "description": "초당 discard(TRIM) 처리되는 디스크 섹터 수입니다. SSD 동작과 저장 공간 관리를 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9652,7 +9662,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of in-progress I/O requests at the time of sampling (active requests in the disk queue)",
+          "description": "측정 시점에 처리 중인 입출력 요청 수입니다. 디스크 대기열의 활성 요청을 나타냅니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9763,7 +9773,8 @@
         }
       ],
       "title": "Storage Disk",
-      "type": "row"
+      "type": "row",
+      "description": "디스크별 읽기·쓰기 처리량, 요청 대기 시간, 사용률과 discard·flush 작업을 확인합니다."
     },
     {
       "collapsed": true,
@@ -9780,7 +9791,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of file descriptors currently allocated system-wide versus the system limit. Important for detecting descriptor exhaustion risks",
+          "description": "시스템 전체에 할당된 파일 디스크립터 수와 한도입니다. 파일 디스크립터 고갈 위험을 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -9917,7 +9928,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of free file nodes (inodes) available per mounted filesystem. A low count may prevent file creation even if disk space is available",
+          "description": "마운트된 파일시스템별 남은 inode 수입니다. 디스크 공간이 있어도 inode가 부족하면 파일을 만들 수 없습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10015,7 +10026,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Indicates filesystems mounted in read-only mode or reporting device-level I/O errors.",
+          "description": "읽기 전용으로 마운트된 파일시스템 또는 장치 입출력 오류를 보고한 파일시스템을 표시합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10124,7 +10135,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of file nodes (inodes) available per mounted filesystem. Reflects maximum file capacity regardless of disk size",
+          "description": "마운트된 파일시스템별 inode 수입니다. 디스크 크기와 별개로 저장할 수 있는 파일 수의 용량을 나타냅니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10219,7 +10230,8 @@
         }
       ],
       "title": "Storage Filesystem",
-      "type": "row"
+      "type": "row",
+      "description": "파일시스템별 디스크 공간·inode와 읽기 전용 상태, 파일 디스크립터 사용 현황을 확인합니다."
     },
     {
       "collapsed": true,
@@ -10236,7 +10248,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of network packets received and transmitted per second, by interface.",
+          "description": "네트워크 인터페이스별 초당 수신·송신 패킷 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10358,7 +10370,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of packet-level errors for each network interface. Receive errors may indicate physical or driver issues; transmit errors may reflect collisions or hardware faults",
+          "description": "네트워크 인터페이스별 패킷 오류 발생률입니다. 수신 오류는 물리 장치·드라이버 문제, 송신 오류는 충돌·하드웨어 문제를 나타낼 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10478,7 +10490,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of dropped packets per network interface. Receive drops can indicate buffer overflow or driver issues; transmit drops may result from outbound congestion or queuing limits",
+          "description": "네트워크 인터페이스별 패킷 폐기 발생률입니다. 수신 폐기는 버퍼 초과·드라이버 문제, 송신 폐기는 송신 혼잡·대기열 한도 초과로 발생할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10598,7 +10610,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of compressed network packets received and transmitted per interface. These are common in low-bandwidth or special interfaces like PPP or SLIP",
+          "description": "네트워크 인터페이스별 압축 패킷의 수신·송신 속도입니다. PPP·SLIP 같은 저대역폭 또는 특수 인터페이스에서 주로 사용됩니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10718,7 +10730,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of incoming multicast packets received per network interface. Multicast is used by protocols such as mDNS, SSDP, and some streaming or cluster services",
+          "description": "네트워크 인터페이스별 멀티캐스트 패킷 수신 속도입니다. 멀티캐스트는 mDNS·SSDP와 일부 스트리밍·클러스터 서비스에서 사용합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10816,7 +10828,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of received packets that could not be processed due to missing protocol or handler in the kernel. May indicate unsupported traffic or misconfiguration",
+          "description": "커널에 해당 프로토콜이나 처리기가 없어 처리하지 못한 수신 패킷의 발생률입니다. 지원하지 않는 트래픽이나 설정 오류를 나타낼 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -10914,7 +10926,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of frame errors on received packets, typically caused by physical layer issues such as bad cables, duplex mismatches, or hardware problems",
+          "description": "수신 패킷의 프레임 오류 발생률입니다. 케이블 불량·듀플렉스 불일치·하드웨어 문제 등 물리 계층 문제로 발생할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11012,7 +11024,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks FIFO buffer overrun errors on network interfaces. These occur when incoming or outgoing packets are dropped due to queue or buffer overflows, often indicating congestion or hardware limits",
+          "description": "네트워크 인터페이스의 FIFO 버퍼 초과 오류입니다. 대기열·버퍼가 넘쳐 수신·송신 패킷이 폐기되는 경우 발생하며 혼잡이나 하드웨어 한계를 나타낼 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11132,7 +11144,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of packet collisions detected during transmission. Mostly relevant on half-duplex or legacy Ethernet networks",
+          "description": "송신 중 감지된 패킷 충돌 발생률입니다. 주로 반이중 또는 구형 이더넷 환경에서 의미가 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11243,7 +11255,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of carrier errors during transmission. These typically indicate physical layer issues like faulty cabling or duplex mismatches",
+          "description": "송신 중 발생한 캐리어 오류의 발생률입니다. 케이블 불량·듀플렉스 불일치 같은 물리 계층 문제로 발생할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11341,7 +11353,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of ARP entries per interface. Useful for detecting excessive ARP traffic or table growth due to scanning or misconfiguration",
+          "description": "네트워크 인터페이스별 ARP 항목 수입니다. 스캔·설정 오류에 따른 과도한 ARP 트래픽이나 테이블 증가를 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11439,7 +11451,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Current and maximum connection tracking entries used by Netfilter (nf_conntrack). High usage approaching the limit may cause packet drops or connection issues",
+          "description": "Netfilter(nf_conntrack)의 현재 연결 추적 항목 수와 최대 수입니다. 한도에 가까워지면 패킷 폐기나 연결 문제가 발생할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11576,7 +11588,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Operational and physical link status of each network interface. Values are Yes for 'up' or link present, and No for 'down' or no carrier.",
+          "description": "네트워크 인터페이스별 동작 상태와 물리 링크 상태입니다. 활성 또는 링크가 있으면 Yes, 비활성 또는 캐리어가 없으면 No입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11683,7 +11695,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Maximum speed of each network interface as reported by the operating system. This is a static hardware capability, not current throughput",
+          "description": "운영체제가 보고하는 네트워크 인터페이스의 최대 속도입니다. 현재 처리량이 아닌 하드웨어의 최대 용량입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11757,7 +11769,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "MTU (Maximum Transmission Unit) in bytes for each network interface. Affects packet size and transmission efficiency",
+          "description": "네트워크 인터페이스별 최대 전송 단위(MTU)입니다. 단위는 바이트이며 패킷 크기와 전송 효율에 영향을 줍니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11827,7 +11839,8 @@
         }
       ],
       "title": "Network Traffic",
-      "type": "row"
+      "type": "row",
+      "description": "네트워크 인터페이스별 패킷·오류·폐기·링크 상태와 전송 용량을 확인합니다."
     },
     {
       "collapsed": true,
@@ -11844,7 +11857,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks TCP socket usage and memory per node",
+          "description": "호스트별 TCP 소켓 사용량과 메모리 사용량입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -11974,7 +11987,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of UDP and UDPLite sockets currently in use",
+          "description": "현재 사용 중인 UDP·UDPLite 소켓 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12084,7 +12097,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Total number of sockets currently in use across all protocols (TCP, UDP, UNIX, etc.), as reported by /proc/net/sockstat",
+          "description": "/proc/net/sockstat이 보고하는 전체 프로토콜(TCP·UDP·UNIX 등)의 사용 중인 소켓 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12184,7 +12197,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of FRAG and RAW sockets currently in use. RAW sockets are used for custom protocols or tools like ping; FRAG sockets are used internally for IP packet defragmentation",
+          "description": "현재 사용 중인 FRAG·RAW 소켓 수입니다. RAW 소켓은 사용자 정의 프로토콜이나 ping 등에 사용하며, FRAG 소켓은 IP 패킷 조각을 재조립하는 내부 처리에 사용합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12294,7 +12307,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Kernel memory used by TCP, UDP, and IP fragmentation buffers",
+          "description": "TCP·UDP·IP 조각 처리 버퍼가 사용하는 커널 메모리입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12412,7 +12425,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Average memory used per socket (TCP/UDP). Helps tune net.ipv4.tcp_rmem / tcp_wmem",
+          "description": "TCP·UDP 소켓별 평균 메모리 사용량입니다. net.ipv4.tcp_rmem·tcp_wmem 설정 조정에 참고할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12522,7 +12535,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "TCP/UDP socket memory usage in kernel (in pages)",
+          "description": "TCP·UDP 소켓의 커널 메모리 사용량입니다. 단위는 페이지 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12632,7 +12645,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Packets processed and dropped by the softnet network stack per CPU. Drops may indicate CPU saturation or network driver limitations",
+          "description": "CPU별 softnet 네트워크 처리 계층의 처리·폐기 패킷 수입니다. 폐기가 많으면 CPU 포화나 네트워크 드라이버 한계를 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12754,7 +12767,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "How often the kernel was unable to process all packets in the softnet queue before time ran out. Frequent squeezes may indicate CPU contention or driver inefficiency",
+          "description": "커널이 제한 시간 내에 softnet 대기열의 모든 패킷을 처리하지 못한 횟수입니다. 자주 발생하면 CPU 경합이나 드라이버 비효율을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12857,7 +12870,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks the number of packets processed or dropped by Receive Packet Steering (RPS), a mechanism to distribute packet processing across CPUs",
+          "description": "패킷 처리를 여러 CPU에 분산하는 RPS(Receive Packet Steering)의 처리·폐기 패킷 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -12983,7 +12996,8 @@
         }
       ],
       "title": "Network Sockstat",
-      "type": "row"
+      "type": "row",
+      "description": "소켓 수·메모리·대기열과 커널 네트워크 패킷 처리 현황을 확인합니다."
     },
     {
       "collapsed": true,
@@ -13000,7 +13014,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of octets sent and received at the IP layer, as reported by /proc/net/netstat",
+          "description": "/proc/net/netstat이 보고하는 IP 계층의 송신·수신 옥텟(바이트) 속도입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13121,7 +13135,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of TCP segments sent and received per second, including data and control segments",
+          "description": "초당 송신·수신 TCP 세그먼트 수입니다. 데이터·제어 세그먼트를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13246,7 +13260,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of UDP datagrams sent and received per second, based on /proc/net/netstat",
+          "description": "/proc/net/netstat을 기준으로 한 초당 송신·수신 UDP 데이터그램 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13367,7 +13381,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of ICMP messages sent and received per second, including error and control messages",
+          "description": "초당 송신·수신 ICMP 메시지 수입니다. 오류·제어 메시지를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13492,7 +13506,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks various TCP error and congestion-related events, including retransmissions, timeouts, dropped connections, and buffer issues",
+          "description": "TCP 재전송·시간 초과·연결 폐기·버퍼 문제 등 오류와 혼잡 관련 이벤트입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13659,7 +13673,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of UDP and UDPLite datagram delivery errors, including missing listeners, buffer overflows, and protocol-specific issues",
+          "description": "UDP·UDPLite 데이터그램 전달 오류 발생률입니다. 수신 프로그램 부재·버퍼 초과·프로토콜별 오류를 포함합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13799,7 +13813,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of incoming ICMP messages that contained protocol-specific errors, such as bad checksums or invalid lengths",
+          "description": "체크섬 오류·잘못된 길이 등 프로토콜 오류가 있는 수신 ICMP 메시지의 발생률입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -13897,7 +13911,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of TCP SYN cookies sent, validated, and failed. These are used to protect against SYN flood attacks and manage TCP handshake resources under load",
+          "description": "TCP SYN cookie의 전송·검증·실패 발생률입니다. SYN flood 공격을 방어하고 부하 상황에서 TCP 연결 자원을 관리하는 데 사용합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14031,7 +14045,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of currently established TCP connections and the system's max supported limit. On Linux, MaxConn may return -1 to indicate a dynamic/unlimited configuration",
+          "description": "현재 연결된 TCP 연결 수와 시스템의 최대 지원 한도입니다. Linux의 MaxConn이 -1이면 동적 또는 무제한 설정을 의미할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14170,7 +14184,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of UDP packets currently queued in the receive (RX) and transmit (TX) buffers. A growing queue may indicate a bottleneck",
+          "description": "UDP 수신(RX)·송신(TX) 버퍼에서 대기 중인 패킷 수입니다. 대기열이 증가하면 병목을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14278,7 +14292,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of TCP connection initiations per second. 'Active' opens are initiated by this host. 'Passive' opens are accepted from incoming connections",
+          "description": "초당 TCP 연결 시작 수입니다. Active는 이 호스트가 시작한 연결, Passive는 외부에서 들어와 수락한 연결입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14387,7 +14401,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of TCP sockets in key connection states. Requires the --collector.tcpstat flag on node_exporter",
+          "description": "주요 연결 상태별 TCP 소켓 수입니다. node_exporter의 --collector.tcpstat 활성화가 필요합니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14527,7 +14541,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Transient TCP connection states. These are typically short-lived during connection establishment and teardown",
+          "description": "연결 수립·종료 과정에서 잠시 유지되는 TCP 상태별 소켓 수입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14671,7 +14685,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "TCP socket queue sizes. High rx_queued_bytes indicates application not reading fast enough. High tx_queued_bytes indicates network congestion or slow receiver",
+          "description": "TCP 소켓 대기열 크기입니다. rx_queued_bytes가 높으면 앱의 읽기가 느린 상태, tx_queued_bytes가 높으면 네트워크 혼잡이나 수신 측 지연을 의심할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14775,7 +14789,8 @@
         }
       ],
       "title": "Network Netstat",
-      "type": "row"
+      "type": "row",
+      "description": "IP·TCP·UDP·ICMP 트래픽과 연결 상태, 재전송·시간 초과 등 프로토콜별 지표를 확인합니다."
     },
     {
       "collapsed": true,
@@ -14792,7 +14807,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Duration of each individual collector executed during a Node Exporter scrape. Useful for identifying slow or failing collectors",
+          "description": "Node Exporter가 지표를 수집할 때 각 수집기에 걸린 시간입니다. 느리거나 실패하는 수집기를 확인할 수 있습니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14894,7 +14909,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Rate of CPU time used by the process exposing this metric (user + system mode)",
+          "description": "이 지표를 제공하는 프로세스의 CPU 시간 사용률입니다. 사용자·커널 모드를 합한 값입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -14992,7 +15007,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Tracks the memory usage of the process exposing this metric (e.g., node_exporter), including current virtual memory and maximum virtual memory limit",
+          "description": "이 지표를 제공하는 프로세스(예: node_exporter)의 현재 가상 메모리 사용량과 가상 메모리 최대 한도입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -15153,7 +15168,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Number of file descriptors used by the exporter process versus its configured limit",
+          "description": "Exporter 프로세스가 사용 중인 파일 디스크립터 수와 설정된 한도입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -15314,7 +15329,7 @@
             "type": "prometheus",
             "uid": "${ds_prometheus}"
           },
-          "description": "Shows whether each Node Exporter collector scraped successfully (1 = success, 0 = failure), and whether the textfile collector returned an error.",
+          "description": "Node Exporter 수집기별 수집 성공 여부(1: 성공, 0: 실패)와 textfile 수집기의 오류 여부입니다.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -15401,7 +15416,8 @@
         }
       ],
       "title": "Node Exporter",
-      "type": "row"
+      "type": "row",
+      "description": "Exporter 프로세스의 자원 사용량과 수집기별 처리 시간·성공 여부를 확인합니다."
     }
   ],
   "refresh": "1m",

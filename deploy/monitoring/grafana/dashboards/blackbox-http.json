@@ -38,7 +38,7 @@
       }
     ]
   },
-  "description": "Blackbox exporter HTTP prober dashboard",
+  "description": "Blackbox Exporter의 HTTP 접속 상태 확인 대시보드입니다.",
   "editable": true,
   "graphTooltip": 0,
   "id": null,
@@ -47,7 +47,7 @@
   "panels": [
     {
       "datasource": "prometheus",
-      "description": "",
+      "description": "검사 대상별 접속 성공 여부, HTTP 상태 코드, 평균 응답·DNS 조회 시간, TLS 버전과 인증서 만료까지 남은 기간을 보여줍니다. 실패하면 검사 위치의 네트워크 상태도 함께 확인하세요.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -610,7 +610,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "prometheus",
-      "description": "Returns how long the probe took to complete in seconds",
+      "description": "상태 확인 요청을 완료하는 데 걸린 시간입니다. 단위는 초입니다.",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -722,7 +722,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "prometheus",
-          "description": "Duration of http request by phase, summed over all redirects",
+          "description": "단계별 HTTP 요청 소요 시간입니다. 모든 리디렉션에서 걸린 시간을 합산합니다.",
           "fieldConfig": {
             "defaults": {
               "custom": {}
@@ -826,7 +826,8 @@
       ],
       "repeat": "instance",
       "title": "$instance",
-      "type": "row"
+      "type": "row",
+      "description": "선택한 검사 대상의 HTTP 요청 단계별 소요 시간을 확인하는 영역입니다."
     }
   ],
   "refresh": "1m",
