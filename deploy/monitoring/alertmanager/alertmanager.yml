@@ -3,17 +3,10 @@ global:
 
 route:
   receiver: discord
-  group_by:
-    - alertname
-    - service
-    - environment
+  group_by: [alertname, service, environment]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  routes:
-    - matchers:
-        - severity="critical"
-      repeat_interval: 1h
 
 receivers:
   - name: discord
