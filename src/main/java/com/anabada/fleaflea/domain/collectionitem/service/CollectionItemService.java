@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
+import com.anabada.fleaflea.global.lock.RedisLocked;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
@@ -114,6 +115,7 @@ public class CollectionItemService {
         return toCollectionItemResponse(collectionItem);
     }
 
+    @RedisLocked(key = "'collection-item:' + #collectionItemId")
     @Transactional
     public CollectionItemResponse updateCollectionItem(
             Long memberId,
@@ -139,6 +141,7 @@ public class CollectionItemService {
         return toCollectionItemResponse(collectionItem);
     }
 
+    @RedisLocked(key = "'collection-item:' + #collectionItemId")
     @Transactional
     public void deleteCollectionItem(
             Long memberId,

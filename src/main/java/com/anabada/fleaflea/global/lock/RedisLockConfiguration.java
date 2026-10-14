@@ -1,38 +1,49 @@
 package com.anabada.fleaflea.global.lock;
 
 import java.time.Duration;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.integration.redis.util.RedisLockRegistry;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.context.annotation.Lazy;
 
 @Configuration(proxyBeanMethods = false)
 public class RedisLockConfiguration {
 
-    @Bean
-    public ThreadPoolTaskScheduler redisLockRenewalScheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(2);
-        scheduler.setThreadNamePrefix("redis-lock-renewal-");
-        return scheduler;
-    }
-
-    @Bean(destroyMethod = "destroy")
-    public RedisLockRegistry redisLockRegistry(
-            RedisConnectionFactory redisConnectionFactory,
-            ThreadPoolTaskScheduler redisLockRenewalScheduler,
-            @Value("${app.redis-lock.lease-time:60s}") Duration leaseTime
+    @Bean(destroyMethod = "shutdown")
+    @Lazy
+    public RedissonClient redissonClient(
+            DataRedisProperties properties,
+            @Value("${app.redis-lock.lease-time:60s}") Duration watchdogTimeout
     ) {
-        if (leaseTime.toMillis() < 3000) {
-            throw new IllegalArgumentException("Redis lock lease time must be at least 3 seconds");
+        if (watchdogTimeout.toMillis() < 3000) {
+            throw new IllegalArgumentException("Redis lock watchdog timeout must be at least 3 seconds");
         }
-
-        RedisLockRegistry redisLockRegistry = new RedisLockRegistry(
-                redisConnectionFactory, "fleaflea:lock", leaseTime.toMillis()
-        );
-        redisLockRegistry.setRenewalTaskScheduler(redisLockRenewalScheduler);
-        return redisLockRegistry;
+        Config config = new Config();
+        config.setLockWatchdogTimeout(watchdogTimeout.toMillis());
+        var server = config.useSingleServer()
+                .setAddress((properties.getSsl().isEnabled() ? "rediss://" : "redis://")
+                        + properties.getHost() + ":" + properties.getPort())
+                .setDatabase(properties.getDatabase())
+                .setConnectionMinimumIdleSize(2)
+                .setConnectionPoolSize(8)
+                .setSubscriptionConnectionMinimumIdleSize(1)
+                .setSubscriptionConnectionPoolSize(4);
+        if (properties.getUsername() != null && !properties.getUsername().isBlank()) {
+            server.setUsername(properties.getUsername());
+        }
+        if (properties.getPassword() != null && !properties.getPassword().isBlank()) {
+            server.setPassword(properties.getPassword());
+        }
+        if (properties.getConnectTimeout() != null) {
+            server.setConnectTimeout(Math.toIntExact(properties.getConnectTimeout().toMillis()));
+        }
+        if (properties.getTimeout() != null) {
+            server.setTimeout(Math.toIntExact(properties.getTimeout().toMillis()));
+        }
+        return Redisson.create(config);
     }
 }

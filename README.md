@@ -23,7 +23,7 @@ Java와 Spring Boot로 API와 실시간 채팅을 구현했습니다. 프론트�
 | 인증 | Spring Security, JWT, OAuth2/OIDC |
 | 데이터 접근 | Spring Data JPA, QueryDSL |
 | 데이터베이스 | PostgreSQL 16, Flyway |
-| 동시성·이벤트 전달 | Redis 7.4, Spring Integration Redis |
+| 동시성·이벤트 전달 | Redis 7.4, Redisson, Spring Data Redis |
 | 실시간 채팅 | WebSocket, STOMP |
 | 이미지 저장 | Google Cloud Storage, V4 Signed URL |
 | 서버·컨테이너 | Compute Engine, Docker Compose, Nginx |
@@ -116,10 +116,10 @@ Named Volume은 컨테이너 교체 시 데이터를 유지하기 위한 저장�
 
 Redis는 다음 두 가지 용도로 사용합니다.
 
-- **마켓 분산 락:** 같은 마켓에 대한 변경 요청을 직렬화합니다. DB 잠금과 제약 조건도 함께 사용합니다.
+- **마켓·도감 분산 락:** Redisson으로 같은 마켓 또는 도감 아이템의 변경을 직렬화합니다. DB 잠금과 제약 조건도 함께 사용합니다.
 - **채팅 Pub/Sub:** 서로 다른 앱 프로세스에 연결된 사용자에게 메시지·읽음·입력 중 이벤트를 전달합니다.
 
-마켓 분산 락은 데이터 정합성을 위한 장치입니다. 응답 속도를 높이기 위한 조회 캐시와는 목적이 다르며, 경합이 발생하면 락 대기 시간이 추가됩니다. 도감의 동시성 제어는 DB 잠금으로 처리합니다.
+마켓 분산 락은 데이터 정합성을 위한 장치입니다. 응답 속도를 높이기 위한 조회 캐시와는 목적이 다르며, 경합이 발생하면 락 대기 시간이 추가됩니다. 도감도 Redis 락과 기존 DB 잠금을 함께 사용합니다. 적용 범위와 배포 시 공존 조건은 [Redisson 락 안내](docs/concurrency/redisson-locks.md)를 참고하세요.
 
 ### WebSocket 채팅
 

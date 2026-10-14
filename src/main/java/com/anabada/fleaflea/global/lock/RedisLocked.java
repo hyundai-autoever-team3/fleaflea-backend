@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RedisLocked {
 
+    /** SpEL returning one key or a collection of keys; duplicates are removed and keys sorted. */
     String key();
 }

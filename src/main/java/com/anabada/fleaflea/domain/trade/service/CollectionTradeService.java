@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.trade.service;
 
+import com.anabada.fleaflea.global.lock.RedisLocked;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
 import com.anabada.fleaflea.domain.collectionitem.repository.CollectionItemRepository;
@@ -56,6 +57,7 @@ public class CollectionTradeService {
     private final TradeRepository tradeRepository;
     private final TradeNotifier tradeNotifier;
 
+    @RedisLocked(key = "@collectionLockKeys.forCreation(#collectionItemId, #collectionTradeRequestCreateRequest)")
     @Transactional
     public CollectionTradeRequestResponse createCollectionTradeRequest(
             Long requesterId,
@@ -135,6 +137,7 @@ public class CollectionTradeService {
         return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
+    @RedisLocked(key = "@collectionLockKeys.forTrade(#collectionTradeRequestId)")
     @Transactional
     public CollectionTradeRequestResponse acceptCollectionTradeRequest(
             Long memberId,
@@ -160,6 +163,7 @@ public class CollectionTradeService {
         return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
+    @RedisLocked(key = "@collectionLockKeys.forTrade(#collectionTradeRequestId)")
     @Transactional
     public CollectionTradeRequestResponse rejectCollectionTradeRequest(
             Long memberId,
@@ -185,6 +189,7 @@ public class CollectionTradeService {
         return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
+    @RedisLocked(key = "@collectionLockKeys.forTrade(#collectionTradeRequestId)")
     @Transactional
     public CollectionTradeRequestResponse cancelCollectionTradeRequest(
             Long memberId,
@@ -211,6 +216,7 @@ public class CollectionTradeService {
         return CollectionTradeRequestResponse.from(collectionTradeRequest);
     }
 
+    @RedisLocked(key = "@collectionLockKeys.forTrade(#collectionTradeRequestId)")
     @Transactional
     public CollectionTradeRequestResponse completeCollectionTradeRequest(
             Long memberId,

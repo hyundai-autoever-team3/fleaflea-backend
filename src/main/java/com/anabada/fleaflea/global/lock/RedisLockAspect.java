@@ -8,7 +8,13 @@ import io.micrometer.core.instrument.Timer;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.context.annotation.Lazy;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -25,7 +31,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.integration.redis.util.RedisLockRegistry;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -36,7 +41,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RedisLockAspect {
 
-    private final RedisLockRegistry redisLockRegistry;
+    private final RedissonClient redissonClient;
     private final BeanFactory beanFactory;
     private final MeterRegistry meterRegistry;
     private final Duration waitTime;
@@ -44,7 +49,7 @@ public class RedisLockAspect {
     private final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
     public RedisLockAspect(
-            RedisLockRegistry redisLockRegistry,
+            @Lazy RedissonClient redissonClient,
             BeanFactory beanFactory,
             MeterRegistry meterRegistry,
             @Value("${app.redis-lock.wait-time:5s}") Duration waitTime
@@ -52,7 +57,7 @@ public class RedisLockAspect {
         if (waitTime.isNegative()) {
             throw new IllegalArgumentException("Redis lock wait time must not be negative");
         }
-        this.redisLockRegistry = redisLockRegistry;
+        this.redissonClient = redissonClient;
         this.beanFactory = beanFactory;
         this.meterRegistry = meterRegistry;
         this.waitTime = waitTime;
@@ -63,8 +68,17 @@ public class RedisLockAspect {
             ProceedingJoinPoint joinPoint,
             RedisLocked redisLocked
     ) throws Throwable {
-        String lockKey = getLockKey(joinPoint, redisLocked);
-        Lock lock = acquireLock(lockKey);
+        List<String> lockKeys = getLockKeys(joinPoint, redisLocked);
+        List<RLock> locks = new ArrayList<>();
+        long deadline = System.nanoTime() + waitTime.toNanos();
+        try {
+            for (String key : lockKeys) {
+                locks.add(acquireLock(key, Math.max(0, deadline - System.nanoTime())));
+            }
+        } catch (Throwable failure) {
+            releaseLocks(locks, System.nanoTime());
+            throw failure;
+        }
         long acquiredAt = System.nanoTime();
         boolean releaseAfterTransaction = false;
 
@@ -73,7 +87,7 @@ public class RedisLockAspect {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCompletion(int status) {
-                        releaseLock(lock, lockKey, acquiredAt);
+                        releaseLocks(locks, acquiredAt);
                     }
                 });
                 releaseAfterTransaction = true;
@@ -81,12 +95,12 @@ public class RedisLockAspect {
             return joinPoint.proceed();
         } finally {
             if (!releaseAfterTransaction) {
-                releaseLock(lock, lockKey, acquiredAt);
+                releaseLocks(locks, acquiredAt);
             }
         }
     }
 
-    private String getLockKey(
+    private List<String> getLockKeys(
             ProceedingJoinPoint joinPoint,
             RedisLocked redisLocked
     ) {
@@ -96,9 +110,9 @@ public class RedisLockAspect {
                 joinPoint.getTarget(), method, joinPoint.getArgs(), parameterNameDiscoverer
         );
         context.setBeanResolver(new BeanFactoryResolver(beanFactory));
-        String lockKey;
+        Object value;
         try {
-            lockKey = expressionParser.parseExpression(redisLocked.key()).getValue(context, String.class);
+            value = expressionParser.parseExpression(redisLocked.key()).getValue(context);
         } catch (SpelEvaluationException exception) {
             Throwable cause = exception.getCause();
             while (cause != null) {
@@ -110,19 +124,22 @@ public class RedisLockAspect {
             throw exception;
         }
 
-        if (lockKey == null || lockKey.isBlank()) {
-            throw new IllegalArgumentException("Redis lock key must not be blank");
-        }
-        return lockKey;
+        Collection<?> keys = value instanceof Collection<?> collection ? collection : Collections.singletonList(value);
+        return keys.stream().map(key -> {
+            if (!(key instanceof String text) || text.isBlank()) {
+                throw new IllegalArgumentException("Redis lock key must not be blank");
+            }
+            return text;
+        }).distinct().sorted().toList();
     }
 
-    private Lock acquireLock(String lockKey) {
+    private RLock acquireLock(String lockKey, long remainingNanos) {
         long startedAt = System.nanoTime();
         String outcome = "unavailable";
 
         try {
-            Lock lock = redisLockRegistry.obtain(lockKey);
-            if (!lock.tryLock(waitTime.toMillis(), TimeUnit.MILLISECONDS)) {
+            RLock lock = redissonClient.getLock("fleaflea:redisson:lock:" + lockKey);
+            if (!lock.tryLock(remainingNanos, TimeUnit.NANOSECONDS)) {
                 outcome = "timeout";
                 throw new RedisLockBusyException();
             }
@@ -148,23 +165,28 @@ public class RedisLockAspect {
         }
     }
 
-    private void releaseLock(
-            Lock lock,
-            String lockKey,
-            long acquiredAt
-    ) {
+    private void releaseLocks(List<RLock> locks, long acquiredAt) {
+        if (locks.isEmpty()) {
+            return;
+        }
         try {
             meterRegistry.timer("redis.lock.hold")
                     .record(System.nanoTime() - acquiredAt, TimeUnit.NANOSECONDS);
         } catch (RuntimeException exception) {
             log.warn("Redis 락 보유 시간 계측 실패", exception);
         }
-
-        try {
-            lock.unlock();
-        } catch (RuntimeException exception) {
-            // 커밋된 요청을 실패 응답으로 바꾸지 않는다. 잔여 락은 TTL로 만료된다.
-            log.error("Redis 락 해제 실패: lockKey={}", lockKey, exception);
+        for (int i = locks.size() - 1; i >= 0; i--) {
+            RLock lock = locks.get(i);
+            try {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                } else {
+                    log.error("Redis 락 소유권 상실: lockKey={}", lock.getName());
+                }
+            } catch (RuntimeException exception) {
+                // 커밋된 요청의 결과를 바꾸지 않는다. 잔여 락은 watchdog TTL로 만료된다.
+                log.error("Redis 락 해제 실패: lockKey={}", lock.getName(), exception);
+            }
         }
     }
 }
