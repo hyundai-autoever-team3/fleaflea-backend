@@ -1,3 +1,5 @@
+import.file "monitoring" { filename = "/etc/alloy/pipelines.alloy" }
+
 logging {
   level  = "info"
   format = "logfmt"
@@ -48,6 +50,18 @@ local.file_match "application" {
 
 loki.source.file "application" {
   targets    = local.file_match.application.targets
+  forward_to = [loki.process.application.receiver]
+}
+
+loki.process "application" {
+  stage.json {
+    expressions = {event_time = "\"@timestamp\""}
+  }
+  stage.timestamp {
+    source = "event_time"
+    format = "RFC3339Nano"
+    action_on_failure = "skip"
+  }
   forward_to = [loki.write.central.receiver]
 }
 
@@ -67,49 +81,12 @@ otelcol.receiver.otlp "application" {
   }
 
   output {
-    traces = [otelcol.processor.tail_sampling.application.input]
+    traces = [monitoring.trace_filter.application.input]
   }
 }
 
-// Decide per trace so routine-request child spans are not left behind without their parent.
-otelcol.processor.tail_sampling "application" {
-  decision_wait = "10s"
-  num_traces    = 1000
-
-  policy {
-    name = "drop-routine-checks"
-    type = "drop"
-
-    drop {
-      drop_sub_policy {
-        name = "routine-endpoints-and-background-maintenance"
-        type = "ottl_condition"
-
-        ottl_condition {
-          error_mode = "ignore"
-          span = [
-            `span.attributes["url.path"] == "/readyz"`,
-            `span.attributes["http.route"] == "/readyz"`,
-            `span.attributes["url.path"] != nil and IsMatch(span.attributes["url.path"], "^/actuator/health($|/)")`,
-            `span.attributes["http.route"] != nil and IsMatch(span.attributes["http.route"], "^/actuator/health($|/)")`,
-            `span.attributes["url.path"] == "/actuator/prometheus"`,
-            `span.attributes["http.route"] == "/actuator/prometheus"`,
-            `IsMatch(span.name, "NotificationSseHeartbeat")`,
-            `IsRootSpan() and span.attributes["db.name"] == "fleaflea_db" and span.attributes["thread.name"] != nil and IsMatch(span.attributes["thread.name"], "^HikariPool-[0-9]+:housekeeper$")`,
-          ]
-        }
-      }
-    }
-  }
-
-  policy {
-    name = "keep-other-traces"
-    type = "always_sample"
-  }
-
-  output {
-    traces = [otelcol.processor.batch.traces.input]
-  }
+monitoring.trace_filter "application" {
+  forward_to = [otelcol.processor.batch.traces.input]
 }
 
 otelcol.processor.batch "traces" {
@@ -129,4 +106,9 @@ otelcol.exporter.otlp "tempo" {
       insecure = true
     }
   }
+}
+
+monitoring.collector_metrics "self" {
+  instance = "local-app"
+  forward_to = [prometheus.remote_write.central.receiver]
 }

@@ -1,84 +1,31 @@
-name: fleaflea-observer
+# Combine with deploy/monitoring/common/compose.yml first.
+name: fleaflea-monitoring-gcp
 services:
-  docker-socket-proxy:
-    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2
-    restart: unless-stopped
+  prometheus:
+    container_name: fleaflea-gcp-prometheus
+    ports: !override ["127.0.0.1:9091:9090"]
+    volumes:
+      - ../gcp/prometheus/rules/alerts.yml:/etc/prometheus/rules/gcp.yml:ro
+      - ../gcp/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
+  alertmanager:
+    container_name: fleaflea-gcp-alertmanager
     environment:
-      CONTAINERS: 1
-      EVENTS: 1
-      INFO: 1
-      NETWORKS: 1
-      PING: 1
-      VERSION: 1
-      POST: 0
-      LOG_LEVEL: warning
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      discovery:
-        ipv4_address: 172.29.250.2
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2375/_ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-    read_only: true
-    tmpfs: [/run, /tmp]
-    mem_limit: 64m
-    security_opt: [no-new-privileges:true]
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.17.1
-    restart: unless-stopped
-    network_mode: host
-    env_file: [/etc/fleaflea/observer.env]
-    command: ["--web.listen-address=127.0.0.1:19187"]
-    read_only: true
-    mem_limit: 64m
-    security_opt: [no-new-privileges:true]
-  cadvisor:
-    image: ghcr.io/google/cadvisor:v0.60.6
-    restart: unless-stopped
-    network_mode: host
-    privileged: true
-    command: ["--listen_ip=127.0.0.1", "--port=18090", "--docker_only=true", "--housekeeping_interval=30s"]
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-    mem_limit: 128m
-  alloy:
-    image: grafana/alloy:v1.19.2
-    restart: unless-stopped
-    network_mode: host
-    user: "0:0"
-    env_file:
-      - /etc/fleaflea/observer.env
-      - /etc/fleaflea/redis.env
-    command: [run, "--server.http.listen-addr=127.0.0.1:12345", "--storage.path=/var/lib/alloy", /etc/alloy/config.alloy]
-    volumes:
-      - ./config.alloy:/etc/alloy/config.alloy:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host/root:ro
-      - alloy_data:/var/lib/alloy
-    depends_on:
-      docker-socket-proxy:
-        condition: service_healthy
-      postgres-exporter:
-        condition: service_started
-      cadvisor:
-        condition: service_started
-    mem_limit: 256m
-    security_opt: [no-new-privileges:true]
-    logging:
-      driver: json-file
-      options: {max-size: "10m", max-file: "3"}
-networks:
-  discovery:
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.29.250.0/28
-volumes:
-  alloy_data:
+      DASHBOARD_URL: "${GCP_GRAFANA_URL:-http://localhost:3001}/d/fleaflea-gcp-server/gcp-server-overview?orgId=1&from=now-1h&to=now&refresh=15s"
+    ports: !override ["127.0.0.1:9094:9093"]
+  loki:
+    container_name: fleaflea-gcp-loki
+    ports: !override ["127.0.0.1:3101:3100"]
+  tempo:
+    container_name: fleaflea-gcp-tempo
+    ports: !override ["127.0.0.1:14317:4317", "127.0.0.1:3201:3200"]
+  grafana:
+    container_name: fleaflea-gcp-grafana
+    environment:
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    ports: !override ["127.0.0.1:3001:3000"]
+  blackbox-exporter:
+    container_name: fleaflea-gcp-blackbox-exporter
+
+secrets:
+  discord_webhook_url:
+    file: ../secrets/discord-webhook-url-gcp

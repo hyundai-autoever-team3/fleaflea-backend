@@ -1,0 +1,55 @@
+groups:
+  - name: gcp-infrastructure
+    rules:
+      - alert: GcpExporterScrapeFailed
+        expr: up{environment="production", job=~"fleaflea-node|fleaflea-postgres|fleaflea-redis|fleaflea-cadvisor"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP 서버·DB·Redis·컨테이너 지표 수집에 실패했습니다
+          description: '{{ $labels.instance }}의 {{ $labels.job }} 수집이 3분 동안 실패했습니다.'
+
+      # Keep the expected VM explicit: up == 0 alone cannot detect a stopped Alloy or SSH tunnel.
+      # When adding or renaming a VM, add or update its expected targets here.
+      - alert: GcpTelemetryMissing
+        expr: |
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-node"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-cadvisor"}[5m])
+          or
+          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-alloy"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP 서버·DB·Redis·컨테이너 지표가 도착하지 않습니다
+          description: '{{ $labels.instance }}의 {{ $labels.job }} 수집 상태 지표가 최근 5분 동안 없습니다. Alloy와 SSH 터널 연결을 확인하세요.'
+
+      - alert: GcpPostgresUnavailable
+        expr: |
+          pg_up{environment="production", job="fleaflea-postgres"} == 0
+          or
+          absent_over_time(pg_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP PostgreSQL 연결 상태를 확인하지 못했습니다
+          description: '{{ $labels.instance }}의 PostgreSQL 연결이 실패하거나 연결 상태 지표가 누락됐습니다. DB와 Exporter의 연결·인증 설정을 확인하세요.'
+
+      - alert: GcpRedisUnavailable
+        expr: |
+          redis_up{environment="production", job="fleaflea-redis"} == 0
+          or
+          absent_over_time(redis_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: GCP Redis 연결 상태를 확인하지 못했습니다
+          description: '{{ $labels.instance }}의 Redis 연결이 실패하거나 연결 상태 지표가 누락됐습니다. Redis와 Exporter의 연결·인증 설정을 확인하세요.'

@@ -1,0 +1,80 @@
+name: fleaflea-observer
+services:
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2
+    restart: unless-stopped
+    command: [haproxy, -f, /etc/docker-proxy/haproxy.cfg]
+    volumes:
+      - ./docker-proxy/haproxy.cfg:/etc/docker-proxy/haproxy.cfg:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      discovery:
+        ipv4_address: 172.29.250.2
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2375/_ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    read_only: true
+    cap_drop: [ALL]
+    pids_limit: 64
+    tmpfs: [/run, /tmp]
+    mem_limit: 64m
+    security_opt: [no-new-privileges:true]
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    restart: unless-stopped
+    network_mode: host
+    env_file: [/etc/fleaflea/observer.env]
+    command: ["--web.listen-address=127.0.0.1:19187"]
+    read_only: true
+    mem_limit: 64m
+    security_opt: [no-new-privileges:true]
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    command: ["--listen_ip=127.0.0.1", "--port=18090", "--docker_only=true", "--housekeeping_interval=30s"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    mem_limit: 128m
+  alloy:
+    image: grafana/alloy:v1.19.2
+    restart: unless-stopped
+    network_mode: host
+    user: "0:0"
+    env_file:
+      - /etc/fleaflea/observer.env
+      - /etc/fleaflea/redis.env
+    command: [run, "--server.http.listen-addr=127.0.0.1:12345", "--storage.path=/var/lib/alloy", /etc/alloy/config.alloy]
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ../../common/alloy/pipelines.alloy:/etc/alloy/pipelines.alloy:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+      - alloy_data:/var/lib/alloy
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
+      postgres-exporter:
+        condition: service_started
+      cadvisor:
+        condition: service_started
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  discovery:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.250.0/28
+volumes:
+  alloy_data:

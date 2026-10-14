@@ -15,12 +15,13 @@ services:
       - --enable-feature=exemplar-storage
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./prometheus/rules/alerts.yml:/etc/prometheus/rules/common.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
     depends_on:
       - alertmanager
+      - blackbox-exporter
     healthcheck:
       test: "wget -qO- http://127.0.0.1:9090/-/ready >/dev/null"
       interval: 15s
@@ -34,12 +35,16 @@ services:
     image: prom/alertmanager:v0.28.1
     container_name: fleaflea-alertmanager
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/etc/alertmanager/start.sh"]
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/start.sh:/etc/alertmanager/start.sh:ro
       - alertmanager_data:/alertmanager
+    tmpfs:
+      - /run/alertmanager:mode=1777,size=1m
     secrets:
       - discord_webhook_url
     ports:
@@ -85,7 +90,7 @@ services:
       - no-new-privileges:true
 
   grafana:
-    image: grafana/grafana:12.2.0
+    image: grafana/grafana:12.4.13
     container_name: fleaflea-grafana
     restart: unless-stopped
     environment:
@@ -116,6 +121,17 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    container_name: fleaflea-blackbox-exporter
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox/config.yml"]
+    volumes:
+      - ./blackbox/config.yml:/etc/blackbox/config.yml:ro
+    mem_limit: 64m
+    read_only: true
+    security_opt: [no-new-privileges:true]
+
 volumes:
   prometheus_data:
   alertmanager_data:
@@ -123,6 +139,3 @@ volumes:
   tempo_data:
   grafana_data:
 
-secrets:
-  discord_webhook_url:
-    file: ./secrets/discord-webhook-url

@@ -1,107 +1,53 @@
-# GCP·로컬 앱 → 로컬 Grafana
+# 로컬 앱 / GCP 모니터링 분리
 
-GCP의 별도 수집기가 서버·PostgreSQL·Redis·컨테이너 지표와 앱 로그를 수집하고,
-SSH 역방향 터널을 통해 로컬 Prometheus·Loki로 전송합니다.
-서버 수집기 설치와 환경 파일은 [GCP 수집기 안내](gcp/README.md)를 참고합니다.
-기존 GCP 앱 배포 설정은 `deploy/gcp/`에서 관리합니다.
+- 로컬 앱: Grafana **http://localhost:3000**
+- GCP 앱·서버: Grafana **http://localhost:3001**
+- 두 스택은 Prometheus·Loki·Tempo·Alertmanager·Grafana의 네트워크와 볼륨을 분리합니다.
+- 각 Grafana에는 해당 스택의 데이터 소스만 연결됩니다.
+- 팀원 공유는 GCP Grafana에만 연결합니다. 대시보드 필터를 접근 제어로 사용하지 않습니다.
 
-## 로컬 실행
+## 환경 파일
 
-저장소 루트에서 실행합니다. 기존 `.env.local`이 있으면 유지합니다.
-새로 만드는 경우에만 다음 파일을 복사하고 Grafana 비밀번호를 변경합니다.
-실행 전에 `deploy/monitoring/secrets/discord-webhook-url`에 유효한 Discord 웹훅 URL을
-한 줄로 저장해야 합니다. 기존 파일이 있으면 유지하며 파일 권한은 `600`으로 설정합니다.
+기존 `deploy/monitoring/.env.local`은 유지합니다. 신규 설치 시에만 예시를 복사하고
+Grafana 비밀번호와 로컬 DB 계정 및 GCP SSH 설정을 입력합니다.
+Discord 알림은 환경별 파일에 웹훅 URL을 한 줄로 입력합니다.
+
+- 로컬 앱 알림: `deploy/monitoring/secrets/discord-webhook-url-local`
+- GCP 앱·서버 알림: `deploy/monitoring/secrets/discord-webhook-url-gcp`
+
+서로 다른 채널로 보내려면 두 파일에 각각 해당 채널의 웹훅 URL을 입력합니다.
+두 Alertmanager는 같은 컨테이너 경로 `/run/secrets/discord_webhook_url`로 각 파일을 읽습니다.
+GCP 알림용 Alertmanager도 로컬 PC에서 실행됩니다.
+알림의 대시보드 주소는 `.env.local`의 `LOCAL_GRAFANA_URL`·`GCP_GRAFANA_URL`로 설정합니다.
+주소 끝의 `/`는 생략하며, 팀원 공유 시 `GCP_GRAFANA_URL`에 Tailscale HTTPS 주소를 입력합니다.
+각 Alertmanager가 시작할 때 주소를 반영한 임시 템플릿을 생성합니다.
+주소 변경 후에는 해당 스택의 `up -d alertmanager`를 다시 실행합니다.
+환경 파일과 웹훅은 Git에 올리지 않으며 권한 `600`으로 관리합니다.
 
 ```bash
 cp deploy/monitoring/.env.example deploy/monitoring/.env.local
 chmod 600 deploy/monitoring/.env.local
+mkdir -p deploy/monitoring/secrets
+touch deploy/monitoring/secrets/discord-webhook-url-local deploy/monitoring/secrets/discord-webhook-url-gcp
+chmod 600 deploy/monitoring/secrets/discord-webhook-url-local deploy/monitoring/secrets/discord-webhook-url-gcp
 ```
 
-```bash
-docker compose --env-file deploy/monitoring/.env.local \
-  -f deploy/monitoring/compose.yml up -d
-```
-
-Grafana는 [localhost:3000](http://localhost:3000)에서 접속합니다.
-**GCP Server Overview** 대시보드에서 서버와 DB·Redis·컨테이너 지표를 확인합니다.
-앱 로그는 Loki에서 `{environment="production", service="fleaflea"}`로 조회합니다.
-
-## GCP 연결
-
-Google Cloud CLI 로그인과 VM의 IAP SSH 접속 권한이 필요합니다.
-별도 터미널에서 실제 대상 값을 환경변수로 설정한 뒤 연결을 유지합니다.
-아래 명령은 저장소에 포함되지 않는 로컬 전용 스크립트 없이 사용할 수 있습니다.
-
-```bash
-export GCP_PROJECT_ID=your-gcp-project-id
-export GCP_INSTANCE=your-vm-name
-export GCP_ZONE=your-vm-zone
-
-gcloud compute ssh "$GCP_INSTANCE" \
-  --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" \
-  --tunnel-through-iap -- \
-  -N -o ExitOnForwardFailure=yes \
-  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-  -R 127.0.0.1:19090:127.0.0.1:9090 \
-  -R 127.0.0.1:13100:127.0.0.1:3100 \
-  -R 127.0.0.1:14317:127.0.0.1:4317
-```
-이미 터널이 실행 중이면 새로 실행할 필요가 없습니다.
-
-| 데이터 | GCP 터널 주소 | 로컬 수신 포트 |
-|---|---|---|
-| 지표 | `127.0.0.1:19090` | Prometheus `9090` |
-| 로그 | `127.0.0.1:13100` | Loki `3100` |
-| 트레이스용 연결 | `127.0.0.1:14317` | Tempo `4317` |
-
-모든 로컬 포트는 loopback에만 열립니다.
-GCP 수집기는 서버·DB·Redis·컨테이너 지표와 Spring 지표·앱 로그를 전송합니다.
-GCP Alloy에는 트레이스 수신·전송 설정이 없으므로 터널 포트만 연결해도 GCP 트레이스가 수집되지는 않습니다.
-로컬 앱 트레이스는 아래 OpenTelemetry 에이전트와 로컬 Alloy 설정으로 수집합니다.
-Alertmanager는 로컬·GCP의 발생·복구 알림을 Discord로 전송합니다.
-`deploy/monitoring/secrets/discord-webhook-url`에 Discord 웹훅 URL만 한 줄로 저장합니다.
-파일은 Git에서 제외되며, 로컬 파일 권한은 `600`으로 유지합니다.
-
-## 환경 파일
-
-- 로컬 `deploy/monitoring/.env.local`: Grafana 관리자 계정과 Prometheus 보관 설정.
-- GCP `/etc/fleaflea/observer.env`: 전송 주소·서버 식별자·전용 PostgreSQL 모니터링 계정.
-- GCP `/etc/fleaflea/redis.env`: 기존 Redis 비밀번호를 수집기도 사용합니다.
-
-비밀번호가 있는 환경 파일은 Git에 올리지 않습니다.
-컴퓨터가 꺼지거나 터널이 끊기면 로컬 전송이 중단됩니다.
-수집기의 지표 WAL 보관 한도는 8시간이며 장시간 미접속 시 데이터가 유실될 수 있습니다.
-
-## 중지
-
-```bash
-docker compose --env-file deploy/monitoring/.env.local \
-  -f deploy/monitoring/compose.yml \
-  -f deploy/monitoring/local/compose.yml stop
-```
-
-저장 볼륨은 유지됩니다. 기본 구성만 실행했다면 중지 명령에서도 `local/compose.yml`을 생략합니다.
-
-## 내 로컬 앱도 수집하기
-
-GCP 연결과 함께 로컬 Spring·PostgreSQL의 지표, 앱 로그와 트레이스를
-같은 Grafana에서 볼 수 있습니다. `environment`가 `local`과 `production`으로 구분됩니다.
-로컬 앱 지표는 **Fleaflea Overview**에서 환경을 `local`로 선택합니다.
-
-로컬 PostgreSQL은 `5432`, 앱은 `8080`, Actuator 지표는 별도 `8081` 포트를 사용합니다.
-`.env.local`에 실제 로컬 DB 계정을 설정합니다.
-
-```dotenv
-LOCAL_DB_USERNAME=postgres
-LOCAL_DB_PASSWORD=your-local-db-password
-```
+## 로컬 앱 스택 실행
 
 ```bash
 mkdir -p build/logs
 docker compose --env-file deploy/monitoring/.env.local \
-  -f deploy/monitoring/compose.yml \
+  -f deploy/monitoring/common/compose.yml \
   -f deploy/monitoring/local/compose.yml up -d
 ```
+
+- 프로젝트: `fleaflea-monitoring-local`
+- 지표: `http://localhost:9090`
+- 로그: `http://localhost:3100`
+- 트레이스 조회: `http://localhost:3200`
+- 앱 OTLP HTTP: `http://localhost:4318/v1/traces`
+- Blackbox: 내 로컬 앱의 `http://host.docker.internal:8080/readyz` 검사
+- GCP 전용 수집 장애 규칙은 로컬 스택에서 평가하지 않습니다.
 
 로컬 앱 실행 환경에는 다음 값을 넣습니다.
 
@@ -132,13 +78,143 @@ VM options에 `-javaagent:"$PROJECT_DIR$/build/otel/opentelemetry-javaagent.jar"
 로컬 Alloy는 `8081/actuator/prometheus`를 수집하고, Blackbox는 `8080/readyz`를 확인합니다.
 로컬 앱 수집기를 실행해도 GCP 수집기나 GCP 앱 배포 설정은 변경되지 않습니다.
 
-## 외부 접속 확인
+## GCP 스택 실행
 
-Blackbox는 `local/compose.yml`을 함께 실행할 때 활성화됩니다.
-기본 `compose.yml`만 실행하면 외부 접속 검사를 수행하지 않습니다.
-로컬 Blackbox는 로컬 앱과 GCP의 공개 `https://api.fleaflea.app/readyz`를 검사합니다.
-`environment`로 대상을, `probe_location=local`로 검사 위치를 구분합니다.
-Grafana Overview와 GCP Server Overview에서 접속 상태를 확인하고,
-상단 GCP Uptime Check 링크에서 해당 프로젝트의 상시 외부 검사 결과도 확인합니다.
-로컬 검사가 3분 동안 실패하면 Discord에 경고를 보내며 서비스 전체 장애로 단정하지 않습니다.
-노트북·로컬 인터넷 상태의 영향을 받을 수 있으므로 GCP Uptime Check를 운영 장애 판단의 기준으로 유지합니다.
+```bash
+docker compose --env-file deploy/monitoring/.env.local \
+  -f deploy/monitoring/common/compose.yml \
+  -f deploy/monitoring/gcp/compose.yml up -d
+```
+
+- 프로젝트: `fleaflea-monitoring-gcp`
+- 서버 수집기: [GCP 수집기 안내](gcp/collector/README.md)
+- Blackbox: GCP 공개 `/readyz` 검사
+- Grafana의 GCP Server Overview에서 서버·DB·Redis·컨테이너 상태 조회
+- Loki의 `{environment="production", service="fleaflea"}`로 운영 로그 조회
+- 앱 Java 에이전트 → GCP Alloy → SSH 터널 → GCP Tempo로 트레이스 전송
+
+## Tailscale 공유 설정을 유지하며 실행
+
+개인 공유 설정이 있는 PC에서는 일반 GCP 실행 명령 대신 다음 조합을 사용합니다.
+개인 override를 생략하면 Grafana의 HTTPS 주소와 Live 허용 주소 설정이 빠집니다.
+이 파일에는 개인 주소와 허용 계정이 있으므로 Git에 포함하지 않습니다.
+
+```bash
+docker compose --env-file deploy/monitoring/.env.local \
+  -f deploy/monitoring/common/compose.yml \
+  -f deploy/monitoring/gcp/compose.yml \
+  -f deploy/monitoring/.env.tailscale/compose.yml up -d
+tailscale serve --bg http://127.0.0.1:13000
+```
+
+## GCP SSH 연결
+
+별도 터미널에서 실제 대상 값을 설정하고 아래 연결을 유지합니다.
+기존 터널은 종료한 뒤 새 포트로 다시 연결해야 합니다.
+
+```bash
+export GCP_PROJECT_ID=your-gcp-project-id
+export GCP_INSTANCE=your-vm-name
+export GCP_ZONE=your-vm-zone
+
+gcloud compute ssh "$GCP_INSTANCE" \
+  --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" \
+  --tunnel-through-iap -- \
+  -N -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+  -R 127.0.0.1:19090:127.0.0.1:9091 \
+  -R 127.0.0.1:13100:127.0.0.1:3101 \
+  -R 127.0.0.1:14317:127.0.0.1:14317
+```
+
+| 데이터 | GCP 수집기 터널 주소 | 내 PC의 GCP 저장소 포트 |
+|---|---|---|
+| 지표 | `127.0.0.1:19090` | `9091` |
+| 로그 | `127.0.0.1:13100` | `3101` |
+| 트레이스 | `127.0.0.1:14317` | `14317` |
+
+GCP의 기존 `/etc/fleaflea/observer.env` 전송 주소는 그대로 사용합니다.
+모든 PC의 수신 포트는 loopback에만 열립니다.
+PC나 SSH 연결이 종료되면 운영 데이터 전송도 중단됩니다.
+GCP 지표 WAL 보관 한도는 8시간이며 트레이스는 장기 보관을 보장하지 않습니다.
+
+## 외부 접속과 알림
+
+- GCP 스택의 Blackbox는 로컬 인터넷에서 운영 `/readyz`를 검사합니다.
+- 검사 실패는 접속 확인 실패로 표시하고 GCP Uptime Check를 함께 확인합니다.
+- 각 스택의 Alertmanager가 해당 스택의 Discord 알림을 처리합니다.
+
+## 기존 데이터와 공유
+
+기존 `fleaflea-monitoring_*` 볼륨은 로컬 스택에서 재사용하여 데이터를 보존합니다.
+이 볼륨에는 분리 이전의 로컬·GCP 데이터가 섞여 있을 수 있습니다.
+GCP 스택은 별도 `fleaflea-monitoring-gcp_*` 볼륨으로 시작하며 과거 혼합 데이터를 복사하지 않습니다.
+Tailscale 등 팀원 공유는 GCP 스택에만 연결합니다.
+팀원에게는 Viewer 계정을 부여하며 저장소 접근 설정을 바꾸는 Admin 권한은 부여하지 않습니다.
+
+## 중지
+
+실행할 때 사용한 Compose 파일 조합에 `stop`을 사용합니다.
+`down -v`는 데이터를 삭제하므로 사용하지 않습니다.
+
+## 폴더 구성
+
+```text
+monitoring/
+├── README.md
+├── .env.example
+├── common/                       # 양쪽 환경에서 재사용하는 설정
+│   ├── compose.yml               # 저장소·Grafana·알림 공통 서비스
+│   ├── alloy/pipelines.alloy     # 트레이스 필터·수집기 상태 지표
+│   ├── prometheus/
+│   │   ├── prometheus.yml
+│   │   ├── rules/alerts.yml      # 공통 알림 규칙
+│   │   └── alerts.test.yml       # 기존 규칙 테스트
+│   ├── alertmanager/alertmanager.yml
+│   ├── blackbox/config.yml
+│   ├── grafana/                  # 대시보드·프로비저닝
+│   ├── loki/config.yml
+│   └── tempo/config.yml
+├── local/                        # PC에서 실행 · 로컬 앱 관측
+│   ├── compose.yml
+│   ├── alloy/config.alloy
+│   └── blackbox/targets.yml
+├── gcp/
+│   ├── compose.yml               # PC에서 실행 · GCP 데이터 조회
+│   ├── prometheus/rules/alerts.yml
+│   ├── blackbox/targets.yml
+│   └── collector/                # GCP 서버에서 실행
+│       ├── README.md
+│       ├── compose.yml
+│       ├── alloy/config.alloy
+│       └── docker-proxy/haproxy.cfg
+└── secrets/                      # 개인 웹훅 · Git 제외
+```
+
+로컬·GCP의 실행 설정은 각 환경 폴더에 두고, 공통 설정 파일은 `common/`에서 한 번만 관리합니다.
+실행 시 `common/compose.yml`을 먼저, 환경별 `compose.yml`을 다음에 지정합니다.
+Compose의 상대 마운트 경로는 첫 번째 파일인 `common/compose.yml` 기준입니다.
+환경별 중복 README는 이 가이드로 합쳤으며 서버 수집기 설치 절차만 별도 가이드로 유지합니다.
+개인 `.env.local`·`.env.tailscale/`·GCP 설치 보조 파일은 기존 위치와 Git 제외 상태를 유지합니다.
+
+
+Prometheus의 공통 규칙은 두 스택에서 사용하고 GCP 전용 규칙은 GCP 스택에만 마운트합니다.
+각 스택의 저장소·네트워크·수집 대상은 서로 분리됩니다.
+
+### 수집 역할
+
+- Spring 지표는 각 환경의 Alloy에서 한 번 수집합니다. Prometheus는 앱을 별도로 중복 scrape하지 않습니다.
+- GCP 호스트 지표와 cAdvisor 지표는 각각 서버 전체와 개별 컨테이너를 관측합니다.
+- Blackbox와 GCP Uptime Check는 각각 내 PC와 외부 관리 서비스에서 접속을 확인합니다.
+- 로컬 Alloy는 파일 로그와 로컬 앱을, GCP Alloy는 Docker 로그와 서버·컨테이너를 수집하므로 별도 구성으로 유지합니다.
+
+### 알림과 로그·트레이스 처리
+
+- API 오류율은 5분간 지속되는 경우 알림을 보냅니다.
+- 최근 5분간 5xx 10건 이상 발생한 경우 별도 급증 알림이 1분 대기 후 발생합니다.
+- 로컬·GCP Alloy의 전송 상태 지표를 수집하며 로그 재시도·폐기와 트레이스 전송 실패·큐 포화·enqueue 실패를 감시합니다.
+- 전송 중단 알림은 재시도/실패가 있으면서 최근 5분간 성공한 전송이 없을 때 평가합니다.
+- GCP cAdvisor 장애와 Alloy 자체 상태 지표 누락도 감시합니다.
+- 로컬 ECS 로그는 `@timestamp`를 Loki 이벤트 시각으로 적용합니다. 파싱 실패 시 기존 수집 시각을 유지합니다.
+- 로컬·GCP는 `common/alloy/pipelines.alloy`의 공통 정책으로 `/readyz`·Actuator 검사·SSE heartbeat·지정된 DB 유지 작업 트레이스를 제외합니다.
+- 기존에 저장된 검사 트레이스는 보관 기간이 끝날 때까지 남습니다.
