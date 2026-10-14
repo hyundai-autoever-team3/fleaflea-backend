@@ -105,6 +105,8 @@ public class GcsImageStorage implements ImageStorage {
     ) {
         BlobInfo blobInfo = BlobInfo.newBuilder(bucket, imageKey)
                 .setContentType(contentType)
+                .setCacheControl(GcsImageCachePolicy.supports(imageKey)
+                        ? GcsImageCachePolicy.createCacheControl(signedUrlDuration) : null)
                 .build();
 
         try {
