@@ -9,8 +9,8 @@ import com.anabada.fleaflea.domain.item.domain.ItemStatus;
 import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
 import com.anabada.fleaflea.domain.item.dto.ItemCreateRequest;
 import com.anabada.fleaflea.domain.item.dto.ItemDetailResponse;
-import com.anabada.fleaflea.domain.item.dto.ItemSummaryResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemSummaryProjection;
+import com.anabada.fleaflea.domain.item.dto.ItemSummaryResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemUpdateRequest;
 import com.anabada.fleaflea.domain.item.dto.SellerResponse;
 import com.anabada.fleaflea.domain.item.exception.ItemImageRequiredException;
@@ -24,12 +24,13 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
+import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -139,7 +140,7 @@ public class ItemService {
                         keyword,
                         pageable
                 );
-        var imageUrls = imageService.getListUrls(pageResult.getContent().stream()
+        Map<String, String> imageUrls = imageService.getListUrls(pageResult.getContent().stream()
                 .map(ItemSummaryProjection::imageKey).toList());
         Page<ItemSummaryResponse> items = pageResult.map(projection -> ItemSummaryResponse.of(
                 projection, imageUrls.get(projection.imageKey())));

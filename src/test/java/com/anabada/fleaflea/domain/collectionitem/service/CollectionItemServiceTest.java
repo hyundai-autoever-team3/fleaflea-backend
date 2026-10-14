@@ -6,6 +6,7 @@ import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItemStatus;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemCreateRequest;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
+import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemSummaryResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemAccessDeniedException;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
@@ -21,9 +22,13 @@ import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestReposi
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.fixture.CollectionItemFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
+import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,10 +38,9 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockMultipartFile;
-
-import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -88,15 +92,15 @@ class CollectionItemServiceTest {
     @Test
     @DisplayName("도감 목록은 목록용 이미지 URL을 사용하고 상세 원본 조회와 분리한다")
     void listUsesThumbnailUrls() {
-        var item = CollectionItem.create(owner, "photo", "description", "collection-items/a.jpg", true);
-        var pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+        CollectionItem item = CollectionItem.create(owner, "photo", "description", "collection-items/a.jpg", true);
+        PageRequest pageable = PageRequest.of(0, 20);
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(owner));
         when(collectionItemRepository.search(MEMBER_ID, false, null, pageable))
-                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(item)));
+                .thenReturn(new PageImpl<>(List.of(item)));
         when(imageService.getListUrls(List.of("collection-items/a.jpg")))
-                .thenReturn(java.util.Map.of("collection-items/a.jpg", "https://example.test/thumbnail.jpg"));
+                .thenReturn(Map.of("collection-items/a.jpg", "https://example.test/thumbnail.jpg"));
 
-        var response = collectionItemService.getMyCollectionItems(MEMBER_ID, null, pageable);
+        PageResponse<CollectionItemSummaryResponse> response = collectionItemService.getMyCollectionItems(MEMBER_ID, null, pageable);
 
         assertThat(response.content().getFirst().imageUrl()).isEqualTo("https://example.test/thumbnail.jpg");
         verify(imageService, never()).getUrl(any());

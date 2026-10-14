@@ -26,9 +26,10 @@ import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -217,8 +218,10 @@ public class CollectionItemService {
 
     private PageResponse<CollectionItemSummaryResponse> toCollectionItemSummaryPage(
             Page<CollectionItem> page) {
-        var urls = imageService.getListUrls(page.getContent().stream().map(CollectionItem::getImageKey).toList());
-        return PageResponse.from(page.map(item -> CollectionItemSummaryResponse.from(item, urls.get(item.getImageKey()))));
+        Map<String, String> imageUrls = imageService.getListUrls(page.getContent().stream().map(CollectionItem::getImageKey).toList());
+        return PageResponse.from(page.map(collectionItem -> CollectionItemSummaryResponse.from(
+                collectionItem, imageUrls.get(collectionItem.getImageKey())
+        )));
     }
 
     private boolean isAcceptedFriend(

@@ -6,23 +6,36 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.Ticker;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import java.io.IOException;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-@lombok.extern.slf4j.Slf4j
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "app.image.storage", havingValue = "gcs")
 public class GcsImageStorage implements ImageStorage {
 
     private static final int MAXIMUM_CACHED_URLS = 10_000;
+    private static final int MAXIMUM_CACHED_THUMBNAILS = 10_000;
+    private static final Duration THUMBNAIL_CACHE_DURATION = Duration.ofMinutes(1);
+    private static final String THUMBNAIL_CONTENT_TYPE = "image/jpeg";
+    private static final String THUMBNAIL_CACHE_CONTROL = "private, max-age=3600";
+
     private final Storage storage;
     private final String bucket;
     private final Duration signedUrlDuration;
@@ -53,8 +66,11 @@ public class GcsImageStorage implements ImageStorage {
         this.bucket = bucket;
         this.signedUrlDuration = signedUrlDuration;
         this.ticker = ticker;
-        this.thumbnailExists = Caffeine.newBuilder().maximumSize(10_000)
-                .ticker(ticker).expireAfterWrite(Duration.ofMinutes(1)).build();
+        this.thumbnailExists = Caffeine.newBuilder()
+                .maximumSize(MAXIMUM_CACHED_THUMBNAILS)
+                .ticker(ticker)
+                .expireAfterWrite(THUMBNAIL_CACHE_DURATION)
+                .build();
         long durationSeconds = signedUrlDuration.getSeconds();
         long renewalMarginSeconds = Math.max(1, Math.min(60, durationSeconds / 10));
         this.cacheDurationNanos = TimeUnit.SECONDS.toNanos(durationSeconds - renewalMarginSeconds);
@@ -83,7 +99,11 @@ public class GcsImageStorage implements ImageStorage {
     }
 
     @Override
-    public void upload(String imageKey, byte[] imageBytes, String contentType) {
+    public void upload(
+            String imageKey,
+            byte[] imageBytes,
+            String contentType
+    ) {
         BlobInfo blobInfo = BlobInfo.newBuilder(bucket, imageKey)
                 .setContentType(contentType)
                 .build();
@@ -103,10 +123,11 @@ public class GcsImageStorage implements ImageStorage {
             storage.delete(BlobId.of(bucket, imageKey));
             signedUrlCache.invalidate(imageKey);
             thumbnailExists.invalidate(imageKey);
-            signedUrlCache.invalidate(ListThumbnail.key(imageKey));
+            signedUrlCache.invalidate(ListThumbnail.createThumbnailKey(imageKey));
             if (ListThumbnail.supports(imageKey)) {
-                try { storage.delete(BlobId.of(bucket, ListThumbnail.key(imageKey))); }
-                catch (StorageException cleanupFailure) {
+                try {
+                    storage.delete(BlobId.of(bucket, ListThumbnail.createThumbnailKey(imageKey)));
+                } catch (StorageException cleanupFailure) {
                     log.warn("썸네일 삭제 실패: imageKey={}", imageKey, cleanupFailure);
                 }
             }
@@ -116,7 +137,10 @@ public class GcsImageStorage implements ImageStorage {
     }
 
     @Override
-    public void copy(String sourceKey, String targetKey) {
+    public void copy(
+            String sourceKey,
+            String targetKey
+    ) {
         Storage.CopyRequest copyRequest = Storage.CopyRequest.newBuilder()
                 .setSource(BlobId.of(bucket, sourceKey))
                 .setTarget(BlobId.of(bucket, targetKey))
@@ -131,59 +155,77 @@ public class GcsImageStorage implements ImageStorage {
         }
     }
 
-    private void createThumbnail(String key, byte[] bytes) {
-        if (!ListThumbnail.supports(key)) return;
-        thumbnailExists.invalidate(key);
-        signedUrlCache.invalidate(ListThumbnail.key(key));
+    private void createThumbnail(
+            String imageKey,
+            byte[] imageBytes
+    ) {
+        if (!ListThumbnail.supports(imageKey)) {
+            return;
+        }
+        thumbnailExists.invalidate(imageKey);
+        signedUrlCache.invalidate(ListThumbnail.createThumbnailKey(imageKey));
         try {
-            byte[] thumbnail = ListThumbnail.render(bytes);
-            if (thumbnail.length >= bytes.length) return;
-            storage.create(BlobInfo.newBuilder(bucket, ListThumbnail.key(key))
-                    .setContentType("image/jpeg").setCacheControl("private, max-age=3600").build(), thumbnail);
-            thumbnailExists.put(key, true);
-        } catch (java.io.IOException | RuntimeException failure) {
-            // A derivative is optional: original upload and transaction cleanup retain their contract.
-            log.warn("썸네일 생성 실패, 원본 사용: imageKey={}", key, failure);
+            byte[] thumbnail = ListThumbnail.render(imageBytes);
+            if (thumbnail.length >= imageBytes.length) {
+                return;
+            }
+            storage.create(BlobInfo.newBuilder(bucket, ListThumbnail.createThumbnailKey(imageKey))
+                    .setContentType(THUMBNAIL_CONTENT_TYPE)
+                    .setCacheControl(THUMBNAIL_CACHE_CONTROL)
+                    .build(), thumbnail);
+            thumbnailExists.put(imageKey, true);
+        } catch (IOException | RuntimeException failure) {
+            // 썸네일 생성 실패는 원본 업로드와 트랜잭션 정리를 실패시키지 않는다.
+            log.warn("썸네일 생성 실패, 원본 사용: imageKey={}", imageKey, failure);
         }
     }
 
-    private void copyThumbnail(String source, String target) {
-        if (!ListThumbnail.supports(target)) return;
-        thumbnailExists.invalidate(target);
-        signedUrlCache.invalidate(ListThumbnail.key(target));
+    private void copyThumbnail(
+            String sourceImageKey,
+            String targetImageKey
+    ) {
+        if (!ListThumbnail.supports(targetImageKey)) {
+            return;
+        }
+        thumbnailExists.invalidate(targetImageKey);
+        signedUrlCache.invalidate(ListThumbnail.createThumbnailKey(targetImageKey));
         try {
-            if (storage.get(BlobId.of(bucket, ListThumbnail.key(source))) == null) return;
+            if (storage.get(BlobId.of(bucket, ListThumbnail.createThumbnailKey(sourceImageKey))) == null) {
+                return;
+            }
             storage.copy(Storage.CopyRequest.newBuilder()
-                    .setSource(BlobId.of(bucket, ListThumbnail.key(source)))
-                    .setTarget(BlobId.of(bucket, ListThumbnail.key(target))).build()).getResult();
-            thumbnailExists.put(target, true);
+                    .setSource(BlobId.of(bucket, ListThumbnail.createThumbnailKey(sourceImageKey)))
+                    .setTarget(BlobId.of(bucket, ListThumbnail.createThumbnailKey(targetImageKey))).build()).getResult();
+            thumbnailExists.put(targetImageKey, true);
         } catch (RuntimeException failure) {
-            log.warn("썸네일 복사 실패, 원본 사용: imageKey={}", target, failure);
+            log.warn("썸네일 복사 실패, 원본 사용: imageKey={}", targetImageKey, failure);
         }
     }
 
     @Override
-    public java.util.Map<String, String> getListUrls(java.util.Collection<String> keys) {
-        var unique = keys.stream().filter(java.util.Objects::nonNull).distinct().toList();
-        var missing = unique.stream().filter(ListThumbnail::supports)
-                .filter(key -> thumbnailExists.getIfPresent(key) == null).toList();
-        if (!missing.isEmpty()) {
+    public Map<String, String> getListUrls(Collection<String> imageKeys) {
+        List<String> uniqueImageKeys = imageKeys.stream().filter(Objects::nonNull).distinct().toList();
+        List<String> uncachedImageKeys = uniqueImageKeys.stream().filter(ListThumbnail::supports)
+                .filter(imageKey -> thumbnailExists.getIfPresent(imageKey) == null).toList();
+        if (!uncachedImageKeys.isEmpty()) {
             try {
-                // One SDK batch for a page, rather than one metadata round-trip per item.
-                var blobs = storage.get(missing.stream()
-                        .map(key -> BlobId.of(bucket, ListThumbnail.key(key))).toList());
-                for (int i = 0; i < missing.size(); i++) thumbnailExists.put(missing.get(i), blobs.get(i) != null);
+                // 페이지 내 썸네일 존재 여부를 SDK 배치 조회로 확인한다.
+                List<Blob> thumbnailBlobs = storage.get(uncachedImageKeys.stream()
+                        .map(imageKey -> BlobId.of(bucket, ListThumbnail.createThumbnailKey(imageKey))).toList());
+                for (int index = 0; index < uncachedImageKeys.size(); index++) {
+                    thumbnailExists.put(uncachedImageKeys.get(index), thumbnailBlobs.get(index) != null);
+                }
             } catch (RuntimeException failure) {
-                // Keep failures uncached so recovery is visible on the next request.
+                // 조회 실패는 캐시하지 않고 다음 요청에서 재시도한다.
                 log.warn("썸네일 존재 확인 실패, 원본 사용", failure);
             }
         }
-        java.util.Map<String, String> urls = new java.util.HashMap<>();
-        for (String key : unique) {
-            boolean exists = ListThumbnail.supports(key) && Boolean.TRUE.equals(thumbnailExists.getIfPresent(key));
-            urls.put(key, getUrl(exists ? ListThumbnail.key(key) : key));
+        Map<String, String> imageUrls = new HashMap<>();
+        for (String imageKey : uniqueImageKeys) {
+            boolean exists = ListThumbnail.supports(imageKey) && Boolean.TRUE.equals(thumbnailExists.getIfPresent(imageKey));
+            imageUrls.put(imageKey, getUrl(exists ? ListThumbnail.createThumbnailKey(imageKey) : imageKey));
         }
-        return urls;
+        return imageUrls;
     }
 
     @Override
@@ -207,6 +249,9 @@ public class GcsImageStorage implements ImageStorage {
         ).toExternalForm();
     }
 
-    private record CachedSignedUrl(String url, long expiresAtNanos) {
+    private record CachedSignedUrl(
+            String url,
+            long expiresAtNanos
+    ) {
     }
 }
