@@ -79,7 +79,11 @@ public class GcsImageStorage implements ImageStorage {
     }
 
     @Override
-    public void upload(String imageKey, byte[] imageBytes, String contentType) {
+    public void upload(
+            String imageKey,
+            byte[] imageBytes,
+            String contentType
+    ) {
         BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(bucket, imageKey)
                 .setContentType(contentType);
         if (GcsImageCachePolicy.supports(imageKey)) {

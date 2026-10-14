@@ -90,6 +90,14 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+// Explicit maintenance: dry-run unless --apply is provided; uses ADC, not the app .env.
+tasks.register('backfillImageCacheMetadata', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.global.image.ImageCacheMetadataBackfill'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+	jvmArgs '-Xmx256m'
+}
+
 // Local environment variables from .env (see .env.example). The file is optional:
 // CI and EC2 set real environment variables, and those always win over the file.
 def dotenvFile = file('.env')
@@ -138,12 +146,4 @@ tasks.named('bootRun') {
 		systemProperty 'management.metrics.distribution.percentiles.[http.server.requests]', '0.95,0.99'
 		jvmArgs "-Xlog:gc*:file=${perfDir}/gc.log:time,uptime,level,tags"
 	}
-}
-
-// Explicit maintenance: dry-run unless --apply is provided; uses ADC, not the app .env.
-tasks.register('backfillImageCacheMetadata', JavaExec) {
-	classpath = sourceSets.main.runtimeClasspath
-	mainClass = 'com.anabada.fleaflea.global.image.ImageCacheMetadataBackfill'
-	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
-	jvmArgs '-Xmx256m'
 }
