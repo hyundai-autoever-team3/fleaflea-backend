@@ -1,7 +1,7 @@
 package com.anabada.fleaflea.global.lock;
 
-import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
-import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
+import com.anabada.fleaflea.global.lock.exception.DistributedLockBusyException;
+import com.anabada.fleaflea.global.lock.exception.DistributedLockUnavailableException;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RedisLockAspectTest {
+class DistributedLockAspectTest {
 
     @Mock
     private RedissonClient redissonClient;
@@ -55,18 +55,18 @@ class RedisLockAspectTest {
 
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
-    private RedisLockAspect redisLockAspect;
-    private RedisLocked redisLocked;
+    private DistributedLockAspect distributedLockAspect;
+    private DistributedLock distributedLock;
 
     @BeforeEach
     void setUp() throws Exception {
-        redisLockAspect = new RedisLockAspect(
+        distributedLockAspect = new DistributedLockAspect(
                 redissonClient,
                 beanFactory,
                 meterRegistry,
                 Duration.ofMillis(50)
         );
-        redisLocked = LockedOperation.class.getMethod("updateMarket", Long.class).getAnnotation(RedisLocked.class);
+        distributedLock = LockedOperation.class.getMethod("updateMarket", Long.class).getAnnotation(DistributedLock.class);
         lenient().when(lock.isHeldByCurrentThread()).thenReturn(true);
         when(joinPoint.getSignature()).thenReturn(methodSignature);
         when(joinPoint.getTarget()).thenReturn(new LockedOperation());
@@ -85,8 +85,8 @@ class RedisLockAspectTest {
     void executeWithLock_timeout_rejectsRequest() throws Throwable {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(false);
 
-        assertThatThrownBy(() -> redisLockAspect.executeWithLock(joinPoint, redisLocked))
-                .isInstanceOf(RedisLockBusyException.class);
+        assertThatThrownBy(() -> distributedLockAspect.executeWithLock(joinPoint, distributedLock))
+                .isInstanceOf(DistributedLockBusyException.class);
 
         verify(joinPoint, never()).proceed();
         verify(lock, never()).unlock();
@@ -101,8 +101,8 @@ class RedisLockAspectTest {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS)))
                 .thenThrow(new RedisConnectionFailureException("test failure"));
 
-        assertThatThrownBy(() -> redisLockAspect.executeWithLock(joinPoint, redisLocked))
-                .isInstanceOf(RedisLockUnavailableException.class);
+        assertThatThrownBy(() -> distributedLockAspect.executeWithLock(joinPoint, distributedLock))
+                .isInstanceOf(DistributedLockUnavailableException.class);
 
         verify(joinPoint, never()).proceed();
     }
@@ -112,8 +112,8 @@ class RedisLockAspectTest {
     void executeWithLock_interrupted_preservesStatus() throws Throwable {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenThrow(new InterruptedException());
 
-        assertThatThrownBy(() -> redisLockAspect.executeWithLock(joinPoint, redisLocked))
-                .isInstanceOf(RedisLockUnavailableException.class);
+        assertThatThrownBy(() -> distributedLockAspect.executeWithLock(joinPoint, distributedLock))
+                .isInstanceOf(DistributedLockUnavailableException.class);
 
         assertThat(Thread.currentThread().isInterrupted()).isTrue();
         verify(joinPoint, never()).proceed();
@@ -125,7 +125,7 @@ class RedisLockAspectTest {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(joinPoint.proceed()).thenThrow(new IllegalArgumentException("test"));
 
-        assertThatThrownBy(() -> redisLockAspect.executeWithLock(joinPoint, redisLocked))
+        assertThatThrownBy(() -> distributedLockAspect.executeWithLock(joinPoint, distributedLock))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(lock).unlock();
@@ -146,7 +146,7 @@ class RedisLockAspectTest {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(joinPoint.proceed()).thenReturn("updated");
 
-        Object result = redisLockAspect.executeWithLock(joinPoint, redisLocked);
+        Object result = distributedLockAspect.executeWithLock(joinPoint, distributedLock);
 
         assertThat(result).isEqualTo("updated");
         verify(lock).unlock();
@@ -162,7 +162,7 @@ class RedisLockAspectTest {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(second.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(second.isHeldByCurrentThread()).thenReturn(true);
-        redisLockAspect.executeWithLock(joinPoint, redisLocked);
+        distributedLockAspect.executeWithLock(joinPoint, distributedLock);
         InOrder ordered = inOrder(lock, second, joinPoint);
         ordered.verify(lock).tryLock(anyLong(), eq(TimeUnit.NANOSECONDS));
         ordered.verify(second).tryLock(anyLong(), eq(TimeUnit.NANOSECONDS));
@@ -180,8 +180,8 @@ class RedisLockAspectTest {
         when(redissonClient.getLock("fleaflea:redisson:lock:b")).thenReturn(second);
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(second.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(false);
-        assertThatThrownBy(() -> redisLockAspect.executeWithLock(joinPoint, redisLocked))
-                .isInstanceOf(RedisLockBusyException.class);
+        assertThatThrownBy(() -> distributedLockAspect.executeWithLock(joinPoint, distributedLock))
+                .isInstanceOf(DistributedLockBusyException.class);
         verify(lock).unlock();
         verify(second, never()).unlock();
         verify(joinPoint, never()).proceed();
@@ -192,23 +192,23 @@ class RedisLockAspectTest {
     void executeWithLock_lostOwnership_doesNotUnlock() throws Throwable {
         when(lock.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(lock.isHeldByCurrentThread()).thenReturn(false);
-        redisLockAspect.executeWithLock(joinPoint, redisLocked);
+        distributedLockAspect.executeWithLock(joinPoint, distributedLock);
         verify(lock, never()).unlock();
     }
 
     private void useMultipleKeys() throws Exception {
         Method method = LockedOperation.class.getMethod("multiple", List.class);
-        redisLocked = method.getAnnotation(RedisLocked.class);
+        distributedLock = method.getAnnotation(DistributedLock.class);
         when(methodSignature.getMethod()).thenReturn(method);
         when(joinPoint.getArgs()).thenReturn(new Object[]{List.of("b", "a", "a")});
     }
 
     public static class LockedOperation {
-        @RedisLocked(key = "#keys")
+        @DistributedLock(key = "#keys")
         public void multiple(List<String> keys) {
         }
 
-        @RedisLocked(key = "'market:' + #marketId")
+        @DistributedLock(key = "'market:' + #marketId")
         public void updateMarket(Long marketId) {
         }
     }

@@ -18,7 +18,7 @@ import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
-import com.anabada.fleaflea.global.lock.RedisLocked;
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -95,7 +95,7 @@ public class MarketService {
         return inviteCode;
     }
 
-    @RedisLocked(key = "'market:' + #marketId")
+    @DistributedLock(key = "'market:' + #marketId")
     @Transactional
     public MarketUpdateResponse updateMarket(
             Long memberId,
@@ -150,7 +150,7 @@ public class MarketService {
         return MarketInvitationResponse.from(market);
     }
 
-    @RedisLocked(key = "'market:' + #marketId")
+    @DistributedLock(key = "'market:' + #marketId")
     @Transactional
     public MarketInvitationResponse reissueInvitation(
             Long memberId,
@@ -166,7 +166,7 @@ public class MarketService {
         return MarketInvitationResponse.from(market);
     }
 
-    @RedisLocked(key = "'market:' + #marketId")
+    @DistributedLock(key = "'market:' + #marketId")
     @Transactional
     public void leaveMarket(
             Long memberId,
@@ -188,7 +188,7 @@ public class MarketService {
         marketMemberRepository.delete(membership);
     }
 
-    @RedisLocked(key = "'market:' + #marketId")
+    @DistributedLock(key = "'market:' + #marketId")
     @Transactional
     public void deleteMarket(
             Long memberId,

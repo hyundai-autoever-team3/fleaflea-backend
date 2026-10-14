@@ -11,7 +11,7 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.global.lock.RedisLocked;
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +27,7 @@ public class MarketJoinService {
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
 
-    @RedisLocked(key = "@marketLockKeys.getMarketKeyByInviteCode(#marketJoinRequest.inviteCode())")
+    @DistributedLock(key = "@marketLockKeys.getMarketKeyByInviteCode(#marketJoinRequest.inviteCode())")
     @Transactional
     public MarketJoinResponse joinMarket(
             Long memberId,

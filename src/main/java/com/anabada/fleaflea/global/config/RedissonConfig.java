@@ -1,4 +1,4 @@
-package com.anabada.fleaflea.global.lock;
+package com.anabada.fleaflea.global.config;
 
 import java.time.Duration;
 import org.redisson.Redisson;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 
 @Configuration(proxyBeanMethods = false)
-public class RedisLockConfiguration {
+public class RedissonConfig {
 
     private static final long MINIMUM_WATCHDOG_TIMEOUT_MILLIS = 3000;
 

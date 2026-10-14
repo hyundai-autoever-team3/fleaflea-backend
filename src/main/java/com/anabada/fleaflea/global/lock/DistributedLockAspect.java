@@ -1,8 +1,8 @@
 package com.anabada.fleaflea.global.lock;
 
 import com.anabada.fleaflea.global.exception.BusinessException;
-import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
-import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
+import com.anabada.fleaflea.global.lock.exception.DistributedLockBusyException;
+import com.anabada.fleaflea.global.lock.exception.DistributedLockUnavailableException;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.lang.reflect.Method;
@@ -39,9 +39,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Aspect
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
-public class RedisLockAspect {
+public class DistributedLockAspect {
 
-    private static final String REDISSON_LOCK_PREFIX = "fleaflea:redisson:lock:";
+    private static final String DISTRIBUTED_LOCK_PREFIX = "fleaflea:redisson:lock:";
 
     private final RedissonClient redissonClient;
     private final BeanFactory beanFactory;
@@ -50,7 +50,7 @@ public class RedisLockAspect {
     private final ExpressionParser expressionParser = new SpelExpressionParser();
     private final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
-    public RedisLockAspect(
+    public DistributedLockAspect(
             @Lazy RedissonClient redissonClient,
             BeanFactory beanFactory,
             MeterRegistry meterRegistry,
@@ -65,12 +65,12 @@ public class RedisLockAspect {
         this.waitTime = waitTime;
     }
 
-    @Around("@annotation(redisLocked)")
+    @Around("@annotation(distributedLock)")
     public Object executeWithLock(
             ProceedingJoinPoint joinPoint,
-            RedisLocked redisLocked
+            DistributedLock distributedLock
     ) throws Throwable {
-        List<String> lockKeys = getLockKeys(joinPoint, redisLocked);
+        List<String> lockKeys = getLockKeys(joinPoint, distributedLock);
         List<RLock> locks = new ArrayList<>();
         long deadline = System.nanoTime() + waitTime.toNanos();
         try {
@@ -104,7 +104,7 @@ public class RedisLockAspect {
 
     private List<String> getLockKeys(
             ProceedingJoinPoint joinPoint,
-            RedisLocked redisLocked
+            DistributedLock distributedLock
     ) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = AopUtils.getMostSpecificMethod(signature.getMethod(), joinPoint.getTarget().getClass());
@@ -114,7 +114,7 @@ public class RedisLockAspect {
         context.setBeanResolver(new BeanFactoryResolver(beanFactory));
         Object value;
         try {
-            value = expressionParser.parseExpression(redisLocked.key()).getValue(context);
+            value = expressionParser.parseExpression(distributedLock.key()).getValue(context);
         } catch (SpelEvaluationException exception) {
             Throwable cause = exception.getCause();
             while (cause != null) {
@@ -143,21 +143,21 @@ public class RedisLockAspect {
         String outcome = "unavailable";
 
         try {
-            RLock lock = redissonClient.getLock(REDISSON_LOCK_PREFIX + lockKey);
+            RLock lock = redissonClient.getLock(DISTRIBUTED_LOCK_PREFIX + lockKey);
             if (!lock.tryLock(remainingNanos, TimeUnit.NANOSECONDS)) {
                 outcome = "timeout";
-                throw new RedisLockBusyException();
+                throw new DistributedLockBusyException();
             }
             outcome = "acquired";
             return lock;
         } catch (InterruptedException exception) {
             outcome = "interrupted";
             Thread.currentThread().interrupt();
-            throw new RedisLockUnavailableException(exception);
-        } catch (RedisLockBusyException exception) {
+            throw new DistributedLockUnavailableException(exception);
+        } catch (DistributedLockBusyException exception) {
             throw exception;
         } catch (RuntimeException exception) {
-            throw new RedisLockUnavailableException(exception);
+            throw new DistributedLockUnavailableException(exception);
         } finally {
             try {
                 Timer.builder("redis.lock.acquire")

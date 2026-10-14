@@ -1,6 +1,6 @@
 package com.anabada.fleaflea.domain.item.service;
 
-import com.anabada.fleaflea.global.lock.RedisLocked;
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotOwnerException;
@@ -50,7 +50,7 @@ public class ItemService {
     private final TradeRequestRepository tradeRequestRepository;
     private final NotificationRepository notificationRepository;
 
-    @RedisLocked(key = "@collectionLockKeys.forItem(#itemCreateRequest.collectionItemId())")
+    @DistributedLock(key = "@collectionLockKeys.forItem(#itemCreateRequest.collectionItemId())")
     @Transactional
     public ItemSummaryResponse createItem(
             Long marketId,

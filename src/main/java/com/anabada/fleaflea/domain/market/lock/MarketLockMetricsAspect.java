@@ -25,7 +25,7 @@ public class MarketLockMetricsAspect {
         return measure(joinPoint, "market.locked.lookup");
     }
 
-    @Around("@annotation(com.anabada.fleaflea.global.lock.RedisLocked) && "
+    @Around("@annotation(com.anabada.fleaflea.global.lock.DistributedLock) && "
             + "(within(com.anabada.fleaflea.domain.market.service..*) || "
             + "within(com.anabada.fleaflea.domain.marketmember.service..*))")
     public Object measureChangeExecution(ProceedingJoinPoint joinPoint) throws Throwable {
