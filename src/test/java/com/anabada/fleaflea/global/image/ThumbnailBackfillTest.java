@@ -75,7 +75,8 @@ class ThumbnailBackfillTest {
         assertThat(summary.created()).isEqualTo(1);
         assertThat(summary.thumbnailBytes()).isLessThan(summary.originalBytes());
         verify(source).getContent(Blob.BlobSourceOption.generationMatch());
-        verify(storage).create(argThat((BlobInfo info) -> info.getName().equals(ListThumbnail.createThumbnailKey("items/a.jpg"))),
+        verify(storage).create(argThat((BlobInfo info) -> info.getName().equals(ListThumbnail.createThumbnailKey("items/a.jpg"))
+                        && "private, max-age=300, must-revalidate".equals(info.getCacheControl())),
                 any(byte[].class), eq(Storage.BlobTargetOption.doesNotExist()));
     }
 

@@ -7,17 +7,20 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import java.util.List;
+import java.time.Duration;
 
 /** Spring 실행과 분리된 기존 이미지 썸네일 생성 명령이다. */
 public final class ThumbnailBackfill {
 
     private static final int DEFAULT_CANDIDATE_LIMIT = 100;
+    private static final long DEFAULT_SIGNED_DURATION_SECONDS = 3600;
     private static final int MAX_PAGE_SIZE = 100;
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
     private static final int NOT_FOUND_STATUS = 404;
     private static final int PRECONDITION_FAILED_STATUS = 412;
     private static final String BUCKET_ARGUMENT = "--bucket=";
     private static final String LIMIT_ARGUMENT = "--limit=";
+    private static final String SIGNED_DURATION_ARGUMENT = "--signed-url-duration-seconds=";
     private static final List<String> IMAGE_PREFIXES = List.of("items/", "collection-items/");
 
     private ThumbnailBackfill() {
@@ -27,11 +30,14 @@ public final class ThumbnailBackfill {
         String bucket = null;
         int candidateLimit = DEFAULT_CANDIDATE_LIMIT;
         boolean apply = false;
+        long signedDurationSeconds = DEFAULT_SIGNED_DURATION_SECONDS;
         for (String argument : args) {
             if (argument.startsWith(BUCKET_ARGUMENT)) {
                 bucket = argument.substring(BUCKET_ARGUMENT.length());
             } else if (argument.startsWith(LIMIT_ARGUMENT)) {
                 candidateLimit = Integer.parseInt(argument.substring(LIMIT_ARGUMENT.length()));
+            } else if (argument.startsWith(SIGNED_DURATION_ARGUMENT)) {
+                signedDurationSeconds = Long.parseLong(argument.substring(SIGNED_DURATION_ARGUMENT.length()));
             } else if (argument.equals("--apply")) {
                 apply = true;
             } else {
@@ -39,9 +45,10 @@ public final class ThumbnailBackfill {
             }
         }
         if (bucket == null || bucket.isBlank() || candidateLimit < 1) {
-            throw new IllegalArgumentException("Required: --bucket=BUCKET [--limit=100] [--apply]");
+            throw new IllegalArgumentException("Required: --bucket=BUCKET [--limit=100] [--signed-url-duration-seconds=3600] [--apply]");
         }
-        Summary summary = run(StorageOptions.getDefaultInstance().getService(), bucket, candidateLimit, apply);
+        String cacheControl = GcsImageCachePolicy.createCacheControl(Duration.ofSeconds(signedDurationSeconds));
+        Summary summary = run(StorageOptions.getDefaultInstance().getService(), bucket, candidateLimit, apply, cacheControl);
         printSummary(summary, apply);
         if (summary.failed() > 0) {
             throw new IllegalStateException("Backfill has failed objects; inspect summary before retrying");
@@ -64,6 +71,16 @@ public final class ThumbnailBackfill {
             String bucket,
             int candidateLimit,
             boolean apply
+    ) {
+        return run(storage, bucket, candidateLimit, apply, GcsImageCachePolicy.createCacheControl(Duration.ofHours(1)));
+    }
+
+    static Summary run(
+            Storage storage,
+            String bucket,
+            int candidateLimit,
+            boolean apply,
+            String cacheControl
     ) {
         int scanned = 0;
         int candidates = 0;
@@ -110,7 +127,7 @@ public final class ThumbnailBackfill {
                     }
                     BlobInfo thumbnailInfo = BlobInfo.newBuilder(bucket, thumbnailKey)
                             .setContentType("image/jpeg")
-                            .setCacheControl("private, max-age=3600")
+                            .setCacheControl(cacheControl)
                             .build();
                     storage.create(thumbnailInfo, renderedBytes, Storage.BlobTargetOption.doesNotExist());
                     created++;

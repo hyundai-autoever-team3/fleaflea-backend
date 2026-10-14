@@ -73,6 +73,8 @@ class GcsThumbnailTest {
         ArgumentCaptor<byte[]> bytes = ArgumentCaptor.forClass(byte[].class);
         verify(storage, times(2)).create(info.capture(), bytes.capture());
         assertThat(info.getAllValues().get(1).getName()).isEqualTo(ListThumbnail.createThumbnailKey("collection-items/a.jpg"));
+        assertThat(info.getAllValues().get(1).getCacheControl())
+                .isEqualTo("private, max-age=300, must-revalidate");
         assertThat(bytes.getAllValues().get(1).length).isLessThan(original.length);
         assertThat(images.getListUrls(List.of("collection-items/a.jpg")).get("collection-items/a.jpg"))
                 .contains("thumbnails/v1/");

@@ -34,7 +34,6 @@ public class GcsImageStorage implements ImageStorage {
     private static final int MAXIMUM_CACHED_THUMBNAILS = 10_000;
     private static final Duration THUMBNAIL_CACHE_DURATION = Duration.ofMinutes(1);
     private static final String THUMBNAIL_CONTENT_TYPE = "image/jpeg";
-    private static final String THUMBNAIL_CACHE_CONTROL = "private, max-age=3600";
 
     private final Storage storage;
     private final String bucket;
@@ -171,7 +170,7 @@ public class GcsImageStorage implements ImageStorage {
             }
             storage.create(BlobInfo.newBuilder(bucket, ListThumbnail.createThumbnailKey(imageKey))
                     .setContentType(THUMBNAIL_CONTENT_TYPE)
-                    .setCacheControl(THUMBNAIL_CACHE_CONTROL)
+                    .setCacheControl(GcsImageCachePolicy.createCacheControl(signedUrlDuration))
                     .build(), thumbnail);
             thumbnailExists.put(imageKey, true);
         } catch (IOException | RuntimeException failure) {
