@@ -1,6 +1,9 @@
 package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
+import com.anabada.fleaflea.domain.member.dto.EmailCodeVerifyResponse;
+import com.anabada.fleaflea.domain.member.exception.EmailVerificationConfigurationException;
+import com.anabada.fleaflea.domain.member.exception.EmailVerificationHashingException;
 import com.anabada.fleaflea.domain.member.repository.RedisEmailVerificationRepository;
 import com.anabada.fleaflea.domain.member.repository.RedisEmailVerificationRepository.VerificationResult;
 import com.anabada.fleaflea.global.mail.EmailService;
@@ -31,10 +34,7 @@ public class EmailVerificationService {
             @Value("${app.email-verification.hash-secret}") String hashSecret
     ) {
         if (hashSecret == null || hashSecret.isBlank()) {
-            //수정 필요
-            throw new IllegalArgumentException(
-                    "이메일 인증 해시 비밀키가 필요합니다"
-            );
+            throw new EmailVerificationConfigurationException();
         }
         this.repository = repository;
         this.emailService = emailService;
@@ -55,21 +55,32 @@ public class EmailVerificationService {
                 CODE_TTL
         );
 
-        emailService.sendVerificationCode(email,code);
+        emailService.sendVerificationCode(email, code);
     }
 
-    public VerificationResult verifyCode(
+    public EmailCodeVerifyResponse verifyCode(
             String email,
             EmailVerificationPurpose purpose,
             String code
     ) {
-        return repository.verifyAndConsume(
+        VerificationResult result = repository.verifyAndConsume(
                 email,
                 purpose.name(),
                 hash(email, purpose, code)
         );
+
+        String verificationToken = null;
+
+        if (result == VerificationResult.SUCCESS) {
+            verificationToken = repository.issueVerificationToken(email, purpose);
+        }
+
+        return new EmailCodeVerifyResponse(
+                result.name(),
+                verificationToken
+        );
     }
-    
+
     private String generateCode() {
         return String.format(
                 Locale.ROOT,
@@ -96,8 +107,7 @@ public class EmailVerificationService {
                     mac.doFinal(input.getBytes(StandardCharsets.UTF_8))
             );
         } catch (GeneralSecurityException exception) {
-            //수정 필요
-            throw new IllegalArgumentException("인증 코드 해시 생성 실패");
+            throw new EmailVerificationHashingException(exception);
         }
     }
 }

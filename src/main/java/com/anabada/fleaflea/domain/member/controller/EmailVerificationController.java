@@ -36,11 +36,14 @@ public class EmailVerificationController {
     public ResponseEntity<EmailCodeVerifyResponse> verifyCode(
             @Valid @RequestBody EmailCodeVerifyRequest request
             ) {
-         VerificationResult result =  verificationService.verifyCode(
+        EmailCodeVerifyResponse response =  verificationService.verifyCode(
                 request.email(),
                 request.purpose(),
                 request.code()
         );
+
+        VerificationResult result = VerificationResult.valueOf(response.result());
+
         HttpStatus status = switch (result) {
             case SUCCESS -> HttpStatus.OK;
             case NOT_FOUND, MISMATCH -> HttpStatus.BAD_REQUEST;
@@ -48,6 +51,6 @@ public class EmailVerificationController {
         };
 
         return ResponseEntity.status(status)
-                .body(new EmailCodeVerifyResponse(result.name()));
+                .body(response);
     }
 }
