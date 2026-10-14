@@ -80,11 +80,24 @@ spring:
             issuer-uri: https://kauth.kakao.com
           naver:
             issuer-uri: https://nid.naver.com
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 app:
   environment: ${APP_ENV:local}
   version: ${APP_VERSION:local}
   frontend-url: ${FRONTEND_URL:http://localhost:5175}
+  email-verification:
+    hash-secret: ${EMAIL_VERIFICATION_HASH_SECRET}
 
   image:
     storage: ${IMAGE_STORAGE:s3}
@@ -170,3 +183,5 @@ jwt:
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-signing-must-be-atleast-256-bits}
   access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
   refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+
