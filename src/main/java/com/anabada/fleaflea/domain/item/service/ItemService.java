@@ -113,9 +113,10 @@ public class ItemService {
 
         Member seller = item.getSeller();
 
-        return ItemDetailResponse.of(
+        return ItemDetailResponse.from(
                 item,
-                SellerResponse.from(seller, imageService.getUrl(seller.getProfileImageKey()))
+                SellerResponse.from(seller, imageService.getUrl(seller.getProfileImageKey())),
+                imageService.getUrl(item.getImageKey())
         );
     }
 
@@ -188,12 +189,13 @@ public class ItemService {
 
         Member seller = item.getSeller();
 
-        return ItemDetailResponse.of(
+        return ItemDetailResponse.from(
                 item,
                 SellerResponse.from(
                         seller,
                         imageService.getUrl(seller.getProfileImageKey())
-                )
+                ),
+                imageService.getUrl(item.getImageKey())
         );
     }
 
