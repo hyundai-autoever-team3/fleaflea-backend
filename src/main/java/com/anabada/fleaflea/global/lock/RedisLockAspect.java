@@ -1,36 +1,36 @@
 package com.anabada.fleaflea.global.lock;
 
+import com.anabada.fleaflea.global.exception.BusinessException;
 import com.anabada.fleaflea.global.lock.exception.RedisLockBusyException;
 import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
-import com.anabada.fleaflea.global.exception.BusinessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
-import org.springframework.context.annotation.Lazy;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.context.expression.MethodBasedEvaluationContext;
-import org.springframework.beans.factory.BeanFactory;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -40,6 +40,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RedisLockAspect {
+
+    private static final String REDISSON_LOCK_PREFIX = "fleaflea:redisson:lock:";
 
     private final RedissonClient redissonClient;
     private final BeanFactory beanFactory;
@@ -133,12 +135,15 @@ public class RedisLockAspect {
         }).distinct().sorted().toList();
     }
 
-    private RLock acquireLock(String lockKey, long remainingNanos) {
+    private RLock acquireLock(
+            String lockKey,
+            long remainingNanos
+    ) {
         long startedAt = System.nanoTime();
         String outcome = "unavailable";
 
         try {
-            RLock lock = redissonClient.getLock("fleaflea:redisson:lock:" + lockKey);
+            RLock lock = redissonClient.getLock(REDISSON_LOCK_PREFIX + lockKey);
             if (!lock.tryLock(remainingNanos, TimeUnit.NANOSECONDS)) {
                 outcome = "timeout";
                 throw new RedisLockBusyException();
@@ -165,7 +170,10 @@ public class RedisLockAspect {
         }
     }
 
-    private void releaseLocks(List<RLock> locks, long acquiredAt) {
+    private void releaseLocks(
+            List<RLock> locks,
+            long acquiredAt
+    ) {
         if (locks.isEmpty()) {
             return;
         }

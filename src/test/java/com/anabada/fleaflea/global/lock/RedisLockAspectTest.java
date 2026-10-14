@@ -5,10 +5,10 @@ import com.anabada.fleaflea.global.lock.exception.RedisLockUnavailableException;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -16,19 +16,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.redis.RedisConnectionFailureException;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -160,7 +163,7 @@ class RedisLockAspectTest {
         when(second.tryLock(anyLong(), eq(TimeUnit.NANOSECONDS))).thenReturn(true);
         when(second.isHeldByCurrentThread()).thenReturn(true);
         redisLockAspect.executeWithLock(joinPoint, redisLocked);
-        var ordered = inOrder(lock, second, joinPoint);
+        InOrder ordered = inOrder(lock, second, joinPoint);
         ordered.verify(lock).tryLock(anyLong(), eq(TimeUnit.NANOSECONDS));
         ordered.verify(second).tryLock(anyLong(), eq(TimeUnit.NANOSECONDS));
         ordered.verify(joinPoint).proceed();
@@ -194,17 +197,16 @@ class RedisLockAspectTest {
     }
 
     private void useMultipleKeys() throws Exception {
-        var method = LockedOperation.class.getMethod("multiple", java.util.List.class);
+        Method method = LockedOperation.class.getMethod("multiple", List.class);
         redisLocked = method.getAnnotation(RedisLocked.class);
         when(methodSignature.getMethod()).thenReturn(method);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{java.util.List.of("b", "a", "a")});
+        when(joinPoint.getArgs()).thenReturn(new Object[]{List.of("b", "a", "a")});
     }
 
     public static class LockedOperation {
         @RedisLocked(key = "#keys")
-        public void multiple(java.util.List<String> keys) {
+        public void multiple(List<String> keys) {
         }
-
 
         @RedisLocked(key = "'market:' + #marketId")
         public void updateMarket(Long marketId) {

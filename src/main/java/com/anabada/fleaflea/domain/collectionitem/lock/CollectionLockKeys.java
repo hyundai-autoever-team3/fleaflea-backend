@@ -16,36 +16,46 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CollectionLockKeys {
-    private final CollectionTradeRequestRepository tradeRepository;
-    private final BegRequestRepository begRepository;
 
-    public List<String> forCreation(Long itemId, CollectionTradeRequestCreateRequest request) {
-        List<String> keys = new ArrayList<>();
-        keys.add(key(itemId));
-        if (request.tradeType() == CollectionTradeType.EXCHANGE && request.offerCollectionItemId() != null) {
-            keys.add(key(request.offerCollectionItemId()));
+    private static final String COLLECTION_ITEM_LOCK_PREFIX = "collection-item:";
+
+    private final CollectionTradeRequestRepository collectionTradeRequestRepository;
+    private final BegRequestRepository begRequestRepository;
+
+    public List<String> forCreation(
+            Long collectionItemId,
+            CollectionTradeRequestCreateRequest collectionTradeRequestCreateRequest
+    ) {
+        List<String> lockKeys = new ArrayList<>();
+        lockKeys.add(createCollectionItemLockKey(collectionItemId));
+        if (collectionTradeRequestCreateRequest.tradeType() == CollectionTradeType.EXCHANGE
+                && collectionTradeRequestCreateRequest.offerCollectionItemId() != null) {
+            lockKeys.add(createCollectionItemLockKey(collectionTradeRequestCreateRequest.offerCollectionItemId()));
         }
-        return keys;
+        return lockKeys;
     }
 
-    public List<String> forTrade(Long requestId) {
-        Long targetId = tradeRepository.findTargetItemId(requestId)
+    public List<String> forTrade(Long collectionTradeRequestId) {
+        Long targetCollectionItemId = collectionTradeRequestRepository.findTargetItemId(collectionTradeRequestId)
                 .orElseThrow(CollectionTradeRequestNotFoundException::new);
-        List<String> keys = new ArrayList<>();
-        keys.add(key(targetId));
-        tradeRepository.findOfferItemId(requestId).ifPresent(id -> keys.add(key(id)));
-        return keys;
+        List<String> lockKeys = new ArrayList<>();
+        lockKeys.add(createCollectionItemLockKey(targetCollectionItemId));
+        collectionTradeRequestRepository.findOfferItemId(collectionTradeRequestId)
+                .ifPresent(offerCollectionItemId -> lockKeys.add(createCollectionItemLockKey(offerCollectionItemId)));
+        return lockKeys;
     }
 
-    public String forBeg(Long requestId) {
-        return key(begRepository.findTargetItemId(requestId).orElseThrow(BegRequestNotFoundException::new));
+    public String forBeg(Long begRequestId) {
+        Long targetCollectionItemId = begRequestRepository.findTargetItemId(begRequestId)
+                .orElseThrow(BegRequestNotFoundException::new);
+        return createCollectionItemLockKey(targetCollectionItemId);
     }
 
-    public List<String> forItem(Long itemId) {
-        return itemId == null ? List.of() : List.of(key(itemId));
+    public List<String> forItem(Long collectionItemId) {
+        return collectionItemId == null ? List.of() : List.of(createCollectionItemLockKey(collectionItemId));
     }
 
-    private String key(Long itemId) {
-        return "collection-item:" + itemId;
+    private String createCollectionItemLockKey(Long collectionItemId) {
+        return COLLECTION_ITEM_LOCK_PREFIX + collectionItemId;
     }
 }

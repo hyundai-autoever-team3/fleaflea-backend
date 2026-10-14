@@ -1,5 +1,8 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
+import com.anabada.fleaflea.domain.begrequest.service.BegRequestService;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
@@ -13,6 +16,7 @@ import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestCreateRequest;
+import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestResponse;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.service.CollectionTradeService;
 import com.anabada.fleaflea.fixture.CollectionItemFixture;
@@ -21,20 +25,6 @@ import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.image.ImageService;
 import com.anabada.fleaflea.support.PostgresIntegrationTest;
 import com.anabada.fleaflea.support.RedisTestContainerConfiguration;
-import org.springframework.context.annotation.Import;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +32,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -83,10 +88,10 @@ class CollectionItemConcurrencyTest {
     private NotificationSseService notificationSseService;
 
     @Autowired
-    private org.redisson.api.RedissonClient redissonClient;
+    private RedissonClient redissonClient;
 
     @Autowired
-    private com.anabada.fleaflea.domain.begrequest.service.BegRequestService begRequestService;
+    private BegRequestService begRequestService;
 
     private Member owner;
     private Member requester;
@@ -309,10 +314,13 @@ class CollectionItemConcurrencyTest {
     void collectionTrade_completeExchange_transfersBothItems() {
         CollectionItem offer = collectionItemRepository.save(
                 CollectionItemFixture.createCollectionItem(requester, "교환 제안", true));
-        var request = collectionTradeService.createCollectionTradeRequest(requester.getMemberId(), target.getCollectionItemId(),
-                new CollectionTradeRequestCreateRequest(CollectionTradeType.EXCHANGE, offer.getCollectionItemId()));
-        collectionTradeService.acceptCollectionTradeRequest(owner.getMemberId(), request.collectionTradeRequestId());
-        collectionTradeService.completeCollectionTradeRequest(requester.getMemberId(), request.collectionTradeRequestId());
+        CollectionTradeRequestResponse collectionTradeRequestResponse = collectionTradeService.createCollectionTradeRequest(
+                requester.getMemberId(),
+                target.getCollectionItemId(),
+                new CollectionTradeRequestCreateRequest(CollectionTradeType.EXCHANGE, offer.getCollectionItemId())
+        );
+        collectionTradeService.acceptCollectionTradeRequest(owner.getMemberId(), collectionTradeRequestResponse.collectionTradeRequestId());
+        collectionTradeService.completeCollectionTradeRequest(requester.getMemberId(), collectionTradeRequestResponse.collectionTradeRequestId());
         assertThat(collectionItemRepository.findById(target.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
                 .isEqualTo(requester.getMemberId());
         assertThat(collectionItemRepository.findById(offer.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
@@ -322,16 +330,19 @@ class CollectionItemConcurrencyTest {
     @Test
     @DisplayName("Redisson 적용 후 구걸 요청·수락·완료에서 도감 소유권을 이전한다")
     void begging_complete_transfersItem() {
-        var request = begRequestService.createBegging(requester.getMemberId(), target.getCollectionItemId(),
-                new com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest("나눔 요청"));
-        begRequestService.acceptBeggingRequest(owner.getMemberId(), request.begRequestId());
-        begRequestService.completeBeggingRequest(requester.getMemberId(), request.begRequestId());
+        BeggingResponse beggingResponse = begRequestService.createBegging(
+                requester.getMemberId(),
+                target.getCollectionItemId(),
+                new BeggingRequest("나눔 요청")
+        );
+        begRequestService.acceptBeggingRequest(owner.getMemberId(), beggingResponse.begRequestId());
+        begRequestService.completeBeggingRequest(requester.getMemberId(), beggingResponse.begRequestId());
         assertThat(collectionItemRepository.findById(target.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
                 .isEqualTo(requester.getMemberId());
     }
 
     private boolean tryRedisLock(String key) throws InterruptedException {
-        var lock = redissonClient.getLock(key);
+        RLock lock = redissonClient.getLock(key);
         boolean acquired = lock.tryLock(100, TimeUnit.MILLISECONDS);
         if (acquired) {
             lock.unlock();
