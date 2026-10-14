@@ -1,3 +1,5 @@
+import.file "monitoring" { filename = "/etc/alloy/pipelines.alloy" }
+
 logging {
   level = "info"
 }
@@ -8,8 +10,12 @@ otelcol.receiver.otlp "application" {
     endpoint = coalesce(sys.env("OTLP_HTTP_LISTEN_ADDRESS"), "127.0.0.1:4318")
   }
   output {
-    traces = [otelcol.processor.batch.traces.input]
+    traces = [monitoring.trace_filter.application.input]
   }
+}
+
+monitoring.trace_filter "application" {
+  forward_to = [otelcol.processor.batch.traces.input]
 }
 
 otelcol.processor.batch "traces" {
@@ -206,4 +212,9 @@ loki.write "local" {
   wal {
     enabled = true
   }
+}
+
+monitoring.collector_metrics "self" {
+  instance = sys.env("INSTANCE_NAME")
+  forward_to = [prometheus.remote_write.local.receiver]
 }

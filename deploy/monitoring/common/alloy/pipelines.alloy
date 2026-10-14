@@ -1,0 +1,64 @@
+declare "trace_filter" {
+  argument "forward_to" { optional = false }
+  export "input" { value = otelcol.processor.tail_sampling.application.input }
+  // Decide per trace so routine-request child spans are not left behind without their parent.
+  otelcol.processor.tail_sampling "application" {
+    decision_wait = "10s"
+    num_traces    = 1000
+  
+    policy {
+      name = "drop-routine-checks"
+      type = "drop"
+  
+      drop {
+        drop_sub_policy {
+          name = "routine-endpoints-and-background-maintenance"
+          type = "ottl_condition"
+  
+          ottl_condition {
+            error_mode = "ignore"
+            span = [
+              `span.attributes["url.path"] == "/readyz"`,
+              `span.attributes["http.route"] == "/readyz"`,
+              `span.attributes["url.path"] != nil and IsMatch(span.attributes["url.path"], "^/actuator/health($|/)")`,
+              `span.attributes["http.route"] != nil and IsMatch(span.attributes["http.route"], "^/actuator/health($|/)")`,
+              `span.attributes["url.path"] == "/actuator/prometheus"`,
+              `span.attributes["http.route"] == "/actuator/prometheus"`,
+              `IsMatch(span.name, "NotificationSseHeartbeat")`,
+              `IsRootSpan() and span.attributes["db.name"] == "fleaflea_db" and span.attributes["thread.name"] != nil and IsMatch(span.attributes["thread.name"], "^HikariPool-[0-9]+:housekeeper$")`,
+            ]
+          }
+        }
+      }
+    }
+  
+    policy {
+      name = "keep-other-traces"
+      type = "always_sample"
+    }
+  
+    output {
+      traces = argument.forward_to.value
+    }
+  }
+  
+}
+
+declare "collector_metrics" {
+  argument "instance" { optional = false }
+  argument "forward_to" { optional = false }
+  prometheus.scrape "self" {
+    targets = [{__address__ = "127.0.0.1:12345", instance = argument.instance.value, service = "alloy"}]
+    job_name = "fleaflea-alloy"
+    scrape_interval = "15s"
+    forward_to = [prometheus.relabel.delivery.receiver]
+  }
+  prometheus.relabel "delivery" {
+    rule {
+      source_labels = ["__name__"]
+      regex = "up|loki_write_(batch_retries|dropped_entries|sent_entries)_total|otelcol_exporter_(send_failed_spans_total|sent_spans_total|enqueue_failed_spans_total|queue_size|queue_capacity)"
+      action = "keep"
+    }
+    forward_to = argument.forward_to.value
+  }
+}

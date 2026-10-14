@@ -1,5 +1,5 @@
 rule_files:
-  - alerts.yml
+  - rules/alerts.yml
 evaluation_interval: 1m
 tests:
   - name: health checks do not dilute API error rate

@@ -1,28 +1,14 @@
-# Combine with deploy/monitoring/compose.yml first; paths are relative to that base file.
+name: fleaflea-monitoring-local
+
+# Combine with deploy/monitoring/common/compose.yml first; paths are relative to that base file.
 services:
   prometheus:
     volumes:
-      - ./local/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./local/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    depends_on:
-      - blackbox-exporter
+      - ../local/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
 
   blackbox-exporter:
-    image: prom/blackbox-exporter:v0.27.0
-    container_name: fleaflea-blackbox-exporter
-    restart: unless-stopped
-    command:
-      - --config.file=/etc/blackbox/config.yml
-    volumes:
-      - ./local/blackbox/config.yml:/etc/blackbox/config.yml:ro
     extra_hosts:
       - host.docker.internal:host-gateway
-    mem_limit: 64m
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
 
   postgres-exporter-local:
     image: prometheuscommunity/postgres-exporter:v0.17.1
@@ -49,8 +35,9 @@ services:
       - --storage.path=/var/lib/alloy
       - /etc/alloy/config.alloy
     volumes:
-      - ./local/config.alloy:/etc/alloy/config.alloy:ro
-      - ../../build/logs:/var/log/fleaflea:ro
+      - ../local/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./alloy/pipelines.alloy:/etc/alloy/pipelines.alloy:ro
+      - ../../../build/logs:/var/log/fleaflea:ro
       - local_alloy_data:/var/lib/alloy
     ports:
       - "127.0.0.1:4318:4318"
@@ -66,5 +53,20 @@ services:
       - no-new-privileges:true
     mem_limit: 256m
 
+secrets:
+  discord_webhook_url:
+    file: ../secrets/discord-webhook-url-local
+
 volumes:
   local_alloy_data:
+    name: fleaflea-monitoring_local_alloy_data
+  prometheus_data:
+    name: fleaflea-monitoring_prometheus_data
+  alertmanager_data:
+    name: fleaflea-monitoring_alertmanager_data
+  loki_data:
+    name: fleaflea-monitoring_loki_data
+  tempo_data:
+    name: fleaflea-monitoring_tempo_data
+  grafana_data:
+    name: fleaflea-monitoring_grafana_data
