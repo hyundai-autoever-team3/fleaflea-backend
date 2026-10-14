@@ -2,6 +2,10 @@ name: fleaflea-monitoring-local
 
 # Combine with deploy/monitoring/common/compose.yml first; paths are relative to that base file.
 services:
+  alertmanager:
+    environment:
+      DASHBOARD_URL: "${LOCAL_GRAFANA_URL:-http://localhost:3000}/d/fleaflea-overview/fleaflea-overview?orgId=1&from=now-1h&to=now&var-environment=local&refresh=15s"
+
   prometheus:
     volumes:
       - ../local/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro

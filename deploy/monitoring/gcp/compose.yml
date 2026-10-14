@@ -9,6 +9,8 @@ services:
       - ../gcp/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
   alertmanager:
     container_name: fleaflea-gcp-alertmanager
+    environment:
+      DASHBOARD_URL: "${GCP_GRAFANA_URL:-http://localhost:3001}/d/fleaflea-gcp-server/gcp-server-overview?orgId=1&from=now-1h&to=now&refresh=15s"
     ports: !override ["127.0.0.1:9094:9093"]
   loki:
     container_name: fleaflea-gcp-loki
