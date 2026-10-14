@@ -10,6 +10,7 @@ import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
 import com.anabada.fleaflea.domain.item.dto.ItemCreateRequest;
 import com.anabada.fleaflea.domain.item.dto.ItemDetailResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemSummaryResponse;
+import com.anabada.fleaflea.domain.item.dto.ItemSummaryProjection;
 import com.anabada.fleaflea.domain.item.dto.ItemUpdateRequest;
 import com.anabada.fleaflea.domain.item.dto.SellerResponse;
 import com.anabada.fleaflea.domain.item.exception.ItemImageRequiredException;
@@ -130,18 +131,18 @@ public class ItemService {
         // 정렬(최신 등록순)은 인덱스와 맞춰 리포지토리 쿼리에 고정되어 있다.
         PageRequest pageable = PageRequest.of(page, size);
 
-        Page<ItemSummaryResponse> items = itemRepository
+        Page<ItemSummaryProjection> pageResult = itemRepository
                 .searchInMarket(
                         marketId,
                         tradeType,
                         status,
                         keyword,
                         pageable
-                )
-                .map(projection -> ItemSummaryResponse.of(
-                        projection,
-                        imageService.getUrl(projection.imageKey())
-                ));
+                );
+        var imageUrls = imageService.getListUrls(pageResult.getContent().stream()
+                .map(ItemSummaryProjection::imageKey).toList());
+        Page<ItemSummaryResponse> items = pageResult.map(projection -> ItemSummaryResponse.of(
+                projection, imageUrls.get(projection.imageKey())));
 
         return PageResponse.from(items);
     }

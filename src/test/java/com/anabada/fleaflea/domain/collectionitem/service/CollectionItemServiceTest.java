@@ -86,6 +86,23 @@ class CollectionItemServiceTest {
     }
 
     @Test
+    @DisplayName("도감 목록은 목록용 이미지 URL을 사용하고 상세 원본 조회와 분리한다")
+    void listUsesThumbnailUrls() {
+        var item = CollectionItem.create(owner, "photo", "description", "collection-items/a.jpg", true);
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+        when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(owner));
+        when(collectionItemRepository.search(MEMBER_ID, false, null, pageable))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(item)));
+        when(imageService.getListUrls(List.of("collection-items/a.jpg")))
+                .thenReturn(java.util.Map.of("collection-items/a.jpg", "https://example.test/thumbnail.jpg"));
+
+        var response = collectionItemService.getMyCollectionItems(MEMBER_ID, null, pageable);
+
+        assertThat(response.content().getFirst().imageUrl()).isEqualTo("https://example.test/thumbnail.jpg");
+        verify(imageService, never()).getUrl(any());
+    }
+
+    @Test
     @DisplayName("도감을 등록하면 트랜잭션에 연결된 이미지 키를 저장한다")
     void createCollectionItem_savesUploadedImageKey() {
         MockMultipartFile image = new MockMultipartFile("image", new byte[]{1});

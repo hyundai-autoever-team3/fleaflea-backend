@@ -1,5 +1,8 @@
 package com.anabada.fleaflea.global.image;
 
+import java.util.Collection;
+import java.util.Map;
+
 import com.anabada.fleaflea.global.exception.ErrorCode;
 import com.anabada.fleaflea.global.image.exception.ImageException;
 import org.springframework.stereotype.Service;
@@ -288,6 +291,10 @@ public class ImageService {
         );
 
         return replacement.newKey();
+    }
+
+    public Map<String, String> getListUrls(Collection<String> imageKeys) {
+        return imageStorage.getListUrls(imageKeys);
     }
 
     public String getUrl(String imageKey) {
