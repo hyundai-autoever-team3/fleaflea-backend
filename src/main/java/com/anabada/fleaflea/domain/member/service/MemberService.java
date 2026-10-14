@@ -1,9 +1,11 @@
 package com.anabada.fleaflea.domain.member.service;
 
+import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.exception.*;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.domain.member.repository.RedisEmailVerificationRepository;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -21,6 +23,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final ImageService imageService;
     private final RedisRefreshTokenRepository refreshTokenRepository;
+    private final RedisEmailVerificationRepository emailVerificationRepository;
 
     @Transactional(readOnly = true)
     public MyProfileResponse getMyProfile(Long memberId) {
@@ -104,6 +107,8 @@ public class MemberService {
         member.updatePassword(
                 passwordEncoder.encode(request.newPassword())
         );
+
+        revokeRefreshTokenAfterCommit(memberId);
     }
 
     @Transactional
@@ -138,5 +143,29 @@ public class MemberService {
                 member.getNickname()
         );
 
+    }
+
+    @Transactional
+    public void resetPassword(PasswordResetRequest request) {
+        Member member = memberRepository.findByEmail(request.email())
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (member.getSocialProvider() != null) {
+            throw new SocialAccountPasswordResetNotAllowedException();
+        }
+
+        boolean verified = emailVerificationRepository.consumeVerificationToken(
+                request.verificationToken(),
+                request.email(),
+                EmailVerificationPurpose.PASSWORD_RESET
+        );
+
+        if (!verified) {
+            throw new InvalidEmailVerificationTokenException();
+        }
+
+        member.updatePassword(passwordEncoder.encode(request.newPassword()));
+
+        revokeRefreshTokenAfterCommit(member.getMemberId());
     }
 }

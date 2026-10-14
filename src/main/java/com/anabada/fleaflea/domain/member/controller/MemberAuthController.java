@@ -1,10 +1,8 @@
 package com.anabada.fleaflea.domain.member.controller;
 
-import com.anabada.fleaflea.domain.member.dto.LoginRequest;
-import com.anabada.fleaflea.domain.member.dto.LoginResponse;
-import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
-import com.anabada.fleaflea.domain.member.dto.TokenPair;
+import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.service.MemberAuthService;
+import com.anabada.fleaflea.domain.member.service.MemberService;
 import com.anabada.fleaflea.domain.refreshtoken.dto.ReissueResponse;
 import com.anabada.fleaflea.global.security.RefreshTokenCookieProvider;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class MemberAuthController {
     private final MemberAuthService memberAuthService;
     private final RefreshTokenCookieProvider refreshTokenCookieProvider;
+    private final MemberService memberService;
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "이메일, 비밀번호, 닉네임을 사용하여 회원가입합니다.")
@@ -107,6 +106,20 @@ public class MemberAuthController {
             @AuthenticationPrincipal Long memberId
     ) {
         memberAuthService.logout(memberId);
+        return ResponseEntity.noContent()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.delete().toString()
+                )
+                .build();
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody PasswordResetRequest request
+            ) {
+        memberService.resetPassword(request);
+
         return ResponseEntity.noContent()
                 .header(
                         HttpHeaders.SET_COOKIE,

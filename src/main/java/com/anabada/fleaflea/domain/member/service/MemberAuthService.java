@@ -1,14 +1,17 @@
 package com.anabada.fleaflea.domain.member.service;
 
+import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
 import com.anabada.fleaflea.domain.member.dto.TokenPair;
 import com.anabada.fleaflea.domain.member.exception.InvalidLoginException;
+import com.anabada.fleaflea.domain.member.exception.InvalidEmailVerificationTokenException;
 import com.anabada.fleaflea.domain.member.exception.MemberEmailDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateException;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import com.anabada.fleaflea.domain.member.repository.RedisEmailVerificationRepository;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
@@ -31,6 +34,7 @@ public class MemberAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisRefreshTokenRepository refreshTokenRepository;
     private final TokenIssueService tokenIssueService;
+    private final RedisEmailVerificationRepository emailVerificationRepository;
 
 
     @Transactional
@@ -40,6 +44,16 @@ public class MemberAuthService {
         }
         if (memberRepository.existsByEmail(request.email())) {
             throw new MemberEmailDuplicateException();
+        }
+
+        boolean verified = emailVerificationRepository.consumeVerificationToken(
+                request.verificatioinToken(),
+                request.email(),
+                EmailVerificationPurpose.SIGN_UP
+        );
+
+        if (!verified) {
+            throw new InvalidEmailVerificationTokenException();
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
