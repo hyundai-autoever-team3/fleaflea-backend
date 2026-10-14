@@ -69,6 +69,7 @@ dependencies {
 
 	// WebP 이미지 검증
 	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.14.0'
+	implementation 'com.drewnoakes:metadata-extractor:2.19.0'
 
 	// Actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -138,4 +139,12 @@ tasks.named('bootRun') {
 		systemProperty 'management.metrics.distribution.percentiles.[http.server.requests]', '0.95,0.99'
 		jvmArgs "-Xlog:gc*:file=${perfDir}/gc.log:time,uptime,level,tags"
 	}
+}
+
+// Explicit maintenance only: dry-run unless --apply is provided. Uses ADC, never the app .env.
+tasks.register('backfillImageThumbnails', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.global.image.ThumbnailBackfill'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+	jvmArgs '-Xmx512m', '-Djava.awt.headless=true'
 }
