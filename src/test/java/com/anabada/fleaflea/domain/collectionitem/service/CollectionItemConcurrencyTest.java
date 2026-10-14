@@ -1,5 +1,8 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingRequest;
+import com.anabada.fleaflea.domain.begrequest.dto.BeggingResponse;
+import com.anabada.fleaflea.domain.begrequest.service.BegRequestService;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemResponse;
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
@@ -13,6 +16,7 @@ import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestCreateRequest;
+import com.anabada.fleaflea.domain.trade.dto.CollectionTradeRequestResponse;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.service.CollectionTradeService;
 import com.anabada.fleaflea.fixture.CollectionItemFixture;
@@ -20,19 +24,7 @@ import com.anabada.fleaflea.fixture.FriendshipFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.image.ImageService;
 import com.anabada.fleaflea.support.PostgresIntegrationTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-
+import com.anabada.fleaflea.support.RedisTestContainerConfiguration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,10 +32,26 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Import(RedisTestContainerConfiguration.class)
 @PostgresIntegrationTest
 @Sql(statements = "TRUNCATE TABLE friendships, members RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(statements = "TRUNCATE TABLE friendships, members RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
@@ -78,6 +86,12 @@ class CollectionItemConcurrencyTest {
 
     @MockitoBean
     private NotificationSseService notificationSseService;
+
+    @Autowired
+    private RedissonClient redissonClient;
+
+    @Autowired
+    private BegRequestService begRequestService;
 
     private Member owner;
     private Member requester;
@@ -135,21 +149,21 @@ class CollectionItemConcurrencyTest {
         CountDownLatch start = new CountDownLatch(1);
 
         try (ExecutorService executor = Executors.newFixedThreadPool(3)) {
-            Future<CollectionItemResponse> titleChange = executor.submit(() -> {
+            Future<?> titleChange = executor.submit(() -> {
                 awaitStart(ready, start);
                 return collectionItemService.updateCollectionItem(
                         owner.getMemberId(), target.getCollectionItemId(),
                         new CollectionItemUpdateRequest("변경된 이름", null, null, null)
                 );
             });
-            Future<CollectionItemResponse> descriptionChange = executor.submit(() -> {
+            Future<?> descriptionChange = executor.submit(() -> {
                 awaitStart(ready, start);
                 return collectionItemService.updateCollectionItem(
                         owner.getMemberId(), target.getCollectionItemId(),
                         new CollectionItemUpdateRequest(null, "변경된 설명", null, null)
                 );
             });
-            Future<CollectionItemResponse> visibilityChange = executor.submit(() -> {
+            Future<?> visibilityChange = executor.submit(() -> {
                 awaitStart(ready, start);
                 return collectionItemService.updateCollectionItem(
                         owner.getMemberId(), target.getCollectionItemId(),
@@ -179,12 +193,12 @@ class CollectionItemConcurrencyTest {
         AtomicInteger updatingBackendId = new AtomicInteger();
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
-            Future<CollectionItemResponse> descriptionChange = new TransactionTemplate(transactionManager).execute(status -> {
+            Future<?> descriptionChange = new TransactionTemplate(transactionManager).execute(status -> {
                 collectionItemService.updateCollectionItem(
                         owner.getMemberId(), target.getCollectionItemId(),
                         new CollectionItemUpdateRequest("커밋할 이름", null, null, null)
                 );
-                Future<CollectionItemResponse> pendingUpdate = submitDescriptionChange(
+                Future<?> pendingUpdate = submitDescriptionChange(
                         executor, updateStarted, updatingBackendId
                 );
                 assertWaitingForDatabaseLock(updateStarted, updatingBackendId, pendingUpdate);
@@ -213,9 +227,9 @@ class CollectionItemConcurrencyTest {
         AtomicInteger updatingBackendId = new AtomicInteger();
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
-            Future<CollectionItemResponse> descriptionChange = new TransactionTemplate(transactionManager).execute(status -> {
+            Future<?> descriptionChange = new TransactionTemplate(transactionManager).execute(status -> {
                 collectionItemService.deleteCollectionItem(owner.getMemberId(), target.getCollectionItemId());
-                Future<CollectionItemResponse> pendingUpdate = submitDescriptionChange(
+                Future<?> pendingUpdate = submitDescriptionChange(
                         executor, updateStarted, updatingBackendId
                 );
                 assertWaitingForDatabaseLock(updateStarted, updatingBackendId, pendingUpdate);
@@ -247,7 +261,96 @@ class CollectionItemConcurrencyTest {
         }
     }
 
-    private Future<CollectionItemResponse> submitDescriptionChange(
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @DisplayName("도감 Redis 락은 외부 트랜잭션 커밋·롤백 후에만 다른 스레드가 획득한다")
+    void updateCollectionItem_outerTransaction_retainsRedisLock(boolean rollback) throws Exception {
+        String key = "fleaflea:redisson:lock:collection-item:" + target.getCollectionItemId();
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                collectionItemService.updateCollectionItem(owner.getMemberId(), target.getCollectionItemId(),
+                        new CollectionItemUpdateRequest("outer-change", null, null, null));
+                try {
+                    assertThat(executor.submit(() -> tryRedisLock(key)).get(5, TimeUnit.SECONDS)).isFalse();
+                } catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
+                if (rollback) {
+                    status.setRollbackOnly();
+                }
+            });
+            assertThat(executor.submit(() -> tryRedisLock(key)).get(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("서로 반대 방향의 도감 교환 생성은 두 아이템을 같은 순서로 잠근다")
+    void createCollectionTrade_oppositeDirections_completesBoth() throws Exception {
+        CollectionItem offer = collectionItemRepository.save(
+                CollectionItemFixture.createCollectionItem(requester, "교환 제안", true));
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<?> first = executor.submit(() -> {
+                awaitStart(ready, start);
+                return collectionTradeService.createCollectionTradeRequest(requester.getMemberId(), target.getCollectionItemId(),
+                        new CollectionTradeRequestCreateRequest(CollectionTradeType.EXCHANGE, offer.getCollectionItemId()));
+            });
+            Future<?> second = executor.submit(() -> {
+                awaitStart(ready, start);
+                return collectionTradeService.createCollectionTradeRequest(owner.getMemberId(), offer.getCollectionItemId(),
+                        new CollectionTradeRequestCreateRequest(CollectionTradeType.EXCHANGE, target.getCollectionItemId()));
+            });
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            first.get(10, TimeUnit.SECONDS);
+            second.get(10, TimeUnit.SECONDS);
+            assertThat(collectionTradeRequestRepository.count()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    @DisplayName("Redisson 적용 후 교환 요청·수락·완료에서 두 아이템 소유권을 교환한다")
+    void collectionTrade_completeExchange_transfersBothItems() {
+        CollectionItem offer = collectionItemRepository.save(
+                CollectionItemFixture.createCollectionItem(requester, "교환 제안", true));
+        CollectionTradeRequestResponse collectionTradeRequestResponse = collectionTradeService.createCollectionTradeRequest(
+                requester.getMemberId(),
+                target.getCollectionItemId(),
+                new CollectionTradeRequestCreateRequest(CollectionTradeType.EXCHANGE, offer.getCollectionItemId())
+        );
+        collectionTradeService.acceptCollectionTradeRequest(owner.getMemberId(), collectionTradeRequestResponse.collectionTradeRequestId());
+        collectionTradeService.completeCollectionTradeRequest(requester.getMemberId(), collectionTradeRequestResponse.collectionTradeRequestId());
+        assertThat(collectionItemRepository.findById(target.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
+                .isEqualTo(requester.getMemberId());
+        assertThat(collectionItemRepository.findById(offer.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
+                .isEqualTo(owner.getMemberId());
+    }
+
+    @Test
+    @DisplayName("Redisson 적용 후 구걸 요청·수락·완료에서 도감 소유권을 이전한다")
+    void begging_complete_transfersItem() {
+        BeggingResponse beggingResponse = begRequestService.createBegging(
+                requester.getMemberId(),
+                target.getCollectionItemId(),
+                new BeggingRequest("나눔 요청")
+        );
+        begRequestService.acceptBeggingRequest(owner.getMemberId(), beggingResponse.begRequestId());
+        begRequestService.completeBeggingRequest(requester.getMemberId(), beggingResponse.begRequestId());
+        assertThat(collectionItemRepository.findById(target.getCollectionItemId()).orElseThrow().getOwner().getMemberId())
+                .isEqualTo(requester.getMemberId());
+    }
+
+    private boolean tryRedisLock(String key) throws InterruptedException {
+        RLock lock = redissonClient.getLock(key);
+        boolean acquired = lock.tryLock(100, TimeUnit.MILLISECONDS);
+        if (acquired) {
+            lock.unlock();
+        }
+        return acquired;
+    }
+
+    private Future<?> submitDescriptionChange(
             ExecutorService executor,
             CountDownLatch updateStarted,
             AtomicInteger updatingBackendId
@@ -258,17 +361,18 @@ class CollectionItemConcurrencyTest {
             updatingBackendId.set(backendId);
             updateStarted.countDown();
 
-            return collectionItemService.updateCollectionItem(
-                    owner.getMemberId(), target.getCollectionItemId(),
-                    new CollectionItemUpdateRequest(null, "후속 수정 설명", null, null)
-            );
+            // A DB-only contender verifies protection against old app versions during rollout.
+            CollectionItem item = collectionItemRepository.findLockedById(target.getCollectionItemId())
+                    .orElseThrow(CollectionItemNotFoundException::new);
+            item.update(null, "후속 수정 설명", null);
+            return null;
         }));
     }
 
     private void assertWaitingForDatabaseLock(
             CountDownLatch updateStarted,
             AtomicInteger updatingBackendId,
-            Future<CollectionItemResponse> pendingUpdate
+            Future<?> pendingUpdate
     ) {
         try {
             assertThat(updateStarted.await(10, TimeUnit.SECONDS)).isTrue();

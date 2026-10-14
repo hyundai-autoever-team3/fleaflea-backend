@@ -16,6 +16,8 @@ import com.anabada.fleaflea.fixture.MarketFixture;
 import com.anabada.fleaflea.fixture.MemberFixture;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.support.PostgresIntegrationTest;
+import com.anabada.fleaflea.support.RedisTestContainerConfiguration;
+import org.springframework.context.annotation.Import;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +31,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Import(RedisTestContainerConfiguration.class)
 @PostgresIntegrationTest
 @Transactional
 class ItemServiceFindTest {

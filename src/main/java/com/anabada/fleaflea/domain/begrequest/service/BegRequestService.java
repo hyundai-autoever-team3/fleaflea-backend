@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.begrequest.service;
 
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequest;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.dto.BeggingDetailResponse;
@@ -47,6 +48,7 @@ public class BegRequestService {
     private final TradeRepository tradeRepository;
     private final TradeNotifier tradeNotifier;
 
+    @DistributedLock(key = "'collection-item:' + #collectionItemId")
     @Transactional
     public BeggingResponse createBegging(
             Long memberId,
@@ -116,6 +118,7 @@ public class BegRequestService {
         return BeggingDetailResponse.from(begRequest);
     }
 
+    @DistributedLock(key = "@collectionLockKeys.forBeg(#begRequestId)")
     @Transactional
     public BeggingStatusResponse acceptBeggingRequest(
             Long memberId,
@@ -152,6 +155,7 @@ public class BegRequestService {
         return BeggingStatusResponse.from(begRequest);
     }
 
+    @DistributedLock(key = "@collectionLockKeys.forBeg(#begRequestId)")
     @Transactional
     public BeggingStatusResponse rejectBeggingRequest(
             Long memberId,
@@ -188,6 +192,7 @@ public class BegRequestService {
         return BeggingStatusResponse.from(begRequest);
     }
 
+    @DistributedLock(key = "@collectionLockKeys.forBeg(#begRequestId)")
     @Transactional
     public BeggingStatusResponse cancelBeggingRequest(
             Long memberId,
@@ -224,6 +229,7 @@ public class BegRequestService {
         return BeggingStatusResponse.from(begRequest);
     }
 
+    @DistributedLock(key = "@collectionLockKeys.forBeg(#begRequestId)")
     @Transactional
     public BeggingStatusResponse completeBeggingRequest(
             Long memberId,

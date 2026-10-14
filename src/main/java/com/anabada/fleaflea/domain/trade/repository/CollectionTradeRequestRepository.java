@@ -18,6 +18,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface CollectionTradeRequestRepository extends JpaRepository<CollectionTradeRequest, Long> {
 
+    @Query("select r.collectionItemSnapshotId from CollectionTradeRequest r where r.collectionTradeRequestId = :id")
+    Optional<Long> findTargetItemId(@Param("id") Long requestId);
+
+    @Query("select r.offerCollectionItemSnapshotId from CollectionTradeRequest r where r.collectionTradeRequestId = :id")
+    Optional<Long> findOfferItemId(@Param("id") Long requestId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             delete from CollectionTradeRequest request

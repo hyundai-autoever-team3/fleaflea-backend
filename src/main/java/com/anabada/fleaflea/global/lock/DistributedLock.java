@@ -7,7 +7,8 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RedisLocked {
+public @interface DistributedLock {
 
+    /** SpEL returning one key or a collection of keys; duplicates are removed and keys sorted. */
     String key();
 }
