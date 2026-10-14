@@ -139,3 +139,11 @@ tasks.named('bootRun') {
 		jvmArgs "-Xlog:gc*:file=${perfDir}/gc.log:time,uptime,level,tags"
 	}
 }
+
+// Explicit maintenance: dry-run unless --apply is provided; uses ADC, not the app .env.
+tasks.register('backfillImageCacheMetadata', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.global.image.ImageCacheMetadataBackfill'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+	jvmArgs '-Xmx256m'
+}
