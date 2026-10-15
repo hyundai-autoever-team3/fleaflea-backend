@@ -1,16 +1,20 @@
 package com.anabada.fleaflea.domain.member.repository;
 
 import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
+import com.anabada.fleaflea.domain.member.exception.EmailResendCooldownException;
+import com.anabada.fleaflea.domain.member.exception.EmailSendLimitExceededException;
 import com.anabada.fleaflea.domain.member.exception.EmailVerificationResultException;
 import com.anabada.fleaflea.domain.member.exception.InvalidEmailVerificationTtlException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+
+import static com.anabada.fleaflea.domain.member.redis.EmailVerificationScripts.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,55 +24,13 @@ public class RedisEmailVerificationRepository {
     private static final String VERIFIED_KEY_PREFIX = "fleaflea:email-verified:";
     private static final int MAX_ATTEMPTS = 5;
     private static final Duration VERIFIED_TTL = Duration.ofMinutes(10);
+    private static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
+    private static final Duration SEND_WINDOW = Duration.ofHours(1);
+    private static final Duration VERIFY_WINDOW = Duration.ofMinutes(10);
 
     private final StringRedisTemplate redisTemplate;
-
-    private static final DefaultRedisScript<Long> SAVE_SCRIPT =
-            new DefaultRedisScript<>("""
-                    redis.call('DEL', KEYS[1])
-                                        redis.call('HSET', KEYS[1],
-                                            'codeHash', ARGV[1],
-                                            'attempts', '0')
-                                        redis.call('PEXPIRE', KEYS[1], ARGV[2])
-                                        return 1
-                    """, Long.class);
-
-    private static final DefaultRedisScript<Long> VERIFY_SCRIPT =
-            new DefaultRedisScript<>("""
-                    local stored = redis.call('HGET', KEYS[1], 'codeHash')
-
-                    if not stored then
-                    return 0
-                    end
-
-                    if stored ~= ARGV[1] then
-                        local attempts =
-                            redis.call('HINCRBY',KEYS[1], 'attempts', 1)
-
-                            if attempts >= tonumber(ARGV[2]) then
-                                redis.call('DEL', KEYS[1])
-                                return -2
-                            end
-
-                            return -1
-                        end
-
-                        redis.call('DEL', KEYS[1])
-                        return 1
-                    """, Long.class
-            );
-
-    private static final DefaultRedisScript<Long> CONSUME_TOKEN_SCRIPT =
-            new DefaultRedisScript<>("""
-                    local stored = redis.call('GET', KEYS[1])
-
-                    if not stored or stored ~= ARGV[1] then
-                        return 0
-                    end
-
-                    redis.call('DEL', KEYS[1])
-                    return 1
-                    """, Long.class);
+    private static final int MAX_SEND_COUNT = 5;
+    private static final int MAX_VERIFY_COUNT = 10;
 
     public void save(
             String email,
@@ -78,12 +40,32 @@ public class RedisEmailVerificationRepository {
     ) {
         validateTtl(ttl);
 
-        redisTemplate.execute(
+        Long result = redisTemplate.execute(
                 SAVE_SCRIPT,
-                List.of(key(email, purpose)),
+                List.of(
+                        key(email, purpose),
+                        limitKey("send-cooldown", email),
+                        limitKey("send-count", email)
+                ),
                 codeHash,
-                Long.toString(ttl.toMillis())
+                Long.toString(ttl.toMillis()),
+                Long.toString(RESEND_COOLDOWN.toMillis()),
+                Integer.toString(MAX_SEND_COUNT),
+                Long.toString(SEND_WINDOW.toMillis())
         );
+
+        if (result == null) {
+            throw new EmailVerificationResultException();
+        }
+
+        switch (result.intValue()) {
+            case 1 -> {
+                // 저장 완료
+            }
+            case -1 -> throw new EmailResendCooldownException();
+            case -2 -> throw new EmailSendLimitExceededException();
+            default -> throw new EmailVerificationResultException();
+        }
     }
 
     public VerificationResult verifyAndConsume(
@@ -93,9 +75,14 @@ public class RedisEmailVerificationRepository {
     ) {
         Long result = redisTemplate.execute(
                 VERIFY_SCRIPT,
-                List.of(key(email, purpose)),
+                List.of(
+                        key(email, purpose),
+                        limitKey("verify-count", email)
+                ),
                 codeHash,
-                Integer.toString(MAX_ATTEMPTS)
+                Integer.toString(MAX_ATTEMPTS),
+                Integer.toString(MAX_VERIFY_COUNT),
+                Long.toString(VERIFY_WINDOW.toMillis())
         );
 
         if (result == null) {
@@ -107,6 +94,7 @@ public class RedisEmailVerificationRepository {
             case 0 -> VerificationResult.NOT_FOUND;
             case -1 -> VerificationResult.MISMATCH;
             case -2 -> VerificationResult.ATTEMPTS_EXCEED;
+            case -3 -> VerificationResult.RATE_LIMIT_EXCEEDED;
             default -> throw new EmailVerificationResultException();
         };
     }
@@ -157,11 +145,17 @@ public class RedisEmailVerificationRepository {
         }
     }
 
+    private String limitKey(String type, String email) {
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
+        return "fleaflea:email-limit:" + type + ":" + normalized;
+    }
+
     public enum VerificationResult {
         SUCCESS,
         NOT_FOUND,
         MISMATCH,
-        ATTEMPTS_EXCEED
+        ATTEMPTS_EXCEED,
+        RATE_LIMIT_EXCEEDED
     }
 
 

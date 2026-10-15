@@ -34,13 +34,15 @@ public class EmailVerificationController {
             회원가입은 SIGN_UP, 비밀번호 재설정은 PASSWORD_RESET을 사용하세요.
             재발송하면 이전 코드는 무효화되고 검증 실패 횟수가 초기화됩니다.
             발송 후 /api/v1/auth/email/verify에서 같은 이메일과 목적으로 검증하세요.
+            같은 이메일은 60초 후 재발송할 수 있습니다.
+            첫 발송부터 1시간 동안 최대 5회 발송을 시도할 수 있습니다.
+            제한은 인증 목적과 관계없이 이메일별로 공유합니다.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "인증 코드 발송 완료", content = @Content),
-            @ApiResponse(responseCode = "400", description = "이메일 형식 또는 인증 목적이 올바르지 않음",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "메일 발송 또는 인증 처리 실패",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            @ApiResponse(responseCode = "400", description = "이메일 형식 또는 인증 목적이 올바르지 않음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "재발송 대기 중 또는 시간 내 발송 횟수 초과", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "메일 발송 또는 인증 처리 실패", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/code")
     public ResponseEntity<Void> sendCode(
@@ -73,7 +75,7 @@ public class EmailVerificationController {
                             @ExampleObject(name = "코드 불일치", value = "{\"result\":\"MISMATCH\",\"verificationToken\":null}"),
                             @ExampleObject(name = "잘못된 요청", value = "{\"code\":\"INVALID_REQUEST\",\"message\":\"잘못된 요청입니다.\"}")
                     })),
-            @ApiResponse(responseCode = "429", description = "코드 불일치 5회 도달, 코드 삭제",
+            @ApiResponse(responseCode = "429", description = "ATTEMPTS_EXCEED: 현재 코드의 불일치 5회 도달, 코드 삭제\n" + "RATE_LIMIT_EXCEEDED: 이메일별 10분 내 검증 요청 10회 소진",
                     content = @Content(schema = @Schema(implementation = EmailCodeVerifyResponse.class),
                             examples = @ExampleObject(value = "{\"result\":\"ATTEMPTS_EXCEED\",\"verificationToken\":null}"))),
             @ApiResponse(responseCode = "500", description = "인증 처리 실패",
@@ -94,7 +96,7 @@ public class EmailVerificationController {
         HttpStatus status = switch (result) {
             case SUCCESS -> HttpStatus.OK;
             case NOT_FOUND, MISMATCH -> HttpStatus.BAD_REQUEST;
-            case ATTEMPTS_EXCEED -> HttpStatus.TOO_MANY_REQUESTS;
+            case ATTEMPTS_EXCEED, RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
         };
 
         return ResponseEntity.status(status)
