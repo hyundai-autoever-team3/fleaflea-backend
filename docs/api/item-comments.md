@@ -38,7 +38,7 @@
 | seller / mine | 상품 판매자 여부 / 요청한 회원이 작성자인지 여부 |
 | content | 댓글 내용 |
 | replyCount | 대댓글 수, 대댓글에서는 0 |
-| createdAt / updatedAt | 작성·최종 변경 시각 |
+| createdAt | 작성 시각 |
 
 ## 삭제 처리
 

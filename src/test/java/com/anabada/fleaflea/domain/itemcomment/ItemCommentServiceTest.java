@@ -67,7 +67,6 @@ class ItemCommentServiceTest {
         assertThat(response.seller()).isTrue();
         assertThat(response.mine()).isTrue();
         assertThat(response.createdAt()).isNotNull();
-        assertThat(response.updatedAt()).isNotNull();
     }
 
     @Test
@@ -131,7 +130,6 @@ class ItemCommentServiceTest {
                     viewer.getMemberId(), new ItemCommentUpdateRequest("  변경 내용  "));
             assertThat(updated.content()).isEqualTo("변경 내용");
             assertThat(updated.createdAt()).isEqualTo(comment.createdAt());
-            assertThat(updated.updatedAt()).isAfterOrEqualTo(comment.updatedAt());
         }
     }
 

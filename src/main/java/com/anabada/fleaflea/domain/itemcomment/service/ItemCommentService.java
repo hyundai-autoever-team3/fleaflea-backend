@@ -35,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ItemCommentService {
 
     private final ItemRepository itemRepository;
-    private final ItemCommentRepository commentRepository;
+    private final ItemCommentRepository itemCommentRepository;
     private final MarketMemberRepository marketMemberRepository;
     private final MemberRepository memberRepository;
 
@@ -50,13 +50,13 @@ public class ItemCommentService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt", "commentId").ascending());
         Page<ItemComment> comments;
         if (parentId == null) {
-            comments = commentRepository.findByItemIdAndParentIdIsNull(itemId, pageable);
+            comments = itemCommentRepository.findRootComments(itemId, pageable);
         } else {
             ItemComment parent = findComment(itemId, parentId);
             if (parent.getParentId() != null) {
                 throw new ItemCommentInvalidParentException();
             }
-            comments = commentRepository.findByItemIdAndParentId(itemId, parentId, pageable);
+            comments = itemCommentRepository.findReplyComments(itemId, parentId, pageable);
         }
 
         List<Long> authorIds = comments.stream()
@@ -68,7 +68,7 @@ public class ItemCommentService {
         Map<Long, Long> replyCounts = new HashMap<>();
         if (parentId == null && !comments.isEmpty()) {
             List<Long> parentIds = comments.stream().map(ItemComment::getCommentId).toList();
-            for (ReplyCount count : commentRepository.countReplies(parentIds)) {
+            for (ReplyCount count : itemCommentRepository.countReplies(parentIds)) {
                 replyCounts.put(count.getParentId(), count.getReplyCount());
             }
         }
@@ -91,13 +91,13 @@ public class ItemCommentService {
         if (request.parentId() != null) {
             findComment(itemId, request.parentId()).validateReplyParent();
         }
-        ItemComment comment = commentRepository.save(ItemComment.create(
+        ItemComment comment = itemCommentRepository.save(ItemComment.create(
                 itemId,
                 memberId,
                 request.parentId(),
                 request.content().strip()
         ));
-        return response(comment, item, memberId);
+        return toCommentResponse(comment, item, memberId);
     }
 
     @Transactional
@@ -111,8 +111,8 @@ public class ItemCommentService {
         ItemComment comment = findComment(itemId, commentId);
         comment.validateOwner(memberId);
         comment.update(request.content().strip());
-        commentRepository.flush();
-        return response(comment, item, memberId);
+        itemCommentRepository.flush();
+        return toCommentResponse(comment, item, memberId);
     }
 
     @Transactional
@@ -124,8 +124,8 @@ public class ItemCommentService {
         findLockedItem(itemId, memberId);
         ItemComment comment = findComment(itemId, commentId);
         comment.validateOwner(memberId);
-        commentRepository.delete(comment);
-        commentRepository.flush();
+        itemCommentRepository.delete(comment);
+        itemCommentRepository.flush();
     }
 
     private Item findItem(Long itemId, Long memberId) {
@@ -150,11 +150,11 @@ public class ItemCommentService {
     }
 
     private ItemComment findComment(Long itemId, Long commentId) {
-        return commentRepository.findByCommentIdAndItemId(commentId, itemId)
+        return itemCommentRepository.findByCommentIdAndItemId(commentId, itemId)
                 .orElseThrow(ItemCommentNotFoundException::new);
     }
 
-    private ItemCommentResponse response(
+    private ItemCommentResponse toCommentResponse(
             ItemComment comment,
             Item item,
             Long memberId
@@ -162,7 +162,7 @@ public class ItemCommentService {
         Member author = memberRepository.findById(comment.getAuthorId()).orElse(null);
         long replyCount = 0;
         if (comment.getParentId() == null) {
-            List<ReplyCount> counts = commentRepository.countReplies(List.of(comment.getCommentId()));
+            List<ReplyCount> counts = itemCommentRepository.countReplies(List.of(comment.getCommentId()));
             if (!counts.isEmpty()) {
                 replyCount = counts.getFirst().getReplyCount();
             }

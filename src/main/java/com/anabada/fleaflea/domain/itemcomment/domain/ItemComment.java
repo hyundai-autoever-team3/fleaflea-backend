@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -34,6 +35,7 @@ public class ItemComment extends BaseTimeEntity {
     @Column(nullable = false, length = 2000)
     private String content;
 
+    @Builder
     private ItemComment(Long itemId, Long authorId, Long parentId, String content) {
         this.itemId = itemId;
         this.authorId = authorId;
@@ -47,7 +49,12 @@ public class ItemComment extends BaseTimeEntity {
             Long parentId,
             String content
     ) {
-        return new ItemComment(itemId, authorId, parentId, content);
+        return ItemComment.builder()
+                .itemId(itemId)
+                .authorId(authorId)
+                .parentId(parentId)
+                .content(content)
+                .build();
     }
 
     public void validateReplyParent() {

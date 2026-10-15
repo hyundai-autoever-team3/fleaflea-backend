@@ -14,9 +14,21 @@ public interface ItemCommentRepository extends JpaRepository<ItemComment, Long> 
 
     Optional<ItemComment> findByCommentIdAndItemId(Long commentId, Long itemId);
 
-    Page<ItemComment> findByItemIdAndParentIdIsNull(Long itemId, Pageable pageable);
+    @Query("""
+            select comment from ItemComment comment
+            where comment.itemId = :itemId and comment.parentId is null
+            """)
+    Page<ItemComment> findRootComments(@Param("itemId") Long itemId, Pageable pageable);
 
-    Page<ItemComment> findByItemIdAndParentId(Long itemId, Long parentId, Pageable pageable);
+    @Query("""
+            select comment from ItemComment comment
+            where comment.itemId = :itemId and comment.parentId = :parentId
+            """)
+    Page<ItemComment> findReplyComments(
+            @Param("itemId") Long itemId,
+            @Param("parentId") Long parentId,
+            Pageable pageable
+    );
 
     @Query("""
             select comment.parentId as parentId, count(comment) as replyCount
