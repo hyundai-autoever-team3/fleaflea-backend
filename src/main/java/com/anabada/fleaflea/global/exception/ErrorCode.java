@@ -88,6 +88,11 @@ public enum ErrorCode {
     ITEM_TRADE_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "ITEM_TRADE_NOT_IN_PROGRESS", "거래 진행 중인 상품이 아닙니다."),
     ITEM_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_REQUIRED", "상품 이미지는 필수입니다."),
 
+    // Item Comment
+    ITEM_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_COMMENT_NOT_FOUND", "존재하지 않는 상품 댓글입니다."),
+    ITEM_COMMENT_NOT_OWNER(HttpStatus.FORBIDDEN, "ITEM_COMMENT_NOT_OWNER", "댓글 작성자만 변경할 수 있습니다."),
+    ITEM_COMMENT_INVALID_PARENT(HttpStatus.BAD_REQUEST, "ITEM_COMMENT_INVALID_PARENT", "대댓글에는 답글을 작성할 수 없습니다."),
+
     // Collection Item
     COLLECTION_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "COLLECTION_ITEM_NOT_FOUND", "존재하지 않는 도감 아이템입니다."),
     COLLECTION_ITEM_NOT_OWNER(HttpStatus.FORBIDDEN, "COLLECTION_ITEM_NOT_OWNER", "자신의 도감 아이템만 상품으로 등록할 수 있습니다."),
