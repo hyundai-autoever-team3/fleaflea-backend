@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
@@ -26,7 +27,9 @@ import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,8 +82,8 @@ public class CollectionItemService {
     ) {
         Member owner = getMember(memberId);
 
-        return PageResponse.from(collectionItemRepository.search(owner.getMemberId(), false, condition, pageable)
-                .map(this::toCollectionItemSummaryResponse));
+        return toCollectionItemSummaryPage(collectionItemRepository.search(
+                owner.getMemberId(), false, condition, pageable));
     }
 
     public PageResponse<CollectionItemSummaryResponse> getMemberCollectionItems(
@@ -93,8 +96,8 @@ public class CollectionItemService {
         Member owner = getMember(ownerId);
         validateCollectionViewer(requester.getMemberId(), owner.getMemberId());
 
-        return PageResponse.from(collectionItemRepository.search(owner.getMemberId(), true, condition, pageable)
-                .map(this::toCollectionItemSummaryResponse));
+        return toCollectionItemSummaryPage(collectionItemRepository.search(
+                owner.getMemberId(), true, condition, pageable));
     }
 
     public CollectionItemResponse getCollectionItem(
@@ -114,6 +117,7 @@ public class CollectionItemService {
         return toCollectionItemResponse(collectionItem);
     }
 
+    @DistributedLock(key = "'collection-item:' + #collectionItemId")
     @Transactional
     public CollectionItemResponse updateCollectionItem(
             Long memberId,
@@ -139,6 +143,7 @@ public class CollectionItemService {
         return toCollectionItemResponse(collectionItem);
     }
 
+    @DistributedLock(key = "'collection-item:' + #collectionItemId")
     @Transactional
     public void deleteCollectionItem(
             Long memberId,
@@ -214,8 +219,12 @@ public class CollectionItemService {
         return inProgress ? CollectionItemStatus.IN_PROGRESS : CollectionItemStatus.AVAILABLE;
     }
 
-    private CollectionItemSummaryResponse toCollectionItemSummaryResponse(CollectionItem collectionItem) {
-        return CollectionItemSummaryResponse.from(collectionItem, imageService.getUrl(collectionItem.getImageKey()));
+    private PageResponse<CollectionItemSummaryResponse> toCollectionItemSummaryPage(
+            Page<CollectionItem> page) {
+        Map<String, String> imageUrls = imageService.getListUrls(page.getContent().stream().map(CollectionItem::getImageKey).toList());
+        return PageResponse.from(page.map(collectionItem -> CollectionItemSummaryResponse.from(
+                collectionItem, imageUrls.get(collectionItem.getImageKey())
+        )));
     }
 
     private boolean isAcceptedFriend(

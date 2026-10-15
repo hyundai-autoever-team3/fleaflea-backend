@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BegRequestRepository extends JpaRepository<BegRequest, Long> {
+    @Query("select b.collectionItemSnapshotId from BegRequest b where b.begRequestId = :id")
+    Optional<Long> findTargetItemId(@Param("id") Long requestId);
 
     @EntityGraph(attributePaths = {"collectionItem", "owner", "applicant"})
     Optional<BegRequest> findWithDetailsByBegRequestId(Long begRequestId);

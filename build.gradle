@@ -31,7 +31,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
-	implementation 'org.springframework.integration:spring-integration-redis'
+	implementation 'org.redisson:redisson:4.8.0'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
@@ -69,6 +69,7 @@ dependencies {
 
 	// WebP 이미지 검증
 	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.14.0'
+	implementation 'com.drewnoakes:metadata-extractor:2.19.0'
 
 	// Actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -91,6 +92,14 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Explicit maintenance: dry-run unless --apply is provided; uses ADC, not the app .env.
+tasks.register('backfillImageCacheMetadata', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.global.image.ImageCacheMetadataBackfill'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+	jvmArgs '-Xmx256m'
 }
 
 // Local environment variables from .env (see .env.example). The file is optional:
@@ -141,4 +150,12 @@ tasks.named('bootRun') {
 		systemProperty 'management.metrics.distribution.percentiles.[http.server.requests]', '0.95,0.99'
 		jvmArgs "-Xlog:gc*:file=${perfDir}/gc.log:time,uptime,level,tags"
 	}
+}
+
+// Explicit maintenance only: dry-run unless --apply is provided. Uses ADC, never the app .env.
+tasks.register('backfillImageThumbnails', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.global.image.ThumbnailBackfill'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+	jvmArgs '-Xmx512m', '-Djava.awt.headless=true'
 }

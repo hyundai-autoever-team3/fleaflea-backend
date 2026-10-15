@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.item.service;
 
+import com.anabada.fleaflea.global.lock.DistributedLock;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotFoundException;
 import com.anabada.fleaflea.domain.collectionitem.exception.CollectionItemNotOwnerException;
@@ -9,6 +10,7 @@ import com.anabada.fleaflea.domain.item.domain.ItemStatus;
 import com.anabada.fleaflea.domain.item.domain.ItemTradeType;
 import com.anabada.fleaflea.domain.item.dto.ItemCreateRequest;
 import com.anabada.fleaflea.domain.item.dto.ItemDetailResponse;
+import com.anabada.fleaflea.domain.item.dto.ItemSummaryProjection;
 import com.anabada.fleaflea.domain.item.dto.ItemSummaryResponse;
 import com.anabada.fleaflea.domain.item.dto.ItemUpdateRequest;
 import com.anabada.fleaflea.domain.item.dto.SellerResponse;
@@ -23,12 +25,13 @@ import com.anabada.fleaflea.domain.marketmember.repository.MarketMemberRepositor
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
-import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
+import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +52,7 @@ public class ItemService {
     private final TradeRequestRepository tradeRequestRepository;
     private final NotificationRepository notificationRepository;
 
+    @DistributedLock(key = "@collectionLockKeys.forItem(#itemCreateRequest.collectionItemId())")
     @Transactional
     public ItemSummaryResponse createItem(
             Long marketId,
@@ -109,9 +113,10 @@ public class ItemService {
 
         Member seller = item.getSeller();
 
-        return ItemDetailResponse.of(
+        return ItemDetailResponse.from(
                 item,
-                SellerResponse.from(seller, imageService.getUrl(seller.getProfileImageKey()))
+                SellerResponse.from(seller, imageService.getUrl(seller.getProfileImageKey())),
+                imageService.getUrl(item.getImageKey())
         );
     }
 
@@ -130,18 +135,18 @@ public class ItemService {
         // 정렬(최신 등록순)은 인덱스와 맞춰 리포지토리 쿼리에 고정되어 있다.
         PageRequest pageable = PageRequest.of(page, size);
 
-        Page<ItemSummaryResponse> items = itemRepository
+        Page<ItemSummaryProjection> pageResult = itemRepository
                 .searchInMarket(
                         marketId,
                         tradeType,
                         status,
                         keyword,
                         pageable
-                )
-                .map(projection -> ItemSummaryResponse.of(
-                        projection,
-                        imageService.getUrl(projection.imageKey())
-                ));
+                );
+        Map<String, String> imageUrls = imageService.getListUrls(pageResult.getContent().stream()
+                .map(ItemSummaryProjection::imageKey).toList());
+        Page<ItemSummaryResponse> items = pageResult.map(projection -> ItemSummaryResponse.of(
+                projection, imageUrls.get(projection.imageKey())));
 
         return PageResponse.from(items);
     }
@@ -184,12 +189,13 @@ public class ItemService {
 
         Member seller = item.getSeller();
 
-        return ItemDetailResponse.of(
+        return ItemDetailResponse.from(
                 item,
                 SellerResponse.from(
                         seller,
                         imageService.getUrl(seller.getProfileImageKey())
-                )
+                ),
+                imageService.getUrl(item.getImageKey())
         );
     }
 

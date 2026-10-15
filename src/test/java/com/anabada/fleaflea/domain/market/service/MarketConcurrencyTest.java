@@ -30,14 +30,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
-import org.springframework.integration.redis.util.RedisLockRegistry;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.RLock;
+import org.redisson.config.Config;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import java.util.ConcurrentModificationException;
+
+
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,10 +70,8 @@ class MarketConcurrencyTest {
     private MemberRepository memberRepository;
 
     @Autowired
-    private RedisConnectionFactory redisConnectionFactory;
+    private RedissonClient redissonClient;
 
-    @Autowired
-    private ThreadPoolTaskScheduler redisLockRenewalScheduler;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -175,7 +175,7 @@ class MarketConcurrencyTest {
     @Test
     @DisplayName("외부 트랜잭션이 롤백되기 전에는 다른 Redis 인스턴스가 락을 획득할 수 없다")
     void updateMarket_outerRollback_holdsLockUntilCompletion() throws Exception {
-        RedisLockRegistry competingRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 60000);
+        RedissonClient competingRegistry = newClient(60000);
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
@@ -196,14 +196,14 @@ class MarketConcurrencyTest {
             assertThat(marketRepository.findById(market.getMarketId()).orElseThrow().getTitle())
                     .isEqualTo(market.getTitle());
         } finally {
-            competingRegistry.destroy();
+            competingRegistry.shutdown();
         }
     }
 
     @Test
     @DisplayName("외부 트랜잭션이 커밋된 뒤에 다른 인스턴스가 락을 획득하고 최신 값을 조회한다")
     void updateMarket_outerCommit_releasesAfterCommit() throws Exception {
-        RedisLockRegistry competingRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 60000);
+        RedissonClient competingRegistry = newClient(60000);
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
@@ -218,7 +218,7 @@ class MarketConcurrencyTest {
             });
 
             assertThat(executor.submit(() -> {
-                Lock lock = competingRegistry.obtain("market:" + market.getMarketId());
+                Lock lock = competingRegistry.getLock("fleaflea:redisson:lock:market:" + market.getMarketId());
                 if (!lock.tryLock(1, TimeUnit.SECONDS)) {
                     throw new AssertionError("lock not released");
                 }
@@ -229,12 +229,12 @@ class MarketConcurrencyTest {
                 }
             }).get(5, TimeUnit.SECONDS)).isEqualTo("committed");
         } finally {
-            competingRegistry.destroy();
+            competingRegistry.shutdown();
         }
     }
 
-    private boolean tryCompetingLock(RedisLockRegistry competingRegistry) throws InterruptedException {
-        Lock lock = competingRegistry.obtain("market:" + market.getMarketId());
+    private boolean tryCompetingLock(RedissonClient competingRegistry) throws InterruptedException {
+        Lock lock = competingRegistry.getLock("fleaflea:redisson:lock:market:" + market.getMarketId());
         boolean acquired = lock.tryLock(100, TimeUnit.MILLISECONDS);
         if (acquired) {
             lock.unlock();
@@ -246,20 +246,20 @@ class MarketConcurrencyTest {
     @DisplayName("락이 만료된 소유자는 새 소유자의 락을 해제할 수 없다")
     void unlock_expiredOwner_preservesNewOwnerLock() throws Exception {
         String lockKey = "market:expiry:" + UUID.randomUUID();
-        RedisLockRegistry expiredRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 300);
-        RedisLockRegistry newRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 60000);
-        RedisLockRegistry thirdRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 60000);
-        Lock expiredLock = expiredRegistry.obtain(lockKey);
-        Lock newLock = newRegistry.obtain(lockKey);
+        RedissonClient expiredRegistry = newClient(300);
+        RedissonClient newRegistry = newClient(60000);
+        RedissonClient thirdRegistry = newClient(60000);
+        RLock expiredLock = expiredRegistry.getLock("fleaflea:redisson:lock:" + lockKey);
+        Lock newLock = newRegistry.getLock("fleaflea:redisson:lock:" + lockKey);
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
-            assertThat(expiredLock.tryLock(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(expiredLock.tryLock(1000, 300, TimeUnit.MILLISECONDS)).isTrue();
             Thread.sleep(600);
             assertThat(newLock.tryLock(1, TimeUnit.SECONDS)).isTrue();
 
-            assertThatThrownBy(expiredLock::unlock).isInstanceOf(ConcurrentModificationException.class);
+            assertThatThrownBy(expiredLock::unlock).isInstanceOf(IllegalMonitorStateException.class);
             assertThat(executor.submit(() -> {
-                Lock thirdLock = thirdRegistry.obtain(lockKey);
+                Lock thirdLock = thirdRegistry.getLock("fleaflea:redisson:lock:" + lockKey);
                 boolean acquired = thirdLock.tryLock(100, TimeUnit.MILLISECONDS);
                 if (acquired) {
                     thirdLock.unlock();
@@ -268,9 +268,9 @@ class MarketConcurrencyTest {
             }).get(5, TimeUnit.SECONDS)).isFalse();
         } finally {
             newLock.unlock();
-            expiredRegistry.destroy();
-            newRegistry.destroy();
-            thirdRegistry.destroy();
+            expiredRegistry.shutdown();
+            newRegistry.shutdown();
+            thirdRegistry.shutdown();
         }
     }
 
@@ -278,17 +278,16 @@ class MarketConcurrencyTest {
     @DisplayName("작업이 만료시간보다 길어져도 자동 갱신으로 다른 인스턴스의 진입을 막는다")
     void acquireLock_longOperation_renewsLease() throws Exception {
         String lockKey = "market:renewal:" + UUID.randomUUID();
-        RedisLockRegistry renewingRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 1500);
-        renewingRegistry.setRenewalTaskScheduler(redisLockRenewalScheduler);
-        RedisLockRegistry competingRegistry = new RedisLockRegistry(redisConnectionFactory, "fleaflea:lock", 60000);
-        Lock renewingLock = renewingRegistry.obtain(lockKey);
+        RedissonClient renewingRegistry = newClient(1500);
+        RedissonClient competingRegistry = newClient(60000);
+        Lock renewingLock = renewingRegistry.getLock("fleaflea:redisson:lock:" + lockKey);
 
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             assertThat(renewingLock.tryLock(1, TimeUnit.SECONDS)).isTrue();
             Thread.sleep(2200);
 
             assertThat(executor.submit(() -> {
-                Lock competingLock = competingRegistry.obtain(lockKey);
+                Lock competingLock = competingRegistry.getLock("fleaflea:redisson:lock:" + lockKey);
                 boolean acquired = competingLock.tryLock(100, TimeUnit.MILLISECONDS);
                 if (acquired) {
                     competingLock.unlock();
@@ -297,9 +296,15 @@ class MarketConcurrencyTest {
             }).get(5, TimeUnit.SECONDS)).isFalse();
         } finally {
             renewingLock.unlock();
-            renewingRegistry.destroy();
-            competingRegistry.destroy();
+            renewingRegistry.shutdown();
+            competingRegistry.shutdown();
         }
+    }
+
+    private RedissonClient newClient(long watchdogMillis) {
+        Config config = new Config(redissonClient.getConfig());
+        config.setLockWatchdogTimeout(watchdogMillis);
+        return Redisson.create(config);
     }
 
     private boolean joinAfterStart(

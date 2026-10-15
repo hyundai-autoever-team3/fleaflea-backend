@@ -104,6 +104,7 @@ app:
 
   redis-lock:
     wait-time: ${REDIS_LOCK_WAIT_TIME:5s}
+    # Backward-compatible env name: Redisson watchdog timeout, not a fixed lease.
     lease-time: ${REDIS_LOCK_LEASE_TIME:60s}
 
   chat:

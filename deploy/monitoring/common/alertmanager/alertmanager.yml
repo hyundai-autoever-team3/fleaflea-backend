@@ -1,0 +1,26 @@
+global:
+  resolve_timeout: 5m
+
+templates:
+  - /run/alertmanager/dashboard.tmpl
+
+route:
+  receiver: discord
+  group_by: [alertname, service, environment]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: discord
+    discord_configs:
+      - webhook_url_file: /run/secrets/discord_webhook_url
+        send_resolved: true
+        message: |-
+          {{ range .Alerts }}
+          **{{ .Labels.alertname }}** — {{ .Status }}
+          {{ with .Annotations.summary }}{{ . }}{{ end }}
+          {{ with .Annotations.description }}{{ . }}{{ end }}
+          환경: {{ .Labels.environment }}{{ with .Labels.instance }} · 대상: {{ . }}{{ end }}
+          [대시보드 보기]({{ template "dashboard.url" . }})
+          {{ end }}

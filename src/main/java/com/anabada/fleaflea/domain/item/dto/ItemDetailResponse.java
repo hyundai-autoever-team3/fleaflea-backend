@@ -40,11 +40,19 @@ public record ItemDetailResponse(
                 example = "items/550e8400-e29b-41d4-a716-446655440000.png")
         String imageKey,
 
+        @Schema(description = "상품 원본 이미지 URL. 이미지가 없으면 null",
+                example = "https://example.com/items/original.png")
+        String imageUrl,
+
         @Schema(description = "상품 등록 일시", example = "2026-09-15T16:00:00")
         LocalDateTime createdAt
 ) {
 
-    public static ItemDetailResponse of(Item item, SellerResponse seller) {
+    public static ItemDetailResponse from(
+            Item item,
+            SellerResponse seller,
+            String imageUrl
+    ) {
         return ItemDetailResponse.builder()
                 .itemId(item.getItemId())
                 .marketId(item.getMarket().getMarketId())
@@ -55,6 +63,7 @@ public record ItemDetailResponse(
                 .price(item.getPrice())
                 .status(item.getStatus())
                 .imageKey(item.getImageKey())
+                .imageUrl(imageUrl)
                 .createdAt(item.getCreatedAt())
                 .build();
     }
