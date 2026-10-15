@@ -50,17 +50,16 @@ public class ItemCommentService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt", "commentId").ascending());
         Page<ItemComment> comments;
         if (parentId == null) {
-            comments = commentRepository.findRoots(itemId, pageable);
+            comments = commentRepository.findByItemIdAndParentIdIsNull(itemId, pageable);
         } else {
             ItemComment parent = findComment(itemId, parentId);
             if (parent.getParentId() != null) {
                 throw new ItemCommentInvalidParentException();
             }
-            comments = commentRepository.findByItemIdAndParentIdAndDeletedFalse(itemId, parentId, pageable);
+            comments = commentRepository.findByItemIdAndParentId(itemId, parentId, pageable);
         }
 
         List<Long> authorIds = comments.stream()
-                .filter(comment -> !comment.isDeleted())
                 .map(ItemComment::getAuthorId)
                 .distinct()
                 .toList();
@@ -125,7 +124,8 @@ public class ItemCommentService {
         findLockedItem(itemId, memberId);
         ItemComment comment = findComment(itemId, commentId);
         comment.validateOwner(memberId);
-        comment.delete();
+        commentRepository.delete(comment);
+        commentRepository.flush();
     }
 
     private Item findItem(Long itemId, Long memberId) {

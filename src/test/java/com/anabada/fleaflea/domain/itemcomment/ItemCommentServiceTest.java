@@ -164,24 +164,18 @@ class ItemCommentServiceTest {
     }
 
     @Test
-    @DisplayName("부모 삭제 시 내용과 작성자를 숨기고 답글은 유지한다")
-    void preservesRepliesAfterParentDeletion() {
-        ItemCommentResponse root = create(item, viewer, null, "민감한 질문");
+    @DisplayName("부모 댓글 삭제 시 다른 작성자의 대댓글도 DB에서 함께 제거된다")
+    void deletesParentAndReplies() {
+        ItemCommentResponse root = create(item, viewer, null, "질문");
         create(item, seller, root.commentId(), "답변");
         commentService.deleteComment(item.getItemId(), root.commentId(), viewer.getMemberId());
-        entityManager.flush();
         entityManager.clear();
-
-        ItemCommentResponse deleted = find(item, seller, null, 0, 10).content().getFirst();
-        assertThat(deleted.deleted()).isTrue();
-        assertThat(deleted.content()).isEqualTo("삭제된 댓글입니다");
-        assertThat(deleted.authorId()).isNull();
-        assertThat(deleted.nickname()).isNull();
-        assertThat(deleted.replyCount()).isEqualTo(1);
-        assertThat(find(item, seller, root.commentId(), 0, 10).content())
-                .extracting(ItemCommentResponse::content).containsExactly("답변");
-        assertThat(entityManager.createNativeQuery("select content from item_comments where comment_id = :id")
-                .setParameter("id", root.commentId()).getSingleResult()).isEqualTo("");
+        assertThat(find(item, seller, null, 0, 10).totalElements()).isZero();
+        assertThat(((Number) entityManager.createNativeQuery("select count(*) from item_comments where item_id = :id")
+                .setParameter("id", item.getItemId()).getSingleResult()).longValue()).isZero();
+        assertThatThrownBy(() -> find(item, viewer, root.commentId(), 0, 10))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.ITEM_COMMENT_NOT_FOUND);
     }
 
     @Test
@@ -191,7 +185,7 @@ class ItemCommentServiceTest {
         commentService.deleteComment(item.getItemId(), root.commentId(), viewer.getMemberId());
         assertThatThrownBy(() -> create(item, seller, root.commentId(), "답글"))
                 .isInstanceOf(BusinessException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.ITEM_COMMENT_INVALID_PARENT);
+                .extracting("errorCode").isEqualTo(ErrorCode.ITEM_COMMENT_NOT_FOUND);
         assertThatThrownBy(() -> commentService.updateComment(item.getItemId(), root.commentId(),
                 viewer.getMemberId(), new ItemCommentUpdateRequest("복구")))
                 .isInstanceOf(BusinessException.class)
@@ -199,22 +193,28 @@ class ItemCommentServiceTest {
     }
 
     @Test
-    @DisplayName("마지막 답글까지 삭제하면 삭제된 부모도 목록에서 제외된다")
-    void hidesThreadWithoutActiveReplies() {
+    @DisplayName("대댓글 삭제 시 부모와 다른 답글은 유지되고 답글 수가 갱신된다")
+    void deletesOnlySelectedReply() {
         ItemCommentResponse root = create(item, viewer, null, "질문");
         ItemCommentResponse reply = create(item, seller, root.commentId(), "답변");
-        commentService.deleteComment(item.getItemId(), root.commentId(), viewer.getMemberId());
+        ItemCommentResponse remaining = create(item, viewer, root.commentId(), "추가 질문");
         commentService.deleteComment(item.getItemId(), reply.commentId(), seller.getMemberId());
-        assertThat(find(item, viewer, null, 0, 10).totalElements()).isZero();
-        assertThat(find(item, viewer, root.commentId(), 0, 10).totalElements()).isZero();
+        entityManager.clear();
+        assertThat(find(item, viewer, null, 0, 10).content().getFirst().replyCount()).isEqualTo(1);
+        assertThat(find(item, viewer, root.commentId(), 0, 10).content())
+                .extracting(ItemCommentResponse::commentId).containsExactly(remaining.commentId());
+        assertThat(((Number) entityManager.createNativeQuery("select count(*) from item_comments where comment_id = :id")
+                .setParameter("id", reply.commentId()).getSingleResult()).longValue()).isZero();
     }
 
     @Test
-    @DisplayName("답글 없는 댓글 삭제는 반복 호출해도 성공하고 목록에서 제외된다")
-    void deletesWithoutRepliesIdempotently() {
+    @DisplayName("답글 없는 댓글은 DB에서 제거하고 반복 삭제는 404로 처리한다")
+    void rejectsRepeatedDeletion() {
         ItemCommentResponse comment = create(item, viewer, null, "질문");
         commentService.deleteComment(item.getItemId(), comment.commentId(), viewer.getMemberId());
-        commentService.deleteComment(item.getItemId(), comment.commentId(), viewer.getMemberId());
+        assertThatThrownBy(() -> commentService.deleteComment(item.getItemId(), comment.commentId(), viewer.getMemberId()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.ITEM_COMMENT_NOT_FOUND);
         assertThat(find(item, viewer, null, 0, 10).content()).isEmpty();
     }
 

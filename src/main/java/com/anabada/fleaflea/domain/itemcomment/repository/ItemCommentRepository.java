@@ -14,26 +14,14 @@ public interface ItemCommentRepository extends JpaRepository<ItemComment, Long> 
 
     Optional<ItemComment> findByCommentIdAndItemId(Long commentId, Long itemId);
 
-    @Query("""
-            select comment from ItemComment comment
-            where comment.itemId = :itemId and comment.parentId is null
-              and (comment.deleted = false or exists (
-                  select reply.commentId from ItemComment reply
-                  where reply.parentId = comment.commentId and reply.deleted = false
-              ))
-            """)
-    Page<ItemComment> findRoots(@Param("itemId") Long itemId, Pageable pageable);
+    Page<ItemComment> findByItemIdAndParentIdIsNull(Long itemId, Pageable pageable);
 
-    Page<ItemComment> findByItemIdAndParentIdAndDeletedFalse(
-            Long itemId,
-            Long parentId,
-            Pageable pageable
-    );
+    Page<ItemComment> findByItemIdAndParentId(Long itemId, Long parentId, Pageable pageable);
 
     @Query("""
             select comment.parentId as parentId, count(comment) as replyCount
             from ItemComment comment
-            where comment.parentId in :parentIds and comment.deleted = false
+            where comment.parentId in :parentIds
             group by comment.parentId
             """)
     List<ReplyCount> countReplies(@Param("parentIds") Collection<Long> parentIds);

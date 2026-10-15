@@ -87,8 +87,8 @@ class ItemCommentConcurrencyTest {
                 assertThat(replyStarted.await(10, TimeUnit.SECONDS)).isTrue();
                 releaseDelete.countDown();
                 deletion.get(10, TimeUnit.SECONDS);
-                assertThat(reply.get(10, TimeUnit.SECONDS)).isEqualTo(ErrorCode.ITEM_COMMENT_INVALID_PARENT);
-                assertThat(commentService.findComments(ids[0], ids[1], ids[2], 0, 10).totalElements()).isZero();
+                assertThat(reply.get(10, TimeUnit.SECONDS)).isEqualTo(ErrorCode.ITEM_COMMENT_NOT_FOUND);
+                assertThat(commentService.findComments(ids[0], ids[1], null, 0, 10).totalElements()).isZero();
             } finally {
                 releaseDelete.countDown();
             }

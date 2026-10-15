@@ -62,7 +62,7 @@ public class ItemCommentController {
     @PostMapping
     @Operation(summary = "상품 댓글·대댓글 작성", description = "마켓 참여자만 작성 가능. 대댓글은 1단계까지 허용")
     @ApiResponse(responseCode = "201", description = "댓글 작성 성공")
-    @ApiResponse(responseCode = "400", description = "빈 내용·2000자 초과 또는 삭제된 댓글·대댓글에 답글 작성",
+    @ApiResponse(responseCode = "400", description = "빈 내용·2000자 초과 또는 대댓글에 답글 작성",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<ItemCommentResponse> createComment(
             @PathVariable @Positive Long itemId,
@@ -89,7 +89,7 @@ public class ItemCommentController {
 
     @DeleteMapping("/{commentId}")
     @Operation(summary = "상품 댓글 삭제", description = "마켓에 참여 중인 작성자만 삭제 가능. "
-            + "대댓글이 남은 부모는 삭제 표시로 유지하며, 삭제된 댓글에는 새 대댓글 작성 불가")
+            + "부모 댓글 삭제 시 대댓글도 함께 삭제")
     @ApiResponse(responseCode = "204", description = "댓글 삭제 성공", content = @Content)
     public ResponseEntity<Void> deleteComment(
             @PathVariable @Positive Long itemId,

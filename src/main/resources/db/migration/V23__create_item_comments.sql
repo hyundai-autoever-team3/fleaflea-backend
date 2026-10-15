@@ -4,16 +4,15 @@ CREATE TABLE item_comments (
     author_id BIGINT NOT NULL,
     parent_id BIGINT,
     content VARCHAR(2000) NOT NULL,
-    deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP(6) NOT NULL,
     updated_at TIMESTAMP(6) NOT NULL,
     CONSTRAINT uk_item_comment_item UNIQUE (comment_id, item_id),
     CONSTRAINT fk_item_comment_parent FOREIGN KEY (parent_id, item_id)
         REFERENCES item_comments(comment_id, item_id) ON DELETE CASCADE,
     CONSTRAINT ck_item_comment_not_self CHECK (parent_id IS NULL OR parent_id <> comment_id),
-    CONSTRAINT ck_item_comment_content CHECK (deleted OR length(trim(content)) > 0)
+    CONSTRAINT ck_item_comment_content CHECK (length(trim(content)) > 0)
 );
 CREATE INDEX ix_item_comment_roots ON item_comments(item_id, created_at, comment_id)
     WHERE parent_id IS NULL;
 CREATE INDEX ix_item_comment_replies ON item_comments(item_id, parent_id, created_at, comment_id);
-CREATE INDEX ix_item_comment_parent_active ON item_comments(parent_id) WHERE deleted = FALSE;
+CREATE INDEX ix_item_comment_parent ON item_comments(parent_id);

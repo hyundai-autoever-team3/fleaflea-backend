@@ -1,7 +1,6 @@
 package com.anabada.fleaflea.domain.itemcomment.domain;
 
 import com.anabada.fleaflea.domain.itemcomment.exception.ItemCommentInvalidParentException;
-import com.anabada.fleaflea.domain.itemcomment.exception.ItemCommentNotFoundException;
 import com.anabada.fleaflea.domain.itemcomment.exception.ItemCommentNotOwnerException;
 import com.anabada.fleaflea.global.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
@@ -35,9 +34,6 @@ public class ItemComment extends BaseTimeEntity {
     @Column(nullable = false, length = 2000)
     private String content;
 
-    @Column(nullable = false)
-    private boolean deleted;
-
     private ItemComment(Long itemId, Long authorId, Long parentId, String content) {
         this.itemId = itemId;
         this.authorId = authorId;
@@ -55,7 +51,7 @@ public class ItemComment extends BaseTimeEntity {
     }
 
     public void validateReplyParent() {
-        if (deleted || parentId != null) {
+        if (parentId != null) {
             throw new ItemCommentInvalidParentException();
         }
     }
@@ -67,14 +63,7 @@ public class ItemComment extends BaseTimeEntity {
     }
 
     public void update(String content) {
-        if (deleted) {
-            throw new ItemCommentNotFoundException();
-        }
         this.content = content;
     }
 
-    public void delete() {
-        content = "";
-        deleted = true;
-    }
 }

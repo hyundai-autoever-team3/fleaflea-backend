@@ -13,7 +13,6 @@ public record ItemCommentResponse(
         boolean seller,
         boolean mine,
         String content,
-        boolean deleted,
         long replyCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -26,21 +25,15 @@ public record ItemCommentResponse(
             Long viewerId,
             long replyCount
     ) {
-        boolean deleted = comment.isDeleted();
-        String nickname = null;
-        if (!deleted) {
-            nickname = author == null ? "탈퇴한 회원" : author.getNickname();
-        }
         return new ItemCommentResponse(
                 comment.getCommentId(),
                 comment.getItemId(),
                 comment.getParentId(),
-                deleted ? null : comment.getAuthorId(),
-                nickname,
-                !deleted && comment.getAuthorId().equals(sellerId),
-                !deleted && comment.getAuthorId().equals(viewerId),
-                deleted ? "삭제된 댓글입니다" : comment.getContent(),
-                deleted,
+                comment.getAuthorId(),
+                author == null ? "탈퇴한 회원" : author.getNickname(),
+                comment.getAuthorId().equals(sellerId),
+                comment.getAuthorId().equals(viewerId),
+                comment.getContent(),
                 replyCount,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
