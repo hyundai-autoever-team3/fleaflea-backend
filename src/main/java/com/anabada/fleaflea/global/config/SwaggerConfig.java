@@ -53,7 +53,10 @@ public class SwaggerConfig {
                     "/api/v1/auth/signup",
                     "/api/v1/auth/login",
                     "/api/v1/auth/reissue",
-                    "/api/v1/auth/oauth2/signup"
+                    "/api/v1/auth/oauth2/signup",
+                    "/api/v1/auth/email/code",
+                    "/api/v1/auth/email/verify",
+                    "/api/v1/auth/password/reset"
             )) {
                 var item = openApi.getPaths().get(path);
                 if (item != null && item.getPost() != null) {
