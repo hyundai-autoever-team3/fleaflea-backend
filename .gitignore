@@ -47,6 +47,7 @@ gha-creds-*.json
 deploy/monitoring/gcp/tunnel.sh
 deploy/monitoring/gcp/prepare.py
 deploy/ec2/firebase/
+deploy/gcp/firebase/
 **/service-account*.json
 **/http-client.private.env.json
 **/.http-client/
