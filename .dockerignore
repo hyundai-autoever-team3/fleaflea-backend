@@ -19,3 +19,7 @@ build/tmp
 .env.*
 gha-creds-*.json
 build/gcp-migration
+**/service-account*.json
+**/http-client.private.env.json
+**/.http-client/
+deploy/ec2/firebase
