@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -15,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SseEmitterRepositoryTest {
 
+    private static final Instant EXPIRES_AT = Instant.now().plusSeconds(3600);
+
     private final SseEmitterRepository repository = new SseEmitterRepository();
 
     @Test
@@ -24,9 +27,9 @@ class SseEmitterRepositoryTest {
         SseEmitter tabB = new SseEmitter();
         SseEmitter tabC = new SseEmitter();
 
-        repository.save(1L, "1_a", tabA);
-        repository.save(1L, "1_b", tabB);
-        repository.save(1L, "1_c", tabC);
+        repository.save(1L, "1_a", tabA, EXPIRES_AT);
+        repository.save(1L, "1_b", tabB, EXPIRES_AT);
+        repository.save(1L, "1_c", tabC, EXPIRES_AT);
 
         assertThat(repository.findAllByMemberId(1L))
                 .extracting(Map.Entry::getValue)
@@ -41,8 +44,8 @@ class SseEmitterRepositoryTest {
         SseEmitter tabA = new SseEmitter();
         SseEmitter tabB = new SseEmitter();
 
-        repository.save(1L, "1_a", tabA);
-        repository.save(1L, "1_b", tabB);
+        repository.save(1L, "1_a", tabA, EXPIRES_AT);
+        repository.save(1L, "1_b", tabB, EXPIRES_AT);
 
         repository.delete(1L, "1_a");
 
@@ -57,8 +60,8 @@ class SseEmitterRepositoryTest {
         SseEmitter mine = new SseEmitter();
         SseEmitter others = new SseEmitter();
 
-        repository.save(1L, "1_a", mine);
-        repository.save(2L, "2_a", others);
+        repository.save(1L, "1_a", mine, EXPIRES_AT);
+        repository.save(2L, "2_a", others, EXPIRES_AT);
 
         assertThat(repository.findAllByMemberId(1L))
                 .extracting(Map.Entry::getValue)
@@ -68,7 +71,7 @@ class SseEmitterRepositoryTest {
     @Test
     @DisplayName("마지막 탭이 닫히면 회원 키까지 정리된다")
     void delete_removesMemberKeyWhenEmpty() {
-        repository.save(1L, "1_a", new SseEmitter());
+        repository.save(1L, "1_a", new SseEmitter(), EXPIRES_AT);
 
         repository.delete(1L, "1_a");
 
@@ -86,7 +89,7 @@ class SseEmitterRepositoryTest {
                 String closingId = "1_closing_" + i;
                 String openingId = "1_opening_" + i;
 
-                repository.save(1L, closingId, new SseEmitter());
+                repository.save(1L, closingId, new SseEmitter(), EXPIRES_AT);
 
                 CountDownLatch start = new CountDownLatch(1);
 
@@ -96,7 +99,7 @@ class SseEmitterRepositoryTest {
                 });
                 Future<?> opening = executor.submit(() -> {
                     await(start);
-                    repository.save(1L, openingId, new SseEmitter());
+                    repository.save(1L, openingId, new SseEmitter(), EXPIRES_AT);
                 });
 
                 start.countDown();
