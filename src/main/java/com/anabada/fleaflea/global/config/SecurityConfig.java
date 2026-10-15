@@ -86,7 +86,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/reissue",
                                 "/api/v1/auth/oauth2/signup",
                                 "/oauth2/authorization/**",
-                                "/login/oauth2/code/**"
+                                "/login/oauth2/code/**",
+                                "/api/v1/auth/email/**",
+                                "/api/v1/auth/password/reset"
                         ).permitAll()
                         .requestMatchers("/ws/chat").permitAll()
                         .requestMatchers(

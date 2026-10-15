@@ -26,6 +26,9 @@ jobs:
       S3_BUCKET: fleaflea-ci-test
       S3_INTEGRATION_TEST: "false"
       JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      SMTP_USERNAME: ci@example.invalid
+      SMTP_PASSWORD: ci-only-not-a-real-password
+      EMAIL_VERIFICATION_HASH_SECRET: ci-only-email-verification-secret-not-for-production
 
     steps:
       - name: Checkout source

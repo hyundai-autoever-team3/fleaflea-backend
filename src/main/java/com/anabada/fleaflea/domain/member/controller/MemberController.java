@@ -70,7 +70,11 @@ public class MemberController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "비밀번호 변경", description = "현재 로그인한 사용자의 비밀번호를 변경합니다.")
+    @Operation(summary = "비밀번호 변경", description = """
+            로그인한 사용자의 현재 비밀번호를 확인하고 새 비밀번호(8~20자)로 변경합니다.
+            이메일 인증 토큰은 필요하지 않습니다. 현재 비밀번호를 잊었다면 인증 API의 비밀번호 재설정을 사용하세요.
+            변경 성공 후 기존 Refresh Token을 삭제합니다. 기존 Access Token은 만료 전까지 유효합니다.
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "비밀번호 변경 성공"),
             @ApiResponse(responseCode = "400", description = "현재 비밀번호가 일치하지 않거나 잘못된 요청", content = @Content),
