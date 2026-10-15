@@ -2,6 +2,7 @@ package com.anabada.fleaflea.domain.member.service;
 
 import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
 import com.anabada.fleaflea.domain.member.domain.Member;
+import com.anabada.fleaflea.domain.member.event.MemberLoggedOutEvent;
 import com.anabada.fleaflea.domain.member.dto.LoginRequest;
 import com.anabada.fleaflea.domain.member.dto.SignUpRequest;
 import com.anabada.fleaflea.domain.member.dto.TokenPair;
@@ -23,6 +24,7 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -37,6 +39,7 @@ public class MemberAuthService {
     private final TokenIssueService tokenIssueService;
     private final RedisEmailVerificationRepository emailVerificationRepository;
     private final PushDeviceRepository pushDeviceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Transactional
@@ -125,6 +128,7 @@ public class MemberAuthService {
         memberRepository.findLockedById(memberId).orElseThrow(MemberNotFoundException::new);
         pushDeviceRepository.deleteAllByMemberId(memberId);
         refreshTokenRepository.deleteByMemberId(memberId);
+        eventPublisher.publishEvent(MemberLoggedOutEvent.of(memberId));
     }
 
 }

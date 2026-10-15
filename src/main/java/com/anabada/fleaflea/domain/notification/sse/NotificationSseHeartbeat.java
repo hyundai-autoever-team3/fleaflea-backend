@@ -14,6 +14,11 @@ public class NotificationSseHeartbeat {
 
     private final NotificationSseService notificationSseService;
 
+    @Scheduled(fixedDelay = 1000)
+    public void closeExpiredConnections() {
+        notificationSseService.closeExpiredConnections();
+    }
+
     @Async("notificationSseExecutor")
     @Scheduled(fixedDelay = INTERVAL_MILLIS)
     public void heartbeat() {

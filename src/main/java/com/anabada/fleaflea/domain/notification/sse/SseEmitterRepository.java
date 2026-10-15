@@ -6,24 +6,26 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class SseEmitterRepository {
 
-    private final Map<Long, Map<String, SseEmitter>> emitters =
+    private final Map<Long, Map<String, SseConnection>> emitters =
             new ConcurrentHashMap<>();
 
     public void save(
             Long memberId,
             String emitterId,
-            SseEmitter emitter
+            SseEmitter emitter,
+            Instant expiresAt
     ) {
         emitters.compute(memberId, (key, memberEmitters) -> {
-            Map<String, SseEmitter> target =
+            Map<String, SseConnection> target =
                     (memberEmitters == null) ? new ConcurrentHashMap<>() : memberEmitters;
 
-            target.put(emitterId, emitter);
+            target.put(emitterId, SseConnection.of(emitter, expiresAt));
             return target;
         });
     }
@@ -39,16 +41,26 @@ public class SseEmitterRepository {
     }
 
     public Collection<Map.Entry<String, SseEmitter>> findAllByMemberId(Long memberId) {
-        return List.copyOf(
-                emitters.getOrDefault(memberId, Map.of())
-                        .entrySet()
-        );
+        return emitters.getOrDefault(memberId, Map.of()).entrySet().stream()
+                .map(entry -> Map.entry(entry.getKey(), entry.getValue().emitter()))
+                .toList();
+    }
+
+    public boolean isActive(Long memberId, String emitterId, Instant now) {
+        SseConnection connection = emitters.getOrDefault(memberId, Map.of()).get(emitterId);
+        return connection != null && connection.expiresAt().isAfter(now);
+    }
+
+    public Collection<SseEmitter> removeAllByMemberId(Long memberId) {
+        Map<String, SseConnection> removed = emitters.remove(memberId);
+        return removed == null ? List.of() : removed.values().stream().map(SseConnection::emitter).toList();
     }
 
     public Collection<Map.Entry<Long, Map.Entry<String, SseEmitter>>> findAll() {
         return emitters.entrySet().stream()
                 .flatMap(memberEntry -> memberEntry.getValue().entrySet().stream()
-                        .map(emitterEntry -> Map.entry(memberEntry.getKey(), emitterEntry)))
+                        .map(emitterEntry -> Map.entry(memberEntry.getKey(),
+                                Map.entry(emitterEntry.getKey(), emitterEntry.getValue().emitter()))))
                 .toList();
     }
 
@@ -56,5 +68,11 @@ public class SseEmitterRepository {
         return emitters.values().stream()
                 .mapToInt(Map::size)
                 .sum();
+    }
+
+    private record SseConnection(SseEmitter emitter, Instant expiresAt) {
+        private static SseConnection of(SseEmitter emitter, Instant expiresAt) {
+            return new SseConnection(emitter, expiresAt);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.notification.sse;
 
 import com.anabada.fleaflea.domain.notification.dto.NotificationResponse;
+import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Service
@@ -22,11 +25,13 @@ public class NotificationSseService {
 
     private final SseEmitterRepository emitterRepository;
 
-    public SseEmitter subscribe(Long memberId) {
+    public SseEmitter subscribe(Long memberId, Instant expiresAt) {
+        long remainingMillis = Duration.between(Instant.now(), expiresAt).toMillis();
+        if (remainingMillis <= 0) {
+            throw new InvalidTokenException();
+        }
         String emitterId = memberId + "_" + UUID.randomUUID();
-        SseEmitter emitter = new SseEmitter(TIMEOUT_MILLIS);
-
-        emitterRepository.save(memberId, emitterId, emitter);
+        SseEmitter emitter = new SseEmitter(Math.min(TIMEOUT_MILLIS, remainingMillis));
 
         emitter.onCompletion(() -> emitterRepository.delete(memberId, emitterId));
         emitter.onTimeout(() -> {
@@ -34,6 +39,8 @@ public class NotificationSseService {
             emitter.complete();
         });
         emitter.onError(throwable -> emitterRepository.delete(memberId, emitterId));
+
+        emitterRepository.save(memberId, emitterId, emitter, expiresAt);
 
         send(memberId, emitterId, emitter, EVENT_CONNECT, "connected");
 
@@ -58,6 +65,9 @@ public class NotificationSseService {
             Long memberId = entry.getKey();
             String emitterId = entry.getValue().getKey();
             SseEmitter emitter = entry.getValue().getValue();
+            if (!isConnectionActive(memberId, emitterId, emitter)) {
+                return;
+            }
 
             try {
                 emitter.send(SseEmitter.event().comment("heartbeat"));
@@ -67,6 +77,24 @@ public class NotificationSseService {
         });
     }
 
+    public void disconnectMember(Long memberId) {
+        emitterRepository.removeAllByMemberId(memberId).forEach(SseEmitter::complete);
+    }
+
+    public void closeExpiredConnections() {
+        emitterRepository.findAll().forEach(entry -> isConnectionActive(
+                entry.getKey(), entry.getValue().getKey(), entry.getValue().getValue()));
+    }
+
+    private boolean isConnectionActive(Long memberId, String emitterId, SseEmitter emitter) {
+        if (emitterRepository.isActive(memberId, emitterId, Instant.now())) {
+            return true;
+        }
+        emitterRepository.delete(memberId, emitterId);
+        emitter.complete();
+        return false;
+    }
+
     private void send(
             Long memberId,
             String emitterId,
@@ -74,6 +102,9 @@ public class NotificationSseService {
             String eventName,
             Object data
     ) {
+        if (!isConnectionActive(memberId, emitterId, emitter)) {
+            return;
+        }
         try {
             emitter.send(SseEmitter.event()
                     .id(emitterId)
