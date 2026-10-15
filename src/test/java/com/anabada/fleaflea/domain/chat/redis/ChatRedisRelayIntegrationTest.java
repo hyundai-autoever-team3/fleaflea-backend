@@ -96,7 +96,7 @@ class ChatRedisRelayIntegrationTest {
                 20L, 10L, 1L, ChatFixture.createChatMessageSendRequest("서버 간 메시지"),
                 LocalDateTime.of(2026, 1, 1, 12, 0)
         ));
-        ChatMessageSentEvent chatMessageSentEvent = ChatMessageSentEvent.of(1L, 2L, chatMessageResponse);
+        ChatMessageSentEvent chatMessageSentEvent = ChatMessageSentEvent.of(1L, 2L, "민지", chatMessageResponse);
 
         redisChatEventPublisher.publishMessageSent(chatMessageSentEvent);
 
