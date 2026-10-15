@@ -47,7 +47,7 @@ public class MemberAuthService {
         }
 
         boolean verified = emailVerificationRepository.consumeVerificationToken(
-                request.verificatioinToken(),
+                request.verificationToken(),
                 request.email(),
                 EmailVerificationPurpose.SIGN_UP
         );

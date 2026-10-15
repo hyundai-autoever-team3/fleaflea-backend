@@ -24,6 +24,6 @@ public record SignUpRequest (
 
         @NotBlank(message = "이메일 인증 토큰은 필수 값입니다")
         @Schema(description = "SIGN_UP 코드 검증 응답의 verificationToken을 이 필드에 전달", example = "550e8400-e29b-41d4-a716-446655440000")
-        String verificatioinToken
+        String verificationToken
 ) {
 }

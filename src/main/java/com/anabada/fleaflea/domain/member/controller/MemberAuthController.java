@@ -33,8 +33,7 @@ public class MemberAuthController {
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = """
             SIGN_UP 목적으로 이메일 코드 발송 및 검증을 먼저 완료하세요.
-            /api/v1/auth/email/verify 응답의 verificationToken을 요청의 verificatioinToken 필드에 전달합니다.
-            현재 회원가입 요청 필드명은 verificatioinToken입니다.
+            /api/v1/auth/email/verify 응답의 verificationToken을 요청의 verificationToken 필드에 전달합니다.
             토큰은 인증한 이메일과 목적이 일치해야 하며, 10분간 유효하고 한 번만 사용할 수 있습니다.
             """)
     @ApiResponses({
