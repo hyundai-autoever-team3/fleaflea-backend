@@ -28,7 +28,6 @@ tasks.register('prepareOtelAgent', Copy) {
 }
 
 dependencies {
-	implementation 'com.google.firebase:firebase-admin:9.11.0'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
@@ -89,6 +88,9 @@ dependencies {
 
 	// Java Mail Sender
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	// FCM
+	implementation 'com.google.firebase:firebase-admin:9.11.0'
 }
 
 tasks.named('test') {
@@ -132,6 +134,16 @@ if (dotenvFile.exists()) {
 			inputs.file(dotenvFile)
 		}
 	}
+}
+
+// Email-free manual HTTP testing; test classes and containers never ship in the app jar.
+tasks.register('fcmHttpTestServer', JavaExec) {
+	group = 'verification'
+	description = 'Start a localhost-only FCM HTTP fixture server with disposable DB, Redis and access tokens.'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.anabada.fleaflea.support.FcmHttpFixtureServer'
+	environment dotenv
 }
 
 // Local performance measurement: gradlew bootRun -Pperf
