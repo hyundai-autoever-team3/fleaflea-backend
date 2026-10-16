@@ -19,7 +19,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,10 +52,9 @@ class NotificationSseLifecycleIntegrationTest {
     void setUp() {
         member = members.save(MemberFixture.createMember("sse-logout"));
         other = members.save(MemberFixture.createMember("sse-other"));
-        Instant expiresAt = Instant.now().plusSeconds(300);
-        sse.subscribe(member.getMemberId(), expiresAt);
-        sse.subscribe(member.getMemberId(), expiresAt);
-        sse.subscribe(other.getMemberId(), expiresAt);
+        sse.subscribe(member.getMemberId());
+        sse.subscribe(member.getMemberId());
+        sse.subscribe(other.getMemberId());
     }
 
     @AfterEach

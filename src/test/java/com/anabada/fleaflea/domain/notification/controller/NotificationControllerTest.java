@@ -8,7 +8,6 @@ import com.anabada.fleaflea.global.security.CustomAccessDeniedHandler;
 import com.anabada.fleaflea.global.security.CustomAuthenticationEntryPoint;
 import com.anabada.fleaflea.global.security.JwtAuthenticationFilter;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
-import io.jsonwebtoken.MalformedJwtException;
 import com.anabada.fleaflea.global.security.oauth2.CustomOidcUserService;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2SuccessHandler;
 import com.anabada.fleaflea.global.security.oauth2.OAuth2FailureHandler;
@@ -23,8 +22,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -34,7 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(NotificationController.class)
 @ActiveProfiles("test")
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CustomAuthenticationEntryPoint.class, CustomAccessDeniedHandler.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class,
+        CustomAuthenticationEntryPoint.class, CustomAccessDeniedHandler.class})
 class NotificationControllerTest {
 
     @MockitoBean
@@ -62,31 +60,47 @@ class NotificationControllerTest {
     private CustomMemberDetailsService memberDetails;
 
     @Test
-    @DisplayName("인증 토큰의 만료 시각을 SSE 구독에 전달한다")
-    void subscribe_passesAuthenticatedTokenExpiration() throws Exception {
-        Instant expiresAt = Instant.now().plusSeconds(60).truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-        SseEmitter emitter = new SseEmitter(60_000L);
-        when(tokens.getExpiration("access-token")).thenReturn(Date.from(expiresAt));
-        when(sse.subscribe(1L, expiresAt)).thenReturn(emitter);
+    @DisplayName("인증된 회원의 구독에서 컨트롤러는 JWT를 다시 파싱하지 않는다")
+    void subscribe_reusesAuthenticatedMember() throws Exception {
+        SseEmitter emitter = new SseEmitter(30L * 60 * 1000);
+        when(sse.subscribe(1L)).thenReturn(emitter);
 
         mvc.perform(get("/api/v1/notifications/subscribe")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(1L, null, List.of())))
-                        .header("Authorization", "Bearer access-token"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(1L, null, List.of()))))
                 .andExpect(status().isOk())
                 .andExpect(request().asyncStarted());
 
-        verify(sse).subscribe(1L, expiresAt);
+        verify(sse).subscribe(1L);
+        verifyNoInteractions(tokens);
         emitter.complete();
     }
 
     @Test
-    @DisplayName("토큰 만료 시각을 확인할 수 없으면 SSE 연결을 생성하지 않는다")
-    void subscribe_rejectsInvalidExpirationToken() throws Exception {
-        when(tokens.getExpiration("invalid-token")).thenThrow(new MalformedJwtException("invalid"));
+    @DisplayName("연결 시작 시 필터에서 액세스 토큰을 인증한다")
+    void subscribe_authenticatesAtConnectionStart() throws Exception {
+        SseEmitter emitter = new SseEmitter(30L * 60 * 1000);
+        when(tokens.validateToken("access-token")).thenReturn(true);
+        when(tokens.isAccessToken("access-token")).thenReturn(true);
+        when(tokens.getMemberId("access-token")).thenReturn("1");
+        when(sse.subscribe(1L)).thenReturn(emitter);
 
         mvc.perform(get("/api/v1/notifications/subscribe")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(1L, null, List.of())))
-                        .header("Authorization", "Bearer invalid-token"))
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted());
+
+        verify(sse).subscribe(1L);
+        verify(tokens, never()).getExpiration(anyString());
+        emitter.complete();
+    }
+
+    @Test
+    @DisplayName("재연결 시 만료되거나 유효하지 않은 토큰으로는 구독할 수 없다")
+    void subscribe_rejectsInvalidTokenAtConnectionStart() throws Exception {
+        when(tokens.validateToken("expired-token")).thenReturn(false);
+
+        mvc.perform(get("/api/v1/notifications/subscribe")
+                        .header("Authorization", "Bearer expired-token"))
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(sse);
@@ -95,7 +109,8 @@ class NotificationControllerTest {
     @Test
     @DisplayName("인증이 없으면 SSE 연결을 생성하지 않는다")
     void subscribe_requiresAuthentication() throws Exception {
-        mvc.perform(get("/api/v1/notifications/subscribe")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/notifications/subscribe"))
+                .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(sse);
     }
