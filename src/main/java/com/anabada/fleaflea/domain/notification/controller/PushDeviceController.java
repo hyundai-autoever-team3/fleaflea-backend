@@ -28,7 +28,7 @@ public class PushDeviceController {
     private final PushDeviceService pushDeviceService;
 
     @PostMapping
-    @Operation(summary = "푸시 기기 등록 및 갱신", description = "FCM 등록을 완료한 FID를 로그인 회원에게 연결합니다. 회원당 최대 10개이며 본인 FID 갱신은 개수 제한에서 제외합니다. 계정 전환 시 새 수신 회원의 한도를 적용합니다. Redis에서 모든 서버의 요청을 합산해 회원당 최근 60초 동안 최대 10회를 허용합니다.")
+    @Operation(summary = "푸시 기기 등록 및 갱신", description = "FCM 등록을 완료한 FID를 로그인 회원에게 연결합니다. 회원당 최근 60초 동안 최대 10회를 허용합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "등록 또는 갱신 완료, 기기 ID 반환"),
             @ApiResponse(responseCode = "400", description = "잘못된 FID 또는 플랫폼"),
@@ -51,7 +51,7 @@ public class PushDeviceController {
     }
 
     @DeleteMapping("/{deviceId}")
-    @Operation(summary = "푸시 기기 등록 해제", description = "본인 기기만 해제합니다. 없는 등록의 삭제도 성공합니다. 로그아웃은 모든 기기를 해제합니다.")
+    @Operation(summary = "푸시 기기 등록 해제", description = "본인 기기만 해제합니다. 없는 등록의 삭제도 성공합니다. 로그아웃 시 deviceId를 지정하면 해당 기기만 해제하며, 생략하면 푸시 등록을 유지합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "해제 완료 또는 등록 없음"),
             @ApiResponse(responseCode = "400", description = "잘못된 기기 ID"),

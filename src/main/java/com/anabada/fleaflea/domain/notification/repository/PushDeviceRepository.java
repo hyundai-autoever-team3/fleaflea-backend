@@ -51,10 +51,6 @@ public interface PushDeviceRepository extends JpaRepository<PushDevice, Long> {
     List<PushTarget> findTargets(@Param("memberId") Long memberId);
 
     @Modifying
-    @Query("delete from PushDevice d where d.member.memberId = :memberId")
-    int deleteAllByMemberId(@Param("memberId") Long memberId);
-
-    @Modifying
     @Query("""
             delete from PushDevice d where d.pushDeviceId = :deviceId
             and d.member.memberId = :memberId and d.registrationVersion = :version

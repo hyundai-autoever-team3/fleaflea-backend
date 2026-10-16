@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.member.service;
 
+import com.anabada.fleaflea.domain.member.dto.LogoutRequest;
 import com.anabada.fleaflea.domain.member.domain.EmailVerificationPurpose;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.event.MemberLoggedOutEvent;
@@ -13,7 +14,7 @@ import com.anabada.fleaflea.domain.member.exception.MemberNicknameDuplicateExcep
 import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.member.repository.RedisEmailVerificationRepository;
-import com.anabada.fleaflea.domain.notification.repository.PushDeviceRepository;
+import com.anabada.fleaflea.domain.notification.service.PushDeviceService;
 import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
@@ -38,7 +39,7 @@ public class MemberAuthService {
     private final RedisRefreshTokenRepository refreshTokenRepository;
     private final TokenIssueService tokenIssueService;
     private final RedisEmailVerificationRepository emailVerificationRepository;
-    private final PushDeviceRepository pushDeviceRepository;
+    private final PushDeviceService pushDeviceService;
     private final ApplicationEventPublisher eventPublisher;
 
 
@@ -124,9 +125,13 @@ public class MemberAuthService {
     }
 
     @Transactional
-    public void logout(Long memberId) {
+    public void logout(Long memberId, LogoutRequest request) {
         memberRepository.findLockedById(memberId).orElseThrow(MemberNotFoundException::new);
-        pushDeviceRepository.deleteAllByMemberId(memberId);
+
+        if (request != null && request.deviceId() != null) {
+            pushDeviceService.deletePushDevice(memberId, request.deviceId());
+        }
+
         refreshTokenRepository.deleteByMemberId(memberId);
         eventPublisher.publishEvent(MemberLoggedOutEvent.of(memberId));
     }
