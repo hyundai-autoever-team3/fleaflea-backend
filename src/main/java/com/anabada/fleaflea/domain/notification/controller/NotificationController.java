@@ -5,9 +5,6 @@ import com.anabada.fleaflea.domain.notification.dto.NotificationUnreadCountRespo
 import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import com.anabada.fleaflea.global.dto.PageResponse;
-import com.anabada.fleaflea.global.security.JwtTokenProvider;
-import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
-import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,8 +22,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.Instant;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
@@ -35,7 +30,6 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final NotificationSseService notificationSseService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @GetMapping(value = "/notifications/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "알림 실시간 구독(SSE)", description = """
@@ -43,7 +37,7 @@ public class NotificationController {
 
             - 이벤트: connect(연결 확인), notification(신규 알림), chat-message(새 채팅), chat-read(읽음), :heartbeat(주석, 무시)
             - EventSource는 Authorization 헤더를 못 보내므로 fetch 기반 클라이언트를 사용할 것
-            - 액세스 토큰 만료 또는 로그아웃 시 연결 종료. 토큰 갱신 후 다시 구독할 것
+            - 연결은 최대 30분 유지하며 로그아웃 시 종료. 재연결 시 유효한 액세스 토큰으로 다시 인증할 것
             - 재연결 후에는 unread-count를 한 번 조회해 끊겨 있던 동안의 알림을 보정할 것
             - 채팅은 각 채팅방의 messages API에 afterId를 전달해 누락 메시지를 조회할 것
             """)
@@ -52,19 +46,9 @@ public class NotificationController {
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
     public ResponseEntity<SseEmitter> subscribe(
-            @AuthenticationPrincipal Long memberId,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization
+            @AuthenticationPrincipal Long memberId
     ) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new InvalidTokenException();
-        }
-        Instant expiresAt;
-        try {
-            expiresAt = jwtTokenProvider.getExpiration(authorization.substring(7)).toInstant();
-        } catch (JwtException | IllegalArgumentException exception) {
-            throw new InvalidTokenException();
-        }
-        SseEmitter emitter = notificationSseService.subscribe(memberId, expiresAt);
+        SseEmitter emitter = notificationSseService.subscribe(memberId);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)

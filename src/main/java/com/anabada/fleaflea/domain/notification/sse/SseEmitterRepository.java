@@ -1,4 +1,4 @@
- package com.anabada.fleaflea.domain.notification.sse;
+package com.anabada.fleaflea.domain.notification.sse;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -6,26 +6,24 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class SseEmitterRepository {
 
-    private final Map<Long, Map<String, SseConnection>> emitters =
+    private final Map<Long, Map<String, SseEmitter>> emitters =
             new ConcurrentHashMap<>();
 
     public void save(
             Long memberId,
             String emitterId,
-            SseEmitter emitter,
-            Instant expiresAt
+            SseEmitter emitter
     ) {
         emitters.compute(memberId, (key, memberEmitters) -> {
-            Map<String, SseConnection> target =
+            Map<String, SseEmitter> target =
                     (memberEmitters == null) ? new ConcurrentHashMap<>() : memberEmitters;
 
-            target.put(emitterId, SseConnection.of(emitter, expiresAt));
+            target.put(emitterId, emitter);
             return target;
         });
     }
@@ -41,26 +39,23 @@ public class SseEmitterRepository {
     }
 
     public Collection<Map.Entry<String, SseEmitter>> findAllByMemberId(Long memberId) {
-        return emitters.getOrDefault(memberId, Map.of()).entrySet().stream()
-                .map(entry -> Map.entry(entry.getKey(), entry.getValue().emitter()))
-                .toList();
+        return List.copyOf(emitters.getOrDefault(memberId, Map.of()).entrySet());
     }
 
-    public boolean isActive(Long memberId, String emitterId, Instant now) {
-        SseConnection connection = emitters.getOrDefault(memberId, Map.of()).get(emitterId);
-        return connection != null && connection.expiresAt().isAfter(now);
+    public boolean isActive(Long memberId, String emitterId) {
+        return emitters.getOrDefault(memberId, Map.of()).containsKey(emitterId);
     }
 
     public Collection<SseEmitter> removeAllByMemberId(Long memberId) {
-        Map<String, SseConnection> removed = emitters.remove(memberId);
-        return removed == null ? List.of() : removed.values().stream().map(SseConnection::emitter).toList();
+        Map<String, SseEmitter> removed = emitters.remove(memberId);
+        return removed == null ? List.of() : List.copyOf(removed.values());
     }
 
     public Collection<Map.Entry<Long, Map.Entry<String, SseEmitter>>> findAll() {
         return emitters.entrySet().stream()
                 .flatMap(memberEntry -> memberEntry.getValue().entrySet().stream()
                         .map(emitterEntry -> Map.entry(memberEntry.getKey(),
-                                Map.entry(emitterEntry.getKey(), emitterEntry.getValue().emitter()))))
+                                Map.entry(emitterEntry.getKey(), emitterEntry.getValue()))))
                 .toList();
     }
 
@@ -70,9 +65,4 @@ public class SseEmitterRepository {
                 .sum();
     }
 
-    private record SseConnection(SseEmitter emitter, Instant expiresAt) {
-        private static SseConnection of(SseEmitter emitter, Instant expiresAt) {
-            return new SseConnection(emitter, expiresAt);
-        }
-    }
 }

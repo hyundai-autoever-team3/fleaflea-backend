@@ -1,7 +1,6 @@
 package com.anabada.fleaflea.domain.notification.sse;
 
 import com.anabada.fleaflea.domain.notification.dto.NotificationResponse;
-import com.anabada.fleaflea.domain.refreshtoken.exception.InvalidTokenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,8 +9,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
-import java.time.Duration;
-import java.time.Instant;
 
 @Slf4j
 @Service
@@ -25,13 +22,9 @@ public class NotificationSseService {
 
     private final SseEmitterRepository emitterRepository;
 
-    public SseEmitter subscribe(Long memberId, Instant expiresAt) {
-        long remainingMillis = Duration.between(Instant.now(), expiresAt).toMillis();
-        if (remainingMillis <= 0) {
-            throw new InvalidTokenException();
-        }
+    public SseEmitter subscribe(Long memberId) {
         String emitterId = memberId + "_" + UUID.randomUUID();
-        SseEmitter emitter = new SseEmitter(Math.min(TIMEOUT_MILLIS, remainingMillis));
+        SseEmitter emitter = new SseEmitter(TIMEOUT_MILLIS);
 
         emitter.onCompletion(() -> emitterRepository.delete(memberId, emitterId));
         emitter.onTimeout(() -> {
@@ -40,7 +33,7 @@ public class NotificationSseService {
         });
         emitter.onError(throwable -> emitterRepository.delete(memberId, emitterId));
 
-        emitterRepository.save(memberId, emitterId, emitter, expiresAt);
+        emitterRepository.save(memberId, emitterId, emitter);
 
         send(memberId, emitterId, emitter, EVENT_CONNECT, "connected");
 
@@ -81,13 +74,8 @@ public class NotificationSseService {
         emitterRepository.removeAllByMemberId(memberId).forEach(SseEmitter::complete);
     }
 
-    public void closeExpiredConnections() {
-        emitterRepository.findAll().forEach(entry -> isConnectionActive(
-                entry.getKey(), entry.getValue().getKey(), entry.getValue().getValue()));
-    }
-
     private boolean isConnectionActive(Long memberId, String emitterId, SseEmitter emitter) {
-        if (emitterRepository.isActive(memberId, emitterId, Instant.now())) {
+        if (emitterRepository.isActive(memberId, emitterId)) {
             return true;
         }
         emitterRepository.delete(memberId, emitterId);
