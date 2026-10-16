@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.notification;
 
+import com.anabada.fleaflea.domain.member.dto.LogoutRequest;
 import com.anabada.fleaflea.domain.member.domain.Member;
 import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.member.service.MemberAuthService;
@@ -178,15 +179,58 @@ class PushDeviceIntegrationTest {
     }
 
     @Test
-    @DisplayName("로그아웃은 모든 기기를 해제하고 회원 삭제는 FK로 등록을 정리한다")
-    void logoutAndDeletion_removeRegistrations() {
-        service.registerPushDevice(first.getMemberId(), FID, PushPlatform.WEB);
+    @DisplayName("로그아웃은 지정한 본인 기기만 해제하고 다른 기기와 회원의 등록은 유지한다")
+    void logout_removesOnlyCurrentDevice() {
+        Long currentDeviceId = service.registerPushDevice(first.getMemberId(), FID, PushPlatform.WEB);
         service.registerPushDevice(first.getMemberId(), "d1234567890123456789012", PushPlatform.WEB);
         service.registerPushDevice(second.getMemberId(), "e1234567890123456789012", PushPlatform.WEB);
-        auth.logout(first.getMemberId());
 
-        assertThat(service.findPushTargets(first.getMemberId())).isEmpty();
+        auth.logout(first.getMemberId(), LogoutRequest.of(currentDeviceId));
+
+        assertThat(service.findPushTargets(first.getMemberId())).singleElement()
+                .satisfies(target -> assertThat(target.pushDeviceId()).isNotEqualTo(currentDeviceId));
         assertThat(service.findPushTargets(second.getMemberId())).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("기기 ID 없이 로그아웃하면 등록된 기기를 일괄 해제하지 않는다")
+    void logout_withoutDeviceIdPreservesRegistrations() {
+        service.registerPushDevice(first.getMemberId(), FID, PushPlatform.WEB);
+        service.registerPushDevice(first.getMemberId(), "d1234567890123456789012", PushPlatform.WEB);
+
+        auth.logout(first.getMemberId(), null);
+
+        assertThat(service.findPushTargets(first.getMemberId())).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("다른 회원의 기기로 로그아웃을 요청하면 해당 기기를 삭제하지 않는다")
+    void logout_rejectsAnotherMembersDevice() {
+        Long otherDeviceId = service.registerPushDevice(second.getMemberId(), FID, PushPlatform.WEB);
+
+        assertThatThrownBy(() -> auth.logout(first.getMemberId(), LogoutRequest.of(otherDeviceId)))
+                .isInstanceOf(PushDeviceNotOwnerException.class);
+
+        assertThat(service.findPushTargets(second.getMemberId())).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("이미 해제된 기기로 다시 로그아웃해도 다른 등록은 유지한다")
+    void logout_missingDeviceDoesNotRemoveOtherRegistrations() {
+        Long removedDeviceId = service.registerPushDevice(first.getMemberId(), FID, PushPlatform.WEB);
+        service.registerPushDevice(first.getMemberId(), "d1234567890123456789012", PushPlatform.WEB);
+        service.deletePushDevice(first.getMemberId(), removedDeviceId);
+
+        auth.logout(first.getMemberId(), LogoutRequest.of(removedDeviceId));
+
+        assertThat(service.findPushTargets(first.getMemberId())).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 시 모든 기기 등록을 FK로 정리한다")
+    void memberDeletion_removesAllRegistrations() {
+        service.registerPushDevice(second.getMemberId(), FID, PushPlatform.WEB);
+        service.registerPushDevice(second.getMemberId(), "d1234567890123456789012", PushPlatform.WEB);
 
         members.deleteById(second.getMemberId());
 

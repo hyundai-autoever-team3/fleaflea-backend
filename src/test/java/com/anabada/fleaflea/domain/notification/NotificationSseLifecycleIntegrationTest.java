@@ -69,7 +69,7 @@ class NotificationSseLifecycleIntegrationTest {
     @DisplayName("로그아웃 커밋 후 본인의 모든 SSE 연결만 종료한다")
     void logout_closesConnectionsOnlyAfterCommit() {
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            auth.logout(member.getMemberId());
+            auth.logout(member.getMemberId(), null);
             assertThat(emitters.findAllByMemberId(member.getMemberId())).hasSize(2);
         });
 
@@ -81,7 +81,7 @@ class NotificationSseLifecycleIntegrationTest {
     @DisplayName("로그아웃 트랜잭션이 롤백되면 SSE 연결을 유지한다")
     void logout_preservesConnectionsAfterRollback() {
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            auth.logout(member.getMemberId());
+            auth.logout(member.getMemberId(), null);
             status.setRollbackOnly();
         });
 
