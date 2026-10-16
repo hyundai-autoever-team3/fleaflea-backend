@@ -26,14 +26,14 @@ public class NotificationSseService {
         String emitterId = memberId + "_" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(TIMEOUT_MILLIS);
 
-        emitterRepository.save(memberId, emitterId, emitter);
-
         emitter.onCompletion(() -> emitterRepository.delete(memberId, emitterId));
         emitter.onTimeout(() -> {
             emitterRepository.delete(memberId, emitterId);
             emitter.complete();
         });
         emitter.onError(throwable -> emitterRepository.delete(memberId, emitterId));
+
+        emitterRepository.save(memberId, emitterId, emitter);
 
         send(memberId, emitterId, emitter, EVENT_CONNECT, "connected");
 
@@ -58,6 +58,9 @@ public class NotificationSseService {
             Long memberId = entry.getKey();
             String emitterId = entry.getValue().getKey();
             SseEmitter emitter = entry.getValue().getValue();
+            if (!isConnectionActive(memberId, emitterId, emitter)) {
+                return;
+            }
 
             try {
                 emitter.send(SseEmitter.event().comment("heartbeat"));
@@ -67,6 +70,19 @@ public class NotificationSseService {
         });
     }
 
+    public void disconnectMember(Long memberId) {
+        emitterRepository.removeAllByMemberId(memberId).forEach(SseEmitter::complete);
+    }
+
+    private boolean isConnectionActive(Long memberId, String emitterId, SseEmitter emitter) {
+        if (emitterRepository.isActive(memberId, emitterId)) {
+            return true;
+        }
+        emitterRepository.delete(memberId, emitterId);
+        emitter.complete();
+        return false;
+    }
+
     private void send(
             Long memberId,
             String emitterId,
@@ -74,6 +90,9 @@ public class NotificationSseService {
             String eventName,
             Object data
     ) {
+        if (!isConnectionActive(memberId, emitterId, emitter)) {
+            return;
+        }
         try {
             emitter.send(SseEmitter.event()
                     .id(emitterId)

@@ -60,6 +60,7 @@ services:
       REDIS_PORT: 6379
       REDIS_HEALTH_ENABLED: "true"
       APP_ENV: production
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase/service-account.json
       APP_VERSION: ${APP_VERSION:-unknown}
       LOG_FORMAT_CONSOLE: ecs
       OTEL_JAVAAGENT_ENABLED: ${OTEL_JAVAAGENT_ENABLED:-false}
@@ -72,6 +73,8 @@ services:
       OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
+    volumes:
+      - /etc/fleaflea/firebase:/run/secrets/firebase:ro
     ports:
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:8081:8081"

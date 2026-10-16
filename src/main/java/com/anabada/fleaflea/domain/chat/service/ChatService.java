@@ -150,7 +150,7 @@ public class ChatService {
             ChatMessageSendRequest chatMessageSendRequest
     ) {
         // 회원별 전송 제한과 재전송 검증이 동시 요청에서도 동일하게 적용되도록 잠근다.
-        memberRepository.findLockedById(memberId)
+        Member sender = memberRepository.findLockedById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
         ChatRoom chatRoom = getChatRoomForParticipantWithLock(memberId, roomId);
@@ -188,7 +188,7 @@ public class ChatService {
 
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
         eventPublisher.publishEvent(
-                ChatMessageSentEvent.of(memberId, friendId, response)
+                ChatMessageSentEvent.of(memberId, friendId, sender.getNickname(), response)
         );
 
         return response;
