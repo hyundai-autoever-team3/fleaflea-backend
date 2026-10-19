@@ -1,0 +1,34 @@
+{
+  "baseline": "efc15a702930afc2f7577656829e9161ac9611b7",
+  "scope": "MarketService.updateMarket only",
+  "variants": {
+    "plain": {
+      "src/main/java/com/anabada/fleaflea/domain/market/service/MarketService.java": "1e9b982f31d51db97990a6cf099d720c87c408a751bd1dfd401b760a8f3ab3b8",
+      "src/main/java/com/anabada/fleaflea/global/lock/DistributedLockAspect.java": "2efceb0dc2bc2314ed5d9a1d2ee9ec8c1656ead2506e975401afc039e581fc2d"
+    },
+    "db": {
+      "src/main/java/com/anabada/fleaflea/domain/market/service/MarketService.java": "c5ab9c74b8d321ccf8d92c7dde3215bcd3276f50dac2339e1144a51ac2cf46c6",
+      "src/main/java/com/anabada/fleaflea/global/lock/DistributedLockAspect.java": "2efceb0dc2bc2314ed5d9a1d2ee9ec8c1656ead2506e975401afc039e581fc2d"
+    },
+    "redisson-db": {
+      "src/main/java/com/anabada/fleaflea/domain/market/service/MarketService.java": "c5ab9c74b8d321ccf8d92c7dde3215bcd3276f50dac2339e1144a51ac2cf46c6",
+      "src/main/java/com/anabada/fleaflea/global/lock/DistributedLockAspect.java": "8094aabc1a56bb5d2d2b9f1ba996612ba65c9cccc345e5a65817ad06f7e9598e"
+    }
+  },
+  "jarSha256": {
+    "plain": "eae63444206373fcafc08a94b76ae22cc5eb1911c6920d75148b16e4494986dd",
+    "db": "3645695a9df01b6cb3b9eae64f21817e29409a448ba4b2c065cbd94c864fcdec",
+    "redisson-db": "9dc9c03da909a17632628ae720101ca77150dc0a70eda319be768db5a71c81ee"
+  },
+  "runtime": {
+    "java": "Temurin 25.0.4.1+1",
+    "postgres": "16.15",
+    "redis": "7.4.11",
+    "appCpuPerContainer": 1,
+    "appMemoryBytesPerContainer": 1073741824,
+    "appInstances": 2,
+    "gcpMachineType": "e2-standard-2",
+    "zone": "asia-northeast3-a",
+    "k6Digest": "sha256:e66db15b860113878fa74670e31f5e274830b7b6e42c8bff28b2f2d86a257603"
+  }
+}

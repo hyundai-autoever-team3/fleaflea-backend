@@ -1,0 +1,27 @@
+services:
+  app: &comparison
+    image: fleaflea-perf:chat187-ac776e0
+    entrypoint: [sh, -c, "exec java $$JAVA_OPTS -jar /app/fleaflea.jar"]
+    volumes:
+      - /opt/fleaflea-perf/lock186/${VARIANT}.jar:/app/fleaflea.jar:ro
+    environment:
+      APP_ENV: perf
+      APP_VERSION: lock186-${VARIANT}
+      SMTP_USERNAME: unused@example.invalid
+      SMTP_PASSWORD: unused-test-only
+      EMAIL_VERIFICATION_HASH_SECRET: lock186-test-only-hash-secret-not-for-production-20261019
+      KAKAO_CLIENT_ID: unused
+      KAKAO_CLIENT_SECRET: unused
+      GOOGLE_CLIENT_ID: unused
+      GOOGLE_CLIENT_SECRET: unused
+      NAVER_CLIENT_ID: unused
+      NAVER_CLIENT_SECRET: unused
+      OTEL_JAVAAGENT_ENABLED: 'false'
+      MANAGEMENT_SERVER_PORT: '8081'
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,prometheus,metrics
+    ports: ['127.0.0.1:18081:8081']
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8080/readyz]
+  app-replica:
+    <<: *comparison
+    ports: ['127.0.0.1:18083:8081']
