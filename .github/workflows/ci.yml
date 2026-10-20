@@ -55,7 +55,7 @@ jobs:
           bash -n deploy/gcp/deploy.sh deploy/gcp/rollback.sh deploy/gcp/install-operations.sh
           python3 -m py_compile deploy/gcp/operations.py deploy/gcp/configure-monitoring.py
           python3 -m unittest discover -s deploy/gcp/tests -v
-          bash -n deploy/gcp/dev/deploy.sh
+          bash -n deploy/gcp/dev/deploy.sh deploy/gcp/dev/workflow.sh
           python3 -m unittest discover -s deploy/gcp/dev/tests -v
 
       - name: Build and test

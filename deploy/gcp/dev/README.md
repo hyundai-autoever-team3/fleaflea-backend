@@ -104,3 +104,16 @@ envsubst '${DEV_API_HOST}' < deploy/gcp/dev/nginx.conf > /tmp/dev-nginx.conf
 
 예제 도메인을 실제 비공개 운영 설정으로 바꾼 뒤 설치하고 `nginx -t`로 검사한다.
 다른 Nginx 변수는 치환하지 않는다.
+
+## 워크플로 실행 구조
+
+`.github/workflows/gcp-dev-cd.yml`은 실행 조건·권한·인증 Action·단계 연결을 관리한다.
+셸 명령은 `workflow.sh`에 두고 YAML에서 다음처럼 실행한다.
+
+```yaml
+run: bash deploy/gcp/dev/workflow.sh deploy
+```
+
+`workflow.sh`의 `validate`, `build`, `push`, `deploy`는 GitHub runner에서 실행된다.
+VM으로 전달한 `deploy.sh`는 서버에서 대상 정책 검사·상태 확인·실패 복구를 수행한다.
+실제 인프라 값은 계속 GitHub Environment와 서버의 비공개 정책 파일에서 관리한다.
