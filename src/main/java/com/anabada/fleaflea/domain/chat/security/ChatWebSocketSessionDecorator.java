@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.chat.security;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -10,11 +12,15 @@ import org.springframework.web.socket.handler.WebSocketHandlerDecorator;
 import org.springframework.web.socket.handler.WebSocketHandlerDecoratorFactory;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.HashMap;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorFactory {
 
     private static final String AUTHENTICATION_DEADLINE_ATTRIBUTE = "chatAuthenticationDeadline";
@@ -22,6 +28,8 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
     private static final long AUTHENTICATION_TIMEOUT_MILLIS = 10000;
 
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+
+    private final MemberRepository memberRepository;
 
     @Override
     public WebSocketHandler decorate(WebSocketHandler handler) {
@@ -41,9 +49,9 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
 
             @Override
             public void afterConnectionClosed(
-            WebSocketSession session,
-            CloseStatus closeStatus
-    ) throws Exception  {
+                    WebSocketSession session,
+                    CloseStatus closeStatus
+            ) throws Exception {
                 sessions.remove(session.getId());
                 super.afterConnectionClosed(session, closeStatus);
             }
@@ -82,6 +90,53 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
             sessions.remove(sessionId);
         } catch (IOException exception) {
             log.warn("거절된 채팅 연결 종료 실패: sessionId={}", sessionId, exception);
+        }
+    }
+
+    public void closeMemberSessions(Long memberId) {
+        for (WebSocketSession session : sessions.values()) {
+            Object connectedMemberId = session.getAttributes()
+                    .get(ChatWebSocketAuthInterceptor.MEMBER_ID_ATTRIBUTE);
+
+            if (memberId.equals(connectedMemberId)) {
+                closeRejectedSession(session.getId());
+            }
+        }
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    public void closeDeletedMemberSessions() {
+        Set<Long> memberIds =
+                new HashSet<>();
+
+        for (WebSocketSession session : sessions.values()) {
+            Object value = session.getAttributes()
+                    .get(ChatWebSocketAuthInterceptor.MEMBER_ID_ATTRIBUTE);
+
+            if (value instanceof Long memberId) {
+                memberIds.add(memberId);
+            }
+        }
+
+        if (memberIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> existingMemberIds =
+                new HashSet<>();
+
+        memberRepository.findAllById(memberIds)
+                .forEach(member ->
+                        existingMemberIds.add(member.getMemberId()));
+
+        for (WebSocketSession session : sessions.values()) {
+            Object value = session.getAttributes()
+                    .get(ChatWebSocketAuthInterceptor.MEMBER_ID_ATTRIBUTE);
+
+            if (value instanceof Long memberId
+                    && !existingMemberIds.contains(memberId)) {
+                closeRejectedSession(session.getId());
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.chat.controller;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import com.anabada.fleaflea.domain.chat.dto.ChatRoomListResponse;
 import com.anabada.fleaflea.global.dto.CursorPageResponse;
 import com.anabada.fleaflea.domain.chat.exception.ChatNotParticipantException;
@@ -56,6 +58,9 @@ class ChatControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private ChatService chatService;

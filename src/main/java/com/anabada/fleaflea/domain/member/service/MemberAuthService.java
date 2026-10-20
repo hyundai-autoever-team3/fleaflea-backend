@@ -98,6 +98,7 @@ public class MemberAuthService {
 
         if (!memberRepository.existsById(memberId)) {
             refreshTokenRepository.deleteByMemberId(memberId);
+            throw new InvalidTokenException();
         }
 
         String newAccessToken = jwtTokenProvider.createAccessToken(memberId);
@@ -111,6 +112,11 @@ public class MemberAuthService {
         );
 
         if (!rotated) {
+            throw new InvalidTokenException();
+        }
+
+        if (!memberRepository.existsById(memberId)) {
+            refreshTokenRepository.deleteByMemberId(memberId);
             throw new InvalidTokenException();
         }
 

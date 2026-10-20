@@ -1,5 +1,11 @@
 package com.anabada.fleaflea.domain.chat.security;
 
+import static org.mockito.Mockito.when;
+
+import static org.mockito.Mockito.mock;
+
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,14 +28,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ChatWebSocketAuthInterceptorTest {
 
+    private MemberRepository memberRepository;
+
     private JwtTokenProvider jwtTokenProvider;
     private ChatWebSocketAuthInterceptor chatWebSocketAuthInterceptor;
 
     @BeforeEach
     void setUp() {
         jwtTokenProvider = new JwtTokenProvider("chat-websocket-test-secret-key-at-least-32-bytes", 60000, 60000);
+        memberRepository = mock(MemberRepository.class);
+        when(memberRepository.existsById(1L)).thenReturn(true);
         chatWebSocketAuthInterceptor = new ChatWebSocketAuthInterceptor(
-                jwtTokenProvider, new ChatWebSocketSessionDecorator()
+                jwtTokenProvider, new ChatWebSocketSessionDecorator(memberRepository), memberRepository
         );
     }
 
@@ -44,6 +54,8 @@ class ChatWebSocketAuthInterceptorTest {
         assertThat(accessor.getUser().getName()).isEqualTo("1");
         assertThat(accessor.getSessionAttributes())
                 .containsKey(ChatWebSocketAuthInterceptor.TOKEN_EXPIRATION_ATTRIBUTE);
+        assertThat(accessor.getSessionAttributes())
+                .containsEntry(ChatWebSocketAuthInterceptor.MEMBER_ID_ATTRIBUTE, 1L);
         assertThat(accessor.getFirstNativeHeader("Authorization")).isNull();
     }
 
@@ -130,6 +142,17 @@ class ChatWebSocketAuthInterceptorTest {
         accessor.setDestination("/app/chat/rooms/1/messages");
         accessor.getSessionAttributes().put(ChatWebSocketAuthInterceptor.TOKEN_EXPIRATION_ATTRIBUTE,
                 System.currentTimeMillis() - 1000);
+
+        assertThatThrownBy(() -> chatWebSocketAuthInterceptor.preSend(createMessage(accessor), null))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    @DisplayName("인증 후 탈퇴하면 기존 연결의 메시지 전송을 거절한다")
+    void send_rejectsMemberDeletedAfterConnect() {
+        StompHeaderAccessor accessor = createAuthenticatedAccessor(StompCommand.SEND);
+        accessor.setDestination("/app/chat/rooms/1/messages");
+        when(memberRepository.existsById(1L)).thenReturn(false);
 
         assertThatThrownBy(() -> chatWebSocketAuthInterceptor.preSend(createMessage(accessor), null))
                 .isInstanceOf(BadCredentialsException.class);

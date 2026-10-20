@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.chat.security;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.CloseStatus;
@@ -20,7 +22,7 @@ class ChatWebSocketSessionDecoratorTest {
     @Test
     @DisplayName("토큰이 만료된 연결을 종료해 이후 채팅 수신도 중단한다")
     void closeExpiredSessions_closesExpiredConnection() throws Exception {
-        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator();
+        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator(mock(MemberRepository.class));
         WebSocketSession session = createSession(System.currentTimeMillis() - 1000);
         decorator.decorate(mock(WebSocketHandler.class)).afterConnectionEstablished(session);
 
@@ -32,7 +34,7 @@ class ChatWebSocketSessionDecoratorTest {
     @Test
     @DisplayName("만료 전 연결은 유지한다")
     void closeExpiredSessions_keepsValidConnection() throws Exception {
-        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator();
+        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator(mock(MemberRepository.class));
         WebSocketSession session = createSession(System.currentTimeMillis() + 60000);
         decorator.decorate(mock(WebSocketHandler.class)).afterConnectionEstablished(session);
 
@@ -44,7 +46,7 @@ class ChatWebSocketSessionDecoratorTest {
     @Test
     @DisplayName("이미 종료된 연결은 만료 검사에서 제거한다")
     void afterConnectionClosed_removesSession() throws Exception {
-        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator();
+        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator(mock(MemberRepository.class));
         WebSocketSession session = createSession(System.currentTimeMillis() - 1000);
         WebSocketHandler handler = decorator.decorate(mock(WebSocketHandler.class));
         handler.afterConnectionEstablished(session);
@@ -58,7 +60,7 @@ class ChatWebSocketSessionDecoratorTest {
     @Test
     @DisplayName("CONNECT 인증을 완료하지 않은 연결은 제한 시간이 지나면 종료한다")
     void closeExpiredSessions_closesUnauthenticatedConnection() throws Exception {
-        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator();
+        ChatWebSocketSessionDecorator decorator = new ChatWebSocketSessionDecorator(mock(MemberRepository.class));
         WebSocketSession session = createSession(System.currentTimeMillis() + 60000);
         decorator.decorate(mock(WebSocketHandler.class)).afterConnectionEstablished(session);
         session.getAttributes().remove(ChatWebSocketAuthInterceptor.TOKEN_EXPIRATION_ATTRIBUTE);

@@ -1,5 +1,11 @@
 package com.anabada.fleaflea.domain.chat.redis;
 
+import static org.mockito.Mockito.when;
+
+import static org.mockito.Mockito.mock;
+
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import com.anabada.fleaflea.domain.chat.config.ChatRedisConfiguration;
 import com.anabada.fleaflea.domain.chat.config.ChatRedisProperties;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
@@ -35,7 +41,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
@@ -49,6 +54,8 @@ class ChatRedisRelayIntegrationTest {
     private final SimpMessagingTemplate firstServerMessagingTemplate = mock(SimpMessagingTemplate.class);
     private final SimpMessagingTemplate secondServerMessagingTemplate = mock(SimpMessagingTemplate.class);
 
+    private final MemberRepository memberRepository = mock(MemberRepository.class);
+
     private LettuceConnectionFactory redisConnectionFactory;
     private StringRedisTemplate stringRedisTemplate;
     private RedisChatEventPublisher redisChatEventPublisher;
@@ -57,6 +64,8 @@ class ChatRedisRelayIntegrationTest {
 
     @BeforeAll
     void startRedisAndServerSubscribers() {
+        when(memberRepository.existsById(1L)).thenReturn(true);
+        when(memberRepository.existsById(2L)).thenReturn(true);
         redisContainer.start();
         RedisStandaloneConfiguration redisConfiguration = new RedisStandaloneConfiguration(
                 redisContainer.getHost(), redisContainer.getMappedPort(6379)
@@ -155,7 +164,7 @@ class ChatRedisRelayIntegrationTest {
 
     private RedisMessageListenerContainer startServerSubscriber(SimpMessagingTemplate messagingTemplate) {
         RedisChatEventSubscriber redisChatEventSubscriber = new RedisChatEventSubscriber(
-                objectMapper, chatRedisProperties, new ChatSocketEventSender(messagingTemplate)
+                objectMapper, chatRedisProperties, new ChatSocketEventSender(messagingTemplate, memberRepository)
         );
         RedisMessageListenerContainer listenerContainer = new ChatRedisConfiguration().chatRedisMessageListenerContainer(
                 redisConnectionFactory, redisChatEventSubscriber, chatRedisProperties
