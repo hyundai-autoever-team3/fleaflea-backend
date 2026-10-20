@@ -5,7 +5,7 @@ services:
     container_name: fleaflea-gcp-prometheus
     ports: !override ["127.0.0.1:9091:9090"]
     volumes:
-      - ../gcp/prometheus/rules/alerts.yml:/etc/prometheus/rules/gcp.yml:ro
+      - ${GCP_ALERT_RULES_FILE:?absolute path to rendered private GCP alert rules is required}:/etc/prometheus/rules/gcp.yml:ro
       - ../gcp/blackbox/targets.yml:/etc/prometheus/targets/blackbox.yml:ro
   alertmanager:
     container_name: fleaflea-gcp-alertmanager
