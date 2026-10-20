@@ -28,6 +28,7 @@ import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
 import com.anabada.fleaflea.domain.notification.repository.NotificationRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
+import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -50,6 +51,7 @@ public class ItemService {
     private final MemberRepository memberRepository;
     private final ImageService imageService;
     private final TradeRequestRepository tradeRequestRepository;
+    private final TradeRepository tradeRepository;
     private final NotificationRepository notificationRepository;
 
     @DistributedLock(key = "@collectionLockKeys.forItem(#itemCreateRequest.collectionItemId())")
@@ -213,6 +215,7 @@ public class ItemService {
         String imageKey = item.getImageKey();
 
         notificationRepository.deleteAllByItemTradeRequests(itemId, NotificationReferenceType.ITEM_TRADE_REQUEST);
+        tradeRepository.deleteAllRelatedToItem(itemId);
         tradeRequestRepository.deleteAllByItemId(itemId);
         itemRepository.delete(item);
         imageService.deleteAfterCommit(imageKey);

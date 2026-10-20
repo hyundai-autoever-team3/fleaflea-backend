@@ -23,6 +23,7 @@ import com.anabada.fleaflea.domain.trade.domain.CollectionTradeType;
 import com.anabada.fleaflea.domain.trade.domain.TradeRequestStatus;
 import com.anabada.fleaflea.domain.trade.repository.CollectionTradeRequestRepository;
 import com.anabada.fleaflea.domain.trade.repository.TradeRequestRepository;
+import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
 import com.anabada.fleaflea.global.dto.PageResponse;
 import com.anabada.fleaflea.global.image.ImageCategory;
 import com.anabada.fleaflea.global.image.ImageService;
@@ -55,6 +56,7 @@ public class CollectionItemService {
     private final BegRequestRepository begRequestRepository;
     private final CollectionTradeRequestRepository collectionTradeRequestRepository;
     private final TradeRequestRepository tradeRequestRepository;
+    private final TradeRepository tradeRepository;
 
     @Transactional
     public CollectionItemResponse createCollectionItem(
@@ -153,6 +155,9 @@ public class CollectionItemService {
         validateOwner(collectionItem, memberId);
         validateDeletable(collectionItemId);
 
+        tradeRepository.deleteAllByDeletableCollectionRequests(
+                collectionItemId, DELETABLE_TRADE_STATUSES, TradeRequestStatus.COMPLETED, CollectionTradeType.RENTAL
+        );
         collectionTradeRequestRepository.deleteAllDeletableByCollectionItemId(
                 collectionItemId, DELETABLE_TRADE_STATUSES, TradeRequestStatus.COMPLETED, CollectionTradeType.RENTAL
         );
