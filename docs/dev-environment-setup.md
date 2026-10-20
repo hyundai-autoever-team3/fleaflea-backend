@@ -91,7 +91,7 @@ Mac에서 기존 Linux 테스트가 `flock` 부재로 실패한 부분은 Linux�
 
 ## 남은 작업
 
-- [ ] 다음 승인된 기동 때 비공개 deployment-policy.json과 새 검증기를 먼저 설치
+- [x] 비공개 deployment-policy.json과 새 검증기를 dev 서버에 설치
 
 - [ ] 이 변경 PR 검토·병합 후 develop에 반영
 - [ ] GitHub dev CD를 실제 Actions로 실행해 WIF → SSH → 배포까지 확인
@@ -115,4 +115,9 @@ GitHub Environment와 서버의 비공개 설정에서 관리한다.
 운영 이미지 정리 작업은 활성 슬롯에 기록된 이미지에서 저장소를 읽고,
 모니터링은 비공개 대상 VM 값으로 규칙을 렌더링한다.
 모니터링 Compose를 다음에 실행할 때는 `GCP_ALERT_RULES_FILE`도 먼저 지정해야 한다.
-실행 중인 서버의 파일은 이번 소스 정리로 바뀌지 않는다.
+소스 정리 후 승인된 dev VM 기동에서 정책·검증기·배포 파일과 렌더링한 Nginx 설정을 설치했다.
+정책 소유자 root / 권한 600, 실제 VM 일치와 잘못된 VM ID 거절, Compose 정책 검증을 확인했다.
+현재 이미지와 버전을 유지한 채 배포 스크립트를 실행했고 readiness·Swagger·OpenAPI는 모두 HTTPS 200이었다.
+앱·DB·Redis·Mailpit 상태와 기존 dev 테스트 데이터 보존도 확인했다.
+운영 서버 파일은 변경하지 않았다. 모니터링 규칙과 경로는 Mac의 Git 제외 설정에 준비했고 Compose 렌더링을 검사했다.
+모니터링 스택 자체는 재시작하지 않았다.
