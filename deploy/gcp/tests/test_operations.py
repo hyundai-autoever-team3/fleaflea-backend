@@ -9,6 +9,7 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('operations', Path(__file__).resolve().parents[1] / 'operations.py')
 operations = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(operations)
+TEST_REPOSITORY = 'test-region-docker.pkg.dev/example-project/example-repository/backend'
 
 
 class ImageCleanupTest(unittest.TestCase):
@@ -25,7 +26,7 @@ class ImageCleanupTest(unittest.TestCase):
 
     def image(self, identifier, created):
         return {'Id': identifier, 'Created': created,
-                'RepoTags': [operations.IMAGE_REPOSITORY + ':' + identifier], 'RepoDigests': []}
+                'RepoTags': [TEST_REPOSITORY + ':' + identifier], 'RepoDigests': []}
 
     def command(self, arguments, **options):
         self.commands.append(arguments)
@@ -45,7 +46,8 @@ class ImageCleanupTest(unittest.TestCase):
         if slot:
             (self.root / 'blue.env').write_text('APP_IMAGE=slot-image\n')
         real_open = open
-        with patch.object(operations, 'command', side_effect=self.command), \
+        with patch.object(operations, 'deployment_repository', return_value=TEST_REPOSITORY), \
+             patch.object(operations, 'command', side_effect=self.command), \
              patch.object(operations, 'Path', side_effect=lambda path: self.root / Path(path).name), \
              patch('builtins.open', side_effect=lambda path, *args, **kwargs: real_open(
                  self.root / 'deploy.lock' if path == '/run/lock/fleaflea-deploy.lock' else path, *args, **kwargs)), \
@@ -61,7 +63,7 @@ class ImageCleanupTest(unittest.TestCase):
 
     def test_keeps_stopped_container_and_three_newest_images(self):
         self.assertEqual(1, self.cleanup())
-        self.assertEqual([operations.IMAGE_REPOSITORY + ':unused'], self.deletions())
+        self.assertEqual([TEST_REPOSITORY + ':unused'], self.deletions())
         self.assertTrue(all('prune' not in command and '--force' not in command for command in self.commands))
 
     def test_keeps_inactive_slot_image(self):
@@ -71,6 +73,20 @@ class ImageCleanupTest(unittest.TestCase):
     def test_dry_run_does_not_remove_or_mark_success(self):
         self.assertEqual(0, self.cleanup(dry_run=True))
         self.assertEqual([], self.deletions())
+
+
+
+class DeploymentRepositoryTest(unittest.TestCase):
+    def test_repository_comes_from_private_active_slot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'active-slot').write_text('green')
+            (root / 'green.env').write_text('APP_IMAGE=' + TEST_REPOSITORY + '@sha256:' + 'a' * 64)
+            with patch.object(operations, 'Path', side_effect=lambda path: root / Path(path).name):
+                self.assertEqual(TEST_REPOSITORY, operations.deployment_repository())
+                (root / 'green.env').write_text('APP_IMAGE=backend:latest')
+                with self.assertRaises(ValueError):
+                    operations.deployment_repository()
 
 
 if __name__ == '__main__':

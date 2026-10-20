@@ -1,0 +1,89 @@
+name: Backend GCP Dev CD
+
+on:
+  workflow_run:
+    workflows: ["Backend CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: development-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >
+      vars.DEV_DEPLOY_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') ||
+       (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'develop' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    environment: development
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+      GCP_PROJECT_ID: ${{ vars.DEV_GCP_PROJECT_ID }}
+      GCP_ZONE: ${{ vars.DEV_GCP_ZONE }}
+      GCP_INSTANCE: ${{ vars.DEV_GCP_INSTANCE }}
+      GCP_INSTANCE_ID: ${{ vars.DEV_GCP_INSTANCE_ID }}
+      GCP_SSH_HOST_KEY: ${{ vars.DEV_GCP_SSH_HOST_KEY }}
+      GCP_IMAGE_REPOSITORY: ${{ vars.DEV_GCP_IMAGE_REPOSITORY }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.DEV_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.DEV_GCP_DEPLOY_SERVICE_ACCOUNT }}
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      - name: Validate dev target
+        shell: bash
+        run: bash deploy/gcp/dev/workflow.sh validate
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build image
+        shell: bash
+        run: bash deploy/gcp/dev/workflow.sh build
+
+      - name: Authenticate with dev deployment identity
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.DEV_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.DEV_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEV_GCP_DEPLOY_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Push dev image
+        id: image
+        env:
+          GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        shell: bash
+        run: bash deploy/gcp/dev/workflow.sh push
+
+      - name: Deploy only to dev VM
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        shell: bash
+        run: bash deploy/gcp/dev/workflow.sh deploy

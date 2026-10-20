@@ -11,18 +11,18 @@ groups:
           description: '{{ $labels.instance }}의 {{ $labels.job }} 수집이 3분 동안 실패했습니다.'
 
       # Keep the expected VM explicit: up == 0 alone cannot detect a stopped Alloy or SSH tunnel.
-      # When adding or renaming a VM, add or update its expected targets here.
+      # Render the expected VM from private configuration before starting Prometheus.
       - alert: GcpTelemetryMissing
         expr: |
-          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-node"}[5m])
+          absent_over_time(up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-node"}[5m])
           or
-          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+          absent_over_time(up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-postgres"}[5m])
           or
-          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+          absent_over_time(up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-redis"}[5m])
           or
-          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-cadvisor"}[5m])
+          absent_over_time(up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-cadvisor"}[5m])
           or
-          absent_over_time(up{environment="production", instance="fleaflea-prod-01", job="fleaflea-alloy"}[5m])
+          absent_over_time(up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-alloy"}[5m])
         for: 3m
         labels:
           severity: critical
@@ -34,7 +34,7 @@ groups:
         expr: |
           pg_up{environment="production", job="fleaflea-postgres"} == 0
           or
-          absent_over_time(pg_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-postgres"}[5m])
+          absent_over_time(pg_up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-postgres"}[5m])
         for: 3m
         labels:
           severity: critical
@@ -46,7 +46,7 @@ groups:
         expr: |
           redis_up{environment="production", job="fleaflea-redis"} == 0
           or
-          absent_over_time(redis_up{environment="production", instance="fleaflea-prod-01", job="fleaflea-redis"}[5m])
+          absent_over_time(redis_up{environment="production", instance="${GCP_MONITORED_INSTANCE}", job="fleaflea-redis"}[5m])
         for: 3m
         labels:
           severity: critical

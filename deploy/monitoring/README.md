@@ -218,3 +218,19 @@ Prometheus의 공통 규칙은 두 스택에서 사용하고 GCP 전용 규칙�
 - 로컬 ECS 로그는 `@timestamp`를 Loki 이벤트 시각으로 적용합니다. 파싱 실패 시 기존 수집 시각을 유지합니다.
 - 로컬·GCP는 `common/alloy/pipelines.alloy`의 공통 정책으로 `/readyz`·Actuator 검사·SSE heartbeat·지정된 DB 유지 작업 트레이스를 제외합니다.
 - 기존에 저장된 검사 트레이스는 보관 기간이 끝날 때까지 남습니다.
+
+### GCP 알림 규칙의 비공개 대상 설정
+
+실제 VM 이름은 공개 규칙 파일에 넣지 않는다. GCP Compose 실행 전에
+`GCP_MONITORED_INSTANCE`를 비공개 설정으로 지정하고 `prometheus/rules/alerts.yml`을 렌더링한다.
+VM별 누락 감지는 유지하므로, 대상 선택자를 제거하거나 임의의 예제 이름으로 실행하지 않는다.
+
+```bash
+# 실제 VM 이름은 셸의 비공개 환경에서 설정한다.
+: "${GCP_MONITORED_INSTANCE:?expected VM is required}"
+export GCP_ALERT_RULES_FILE=/absolute/private/path/gcp-alerts.yml
+python3 deploy/monitoring/gcp/render-alerts.py "$GCP_ALERT_RULES_FILE"
+```
+
+출력 파일은 Git에 추가하지 않는다. 실행 중인 모니터링에 반영할 때는 먼저
+`promtool check rules`로 렌더링 결과를 확인하고 기존 알림 대상이 같은지 대조한다.

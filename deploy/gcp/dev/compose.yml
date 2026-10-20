@@ -1,0 +1,105 @@
+name: fleaflea-dev
+
+services:
+  dev-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fleaflea_dev
+      POSTGRES_USER: fleaflea_dev
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?dev DB_PASSWORD is required}
+    volumes:
+      - dev_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleaflea_dev -d fleaflea_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 1g
+
+  dev-redis:
+    image: redis:7.4
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?dev REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -ec
+      - 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"'
+    volumes:
+      - dev_redis:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -qx PONG'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+
+  dev-mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "200"
+    volumes:
+      - dev_mailpit:/data
+    ports:
+      - "127.0.0.1:18025:8025"
+    mem_limit: 256m
+
+  app:
+    image: ${APP_IMAGE:?immutable dev APP_IMAGE is required}
+    restart: unless-stopped
+    env_file:
+      - ${DEV_ENV_FILE:?absolute path to dev environment file is required}
+    environment:
+      APP_ENV: development
+      APP_VERSION: ${APP_VERSION:?dev source commit SHA is required}
+      DB_URL: jdbc:postgresql://dev-postgres:5432/fleaflea_dev
+      DB_USERNAME: fleaflea_dev
+      DDL_AUTO: validate
+      REDIS_HOST: dev-redis
+      REDIS_PORT: "6379"
+      REDIS_HEALTH_ENABLED: "true"
+      CHAT_REDIS_ENABLED: "true"
+      CHAT_REDIS_CHANNEL_PREFIX: fleaflea:dev:chat
+      IMAGE_STORAGE: gcs
+      MANAGEMENT_PORT: "8081"
+      SERVER_SHUTDOWN: graceful
+      SPRING_MAIL_HOST: dev-mailpit
+      SPRING_MAIL_PORT: "1025"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
+    depends_on:
+      dev-postgres:
+        condition: service_healthy
+      dev-redis:
+        condition: service_healthy
+      dev-mailpit:
+        condition: service_started
+    ports:
+      - "127.0.0.1:18080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 3 http://localhost:8080/readyz >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+      start_period: 30s
+    stop_grace_period: 75s
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  dev_postgres:
+  dev_redis:
+  dev_mailpit:
+
+networks:
+  default:
+    name: fleaflea-dev
