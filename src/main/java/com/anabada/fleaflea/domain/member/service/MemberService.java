@@ -111,17 +111,6 @@ public class MemberService {
         revokeRefreshTokenAfterCommit(memberId);
     }
 
-    @Transactional
-    public void deleteMember(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
-
-        String profileImageKey = member.getProfileImageKey();
-        memberRepository.delete(member);
-        imageService.deleteAfterCommit(profileImageKey);
-        revokeRefreshTokenAfterCommit(memberId);
-    }
-
     private void revokeRefreshTokenAfterCommit(Long memberId) {
         TransactionSynchronizationManager.registerSynchronization(
                 new TransactionSynchronization() {

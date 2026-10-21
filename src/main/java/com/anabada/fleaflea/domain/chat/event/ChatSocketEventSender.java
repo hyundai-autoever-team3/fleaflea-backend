@@ -3,6 +3,7 @@ package com.anabada.fleaflea.domain.chat.event;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatReadResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatSocketEventResponse;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.MessagingException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class ChatSocketEventSender {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final MemberRepository memberRepository;
 
     public void sendMessageSent(ChatMessageSentEvent chatMessageSentEvent) {
         ChatSocketEventResponse<ChatMessageResponse> chatSocketEventResponse =
@@ -38,6 +40,9 @@ public class ChatSocketEventSender {
             Long memberId,
             ChatSocketEventResponse<?> chatSocketEventResponse
     ) {
+        if (!memberRepository.existsById(memberId)) {
+            return;
+        }
         try {
             messagingTemplate.convertAndSendToUser(memberId.toString(), "/queue/chat", chatSocketEventResponse);
         } catch (MessagingException exception) {

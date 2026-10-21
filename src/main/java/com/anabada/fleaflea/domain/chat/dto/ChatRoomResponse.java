@@ -39,7 +39,10 @@ public record ChatRoomResponse(
         long friendLastReadId,
 
         @Schema(description = "읽지 않은 메시지 수", example = "2")
-        long unreadCount
+        long unreadCount,
+
+        @Schema(description = "상대방 탈퇴 여부")
+        boolean counterpartWithdrawn
 ) {
 
     public static ChatRoomResponse from(
@@ -51,20 +54,25 @@ public record ChatRoomResponse(
             long unreadCount
     ) {
         Long friendId = chatRoom.getOtherMemberId(memberId);
-        String nickname = friend == null ? "탈퇴한 사용자" : friend.getNickname();
+        boolean withdrawn = friend == null;
+
+        String nickname = withdrawn
+                ? "탈퇴한 사용자"
+                : friend.getNickname();
 
         return new ChatRoomResponse(
                 chatRoom.getId(),
                 friendId,
                 nickname,
-                profileImageUrl,
-                friend != null && canSend,
+                withdrawn ? null : profileImageUrl,
+                !withdrawn && canSend,
                 chatRoom.getLastMessageId(),
                 chatRoom.getLastMessageContent(),
                 chatRoom.getLastMessageAt(),
                 chatRoom.getLastReadMessageId(memberId),
                 chatRoom.getLastReadMessageId(friendId),
-                unreadCount
+                unreadCount,
+                withdrawn
         );
     }
 }

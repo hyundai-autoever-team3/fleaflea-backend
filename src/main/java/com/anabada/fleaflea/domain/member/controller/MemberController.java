@@ -2,6 +2,8 @@ package com.anabada.fleaflea.domain.member.controller;
 
 import com.anabada.fleaflea.domain.member.dto.*;
 import com.anabada.fleaflea.domain.member.service.MemberService;
+import com.anabada.fleaflea.domain.member.service.MemberWithdrawalService;
+import com.anabada.fleaflea.global.security.RefreshTokenCookieProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.*;
 public class MemberController {
 
     private final MemberService memberService;
+    private final MemberWithdrawalService memberWithdrawalService;
+    private final RefreshTokenCookieProvider refreshTokenCookieProvider;
 
     @Operation(summary = "내 프로필 조회", description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.")
     @ApiResponses({
@@ -95,15 +100,21 @@ public class MemberController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "회원 탈퇴 성공"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자", content = @Content),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자", content = @Content)
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자", content = @Content),
+            @ApiResponse(responseCode = "409", description = "진행 중 거래, 주최 마켓 또는 동시 변경으로 탈퇴 불가")
     })
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMember(
             @AuthenticationPrincipal Long memberId
     ) {
-        memberService.deleteMember(memberId);
+        memberWithdrawalService.withdraw(memberId);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.delete().toString()
+                )
+                .build();
     }
 
     @Operation(summary = "닉네임으로 회원 검색", description = "닉네임을 기준으로 회원을 조회합니다.")

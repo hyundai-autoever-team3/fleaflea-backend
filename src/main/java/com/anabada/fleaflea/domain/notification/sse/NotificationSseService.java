@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.notification.sse;
 
+import com.anabada.fleaflea.domain.member.exception.MemberNotFoundException;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.notification.dto.NotificationResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +23,12 @@ public class NotificationSseService {
     private static final String EVENT_NOTIFICATION = "notification";
 
     private final SseEmitterRepository emitterRepository;
+    private final MemberRepository memberRepository;
 
     public SseEmitter subscribe(Long memberId) {
+        if (!memberRepository.existsById(memberId)) {
+            throw new MemberNotFoundException();
+        }
         String emitterId = memberId + "_" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(TIMEOUT_MILLIS);
 
@@ -48,6 +54,10 @@ public class NotificationSseService {
     }
 
     public void sendEvent(Long memberId, String eventName, Object payload) {
+        if (!memberRepository.existsById(memberId)) {
+            closeMemberConnections(memberId);
+            return;
+        }
         for (Map.Entry<String, SseEmitter> entry : emitterRepository.findAllByMemberId(memberId)) {
             send(memberId, entry.getKey(), entry.getValue(), eventName, payload);
         }
@@ -56,6 +66,12 @@ public class NotificationSseService {
     public void sendHeartbeat() {
         emitterRepository.findAll().forEach(entry -> {
             Long memberId = entry.getKey();
+
+            if (!memberRepository.existsById(memberId)) {
+                closeMemberConnections(memberId);
+                return;
+            }
+
             String emitterId = entry.getValue().getKey();
             SseEmitter emitter = entry.getValue().getValue();
 
@@ -65,6 +81,24 @@ public class NotificationSseService {
                 emitterRepository.delete(memberId, emitterId);
             }
         });
+    }
+
+    public void closeMemberConnections(Long memberId) {
+        for (Map.Entry<String, SseEmitter> entry
+                : emitterRepository.findAllByMemberId(memberId)) {
+            emitterRepository.delete(memberId, entry.getKey());
+
+            try {
+                entry.getValue().complete();
+            } catch (RuntimeException exception) {
+                log.warn(
+                        "탈퇴 회원 SSE 종료 실패 : memberId = {}, emitterId = {}",
+                        memberId,
+                        entry.getKey(),
+                        exception
+                );
+            }
+        }
     }
 
     private void send(
@@ -88,4 +122,5 @@ public class NotificationSseService {
                     .log("sse_send_failed");
         }
     }
+
 }
