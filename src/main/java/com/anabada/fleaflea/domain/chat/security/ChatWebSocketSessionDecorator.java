@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
-import java.util.HashMap;
 
 @Slf4j
 @Component
@@ -134,6 +133,7 @@ public class ChatWebSocketSessionDecorator implements WebSocketHandlerDecoratorF
                     .get(ChatWebSocketAuthInterceptor.MEMBER_ID_ATTRIBUTE);
 
             if (value instanceof Long memberId
+                    && memberIds.contains(memberId)
                     && !existingMemberIds.contains(memberId)) {
                 closeRejectedSession(session.getId());
             }
