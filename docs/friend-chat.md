@@ -134,13 +134,14 @@ client.publish({
   서버들은 같은 Redis에 연결하고 같은 `CHAT_REDIS_CHANNEL_PREFIX`(기본값 `fleaflea:chat`)를 사용한다.
   Redis Pub/Sub으로 이벤트를 공유한 뒤 각 서버가 자신의 연결로 전달하며, 프론트의 STOMP 경로·응답 형식은 바뀌지 않는다.
   운영·개발·테스트 환경의 접두어는 서로 구분한다.
-- EC2 compose는 `/etc/fleaflea/fleaflea.env`와 `/etc/fleaflea/redis.env`를 앱 컨테이너에 전달한다.
+- GCP 운영 Compose(`deploy/gcp/compose.app.yml`)는 `/etc/fleaflea/fleaflea.env`와
+  `/etc/fleaflea/redis.env`를 앱 컨테이너에 전달한다. dev는 별도 `/etc/fleaflea-dev/runtime.env`를 사용한다.
   채팅 환경변수는 서버 환경 파일에서 관리하며, 변경한 환경변수는 컨테이너를 재생성해야 반영된다.
   PR 병합만으로 Redis 채팅 전달이 자동 활성화되지는 않는다.
 - Redis Pub/Sub은 오프라인 이벤트를 보관하거나 재전송하지 않는다. 발행 실패 후에도 이미 커밋된 메시지는 DB에 남으며,
   클라이언트는 REST 커서 조회로 복구한다. 입력 상태 이벤트는 복구 대상이 아니다.
 - 프레임 크기는 16KB, 세션별 전송 버퍼는 256KB로 제한한다. 메시지 내용 제한은 기존 2000자다.
-- EC2에서 Nginx 설정을 별도로 관리한다. `/ws/chat` 경로에 HTTP/1.1 Upgrade 헤더가 필요하며,
+- 각 GCP VM에서 Nginx 설정을 별도로 관리한다. `/ws/chat` 경로에 HTTP/1.1 Upgrade 헤더가 필요하며,
   설정 변경 시 `sudo nginx -t` 후 `sudo systemctl reload nginx`를 실행한다. 서버 설정은 자동 배포 대상이 아니다.
 - 클라이언트 STOMP 구독과 heartbeat, 토큰 재연결 처리를 연동해야 배포 환경에서 채팅이 동작한다.
 

@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -15,7 +16,17 @@ import urllib.request
 import uuid
 
 STATE_DIRECTORY = Path('/var/lib/fleaflea-operations')
-IMAGE_REPOSITORY = 'asia-northeast3-docker.pkg.dev/fleaflea-511001/fleaflea/backend'
+def deployment_repository():
+    slot = Path('/etc/fleaflea/active-slot').read_text().strip()
+    if slot not in ('blue', 'green'):
+        raise ValueError('Invalid active deployment slot')
+    lines = Path('/etc/fleaflea/' + slot + '.env').read_text().splitlines()
+    image = next((line.split('=', 1)[1] for line in lines if line.startswith('APP_IMAGE=')), '')
+    match = re.fullmatch(r'([a-z0-9-]+-docker\.pkg\.dev/[a-z0-9-]+/[a-z0-9_-]+/[a-z0-9_/-]+)@sha256:[0-9a-f]{64}', image)
+    if not match:
+        raise ValueError('An immutable deployed image is required for cleanup')
+    return match.group(1)
+
 
 
 def command(arguments, **options):
@@ -122,6 +133,7 @@ def cleanup(dry_run):
     # Deployment and cleanup share a lock; never remove an image being deployed.
     with open('/run/lock/fleaflea-deploy.lock', 'a') as deployment_lock:
         fcntl.flock(deployment_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        image_repository = deployment_repository()
         containers = command(['docker', 'ps', '-aq']).splitlines()
         protected = set()
         if containers:
@@ -137,7 +149,7 @@ def cleanup(dry_run):
         candidates = []
         for image in images:
             references = (image.get('RepoTags') or []) + (image.get('RepoDigests') or [])
-            if any(reference.startswith(IMAGE_REPOSITORY + ':') or reference.startswith(IMAGE_REPOSITORY + '@')
+            if any(reference.startswith(image_repository + ':') or reference.startswith(image_repository + '@')
                    or reference.startswith('fleaflea-migration:') for reference in references):
                 candidates.append(image)
         # Also retain the newest three project images even if a deploy was interrupted.

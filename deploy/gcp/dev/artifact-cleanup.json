@@ -1,0 +1,20 @@
+[
+  {
+    "name": "delete-old-dev-images",
+    "action": {"type": "Delete"},
+    "condition": {"tagState": "any", "olderThan": "1209600s"}
+  },
+  {
+    "name": "keep-dev-deployment-images",
+    "action": {"type": "Keep"},
+    "condition": {
+      "tagState": "tagged",
+      "tagPrefixes": ["dev-candidate", "dev-current", "dev-rollback"]
+    }
+  },
+  {
+    "name": "keep-ten-dev-images",
+    "action": {"type": "Keep"},
+    "mostRecentVersions": {"keepCount": 10}
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "GCP_PROJECT_ID": "",
+  "GCP_INSTANCE": "",
+  "GCP_INSTANCE_ID": "",
+  "GCP_IMAGE_REPOSITORY": "",
+  "GCS_BUCKET": "",
+  "FRONTEND_URL": "",
+  "SWAGGER_SERVER_URL": ""
+}
