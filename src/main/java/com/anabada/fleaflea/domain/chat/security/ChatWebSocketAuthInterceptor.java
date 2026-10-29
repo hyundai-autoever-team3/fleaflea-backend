@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.chat.security;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
@@ -28,9 +29,11 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
     private static final List<String> SUBSCRIBE_DESTINATIONS = List.of(
             "/user/queue/chat", "/user/queue/chat-acks", "/user/queue/chat-errors"
     );
+    public static final String MEMBER_ID_ATTRIBUTE = "chatMemberId";
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ChatWebSocketSessionDecorator chatWebSocketSessionDecorator;
+    private final MemberRepository memberRepository;
 
     @Override
     public Message<?> preSend(
@@ -102,6 +105,11 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
             throw new BadCredentialsException("유효하지 않은 액세스 토큰입니다.", exception);
         }
 
+        if (!memberRepository.existsById(memberId)) {
+            throw new BadCredentialsException("존재하지 않는 회원입니다");
+        }
+
+        sessionAttributes.put(MEMBER_ID_ATTRIBUTE, memberId);
         sessionAttributes.put(TOKEN_EXPIRATION_ATTRIBUTE, jwtTokenProvider.getExpiration(accessToken).getTime());
         accessor.setUser(new UsernamePasswordAuthenticationToken(memberId.toString(), null, List.of()));
     }
@@ -115,6 +123,12 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 
         if (expiresAt <= System.currentTimeMillis()) {
             throw new BadCredentialsException("액세스 토큰이 만료되었습니다.");
+        }
+
+        Object memberIdValue =
+                sessionAttributes.get(MEMBER_ID_ATTRIBUTE);
+        if (!(memberIdValue instanceof Long memberId) || !memberRepository.existsById(memberId)) {
+            throw new BadCredentialsException("탈퇴했거나 존재하지 않는 회원입니다");
         }
     }
 

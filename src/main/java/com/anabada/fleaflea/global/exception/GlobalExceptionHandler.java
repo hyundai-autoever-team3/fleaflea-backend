@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +16,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.dao.ConcurrencyFailureException;
 
 @Slf4j
 @RestControllerAdvice
@@ -171,5 +173,22 @@ public class GlobalExceptionHandler {
                                 errorCode.getMessage()
                         )
                 );
+    }
+
+    // 동시 변경 충돌 응답
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrencyFailure(
+            ConcurrencyFailureException exception
+    ) {
+        log.warn("동시 변경으로 요청 처리 실패", exception);
+
+        return ResponseEntity.status(
+                HttpStatus.CONFLICT
+        ).body(
+                ErrorResponse.of(
+                        "CONCURRENT_MODIFICATION",
+                        "다른 요청이 처리 중입니다. 잠시 후 다시 시도해주세요"
+                )
+        );
     }
 }

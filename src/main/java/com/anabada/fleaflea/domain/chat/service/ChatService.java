@@ -92,6 +92,11 @@ public class ChatService {
             int page,
             int size
     ) {
+
+        if (!memberRepository.existsById(memberId)) {
+            throw new MemberNotFoundException();
+        }
+
         Slice<ChatRoom> chatRooms = chatRoomRepository.findChatRoomsByMemberId(
                 memberId,
                 PageRequest.of(page, size)
@@ -295,6 +300,10 @@ public class ChatService {
             ChatRoom chatRoom,
             Long memberId
     ) {
+        if (!memberRepository.existsById(memberId)) {
+            throw new MemberNotFoundException();
+        }
+
         if (!chatRoom.isParticipant(memberId)) {
             throw new ChatNotParticipantException();
         }

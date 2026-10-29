@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.itemcomment;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import com.anabada.fleaflea.domain.itemcomment.controller.ItemCommentController;
 import com.anabada.fleaflea.domain.itemcomment.service.ItemCommentService;
 import com.anabada.fleaflea.domain.itemcomment.dto.ItemCommentCreateRequest;
@@ -45,6 +47,9 @@ class ItemCommentControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private ItemCommentService commentService;

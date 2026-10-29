@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.collectionitem.service;
 
+import com.anabada.fleaflea.domain.trade.repository.TradeRepository;
+
 import com.anabada.fleaflea.domain.begrequest.domain.BegRequestStatus;
 import com.anabada.fleaflea.domain.begrequest.repository.BegRequestRepository;
 import com.anabada.fleaflea.domain.collectionitem.domain.CollectionItem;
@@ -76,6 +78,9 @@ class CollectionItemServiceTest {
 
     @Mock
     private TradeRequestRepository tradeRequestRepository;
+
+    @Mock
+    private TradeRepository tradeRepository;
 
     @InjectMocks
     private CollectionItemService collectionItemService;
