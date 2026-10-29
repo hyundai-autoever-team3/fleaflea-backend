@@ -24,6 +24,7 @@ public class NotificationPushConfig {
         }
         FirebaseOptions firebaseOptions = FirebaseOptions.builder()
                 .setProjectId(projectId)
+                // On GCE, ADC uses the attached runtime service account. No key file is needed.
                 .setCredentials(GoogleCredentials.getApplicationDefault())
                 .setConnectTimeout(3000)
                 .setReadTimeout(5000)
