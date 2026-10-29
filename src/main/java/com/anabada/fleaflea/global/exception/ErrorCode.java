@@ -157,6 +157,9 @@ public enum ErrorCode {
     FRIENDSHIP_ALREADY_EXISTS(HttpStatus.CONFLICT, "FRIENDSHIP_ALREADY_EXISTS", "이미 친구이거나 처리 중인 친구 요청이 있습니다."),
 
     // Notification
+    PUSH_DEVICE_REGISTRATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "PUSH_DEVICE_REGISTRATION_UNAVAILABLE", "푸시 기기 등록을 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요."),
+    PUSH_DEVICE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "PUSH_DEVICE_LIMIT_EXCEEDED", "푸시 기기는 회원당 최대 10개까지 등록할 수 있습니다. 기존 기기를 해제한 뒤 다시 시도해주세요."),
+    PUSH_DEVICE_REGISTRATION_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "PUSH_DEVICE_REGISTRATION_RATE_LIMIT_EXCEEDED", "푸시 기기 등록 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
     NOTIFICATION_NOT_RECEIVER(HttpStatus.FORBIDDEN, "NOTIFICATION_NOT_RECEIVER", "해당 알림에 접근할 권한이 없습니다."),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다."),
 
@@ -172,7 +175,9 @@ public enum ErrorCode {
     TRADE_REQUEST_NOT_ACCEPTED(HttpStatus.CONFLICT, "TRADE_REQUEST_NOT_ACCEPTED", "수락된 거래만 완료 확인할 수 있습니다."),
     TRADE_REQUEST_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "TRADE_REQUEST_ALREADY_CONFIRMED", "이미 거래 완료를 확인했습니다."),
     RENTAL_PERIOD_REQUIRED(HttpStatus.BAD_REQUEST, "RENTAL_PERIOD_REQUIRED", "대여 거래는 대여 시작일과 종료일이 필요합니다."),
-    INVALID_RENTAL_PERIOD(HttpStatus.BAD_REQUEST, "INVALID_RENTAL_PERIOD", "대여 종료일은 시작일보다 빠를 수 없습니다.");
+    INVALID_RENTAL_PERIOD(HttpStatus.BAD_REQUEST, "INVALID_RENTAL_PERIOD", "대여 종료일은 시작일보다 빠를 수 없습니다."),
+
+    PUSH_DEVICE_NOT_OWNER(HttpStatus.FORBIDDEN, "PUSH_DEVICE_NOT_OWNER", "본인의 푸시 기기만 삭제할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;

@@ -6,3 +6,6 @@ spring:
 aws:
   s3:
     bucket: fleaflea-test
+
+fcm:
+  enabled: false

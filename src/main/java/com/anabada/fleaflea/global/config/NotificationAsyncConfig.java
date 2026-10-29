@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.global.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,27 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 @EnableAsync
 public class NotificationAsyncConfig implements AsyncConfigurer {
+
+    @Bean("notificationPushExecutor")
+    public ThreadPoolTaskExecutor notificationPushExecutor(MeterRegistry meterRegistry) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("notification-push-");
+        executor.setTaskDecorator(new ContextPropagatingTaskDecorator());
+        executor.setRejectedExecutionHandler((task, pool) -> {
+            meterRegistry.counter("notification.push.task.rejected").increment();
+
+            log.atWarn()
+                    .addKeyValue("queueSize", pool.getQueue().size())
+                    .addKeyValue("shutdown", pool.isShutdown())
+                    .log("notification_push_task_rejected");
+        });
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        return executor;
+    }
 
     @Bean("notificationSseExecutor")
     public ThreadPoolTaskExecutor notificationSseExecutor() {
