@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.member.controller;
 
 import com.anabada.fleaflea.domain.member.dto.LogoutRequest;
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.domain.member.service.MemberAuthService;
 import com.anabada.fleaflea.domain.member.service.MemberService;
@@ -59,6 +60,9 @@ class MemberAuthControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private MemberRepository members;
 
     @MockitoBean
     private CustomMemberDetailsService memberDetails;

@@ -30,6 +30,8 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "이미 존재하는 이메일입니다."),
     INVALID_LOGIN(HttpStatus.UNAUTHORIZED, "INVALID_LOGIN", "이메일 또는 비밀번호가 올바르지 않습니다."),
     PROFILE_NOT_CHANGED(HttpStatus.BAD_REQUEST, "PROFILE_NOT_CHANGED", "변경된 프로필 정보가 없습니다."),
+    MEMBER_WITHDRAWAL_BLOCKED(HttpStatus.CONFLICT, "MEMBER_WITHDRAWAL_BLOCKED", "진행 중인 거래 또는 대여를 종료한 후 탈퇴할 수 있습니다."),
+    MEMBER_OWNS_MARKET(HttpStatus.CONFLICT, "MEMBER_OWNS_MARKET", "주최한 마켓을 위임하거나 삭제한 후 탈퇴할 수 있습니다."),
 
     // Email verification
     INVALID_EMAIL_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, "INVALID_EMAIL_VERIFICATION_TOKEN", "이메일 인증이 만료되었거나 올바르지 않습니다."),

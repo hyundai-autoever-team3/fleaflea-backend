@@ -1,5 +1,17 @@
 package com.anabada.fleaflea.domain.chat;
 
+import com.anabada.fleaflea.fixture.MemberFixture;
+
+import com.anabada.fleaflea.domain.member.domain.Member;
+
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import static org.mockito.Mockito.when;
+
+import static org.mockito.Mockito.mock;
+
 import com.anabada.fleaflea.domain.chat.config.ChatWebSocketConfig;
 import com.anabada.fleaflea.domain.chat.controller.ChatSocketController;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
@@ -78,8 +90,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(
         classes = ChatWebSocketIntegrationTest.TestApplication.class,
@@ -392,6 +402,25 @@ class ChatWebSocketIntegrationTest {
             SecurityConfig.class, JwtAuthenticationFilter.class, CustomAuthenticationEntryPoint.class,
             CustomAccessDeniedHandler.class})
     static class TestApplication {
+
+        @Bean
+        MemberRepository memberRepository() {
+            var repository = mock(
+                    MemberRepository.class);
+            when(repository.existsById(1L)).thenReturn(true);
+            when(repository.existsById(2L)).thenReturn(true);
+            when(repository.existsById(3L)).thenReturn(true);
+            when(repository.findAllById(org.mockito.ArgumentMatchers.anyIterable()))
+                    .thenAnswer(invocation -> {
+                        Iterable<Long> ids = invocation.getArgument(0);
+                        List<Member> members =
+                                new ArrayList<>();
+                        ids.forEach(id -> members.add(
+                                MemberFixture.createMember(id)));
+                        return members;
+                    });
+            return repository;
+        }
 
         @Bean
         SubscriptionTracker subscriptionTracker() {

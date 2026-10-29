@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.notification.controller;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.domain.notification.service.NotificationService;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
@@ -57,6 +58,9 @@ class NotificationControllerTest {
     private JwtTokenProvider tokens;
 
     @MockitoBean
+    private MemberRepository members;
+
+    @MockitoBean
     private CustomMemberDetailsService memberDetails;
 
     @Test
@@ -82,6 +86,7 @@ class NotificationControllerTest {
         when(tokens.validateToken("access-token")).thenReturn(true);
         when(tokens.isAccessToken("access-token")).thenReturn(true);
         when(tokens.getMemberId("access-token")).thenReturn("1");
+        when(members.existsById(1L)).thenReturn(true);
         when(sse.subscribe(1L)).thenReturn(emitter);
 
         mvc.perform(get("/api/v1/notifications/subscribe")
@@ -92,6 +97,21 @@ class NotificationControllerTest {
         verify(sse).subscribe(1L);
         verify(tokens, never()).getExpiration(anyString());
         emitter.complete();
+    }
+
+    @Test
+    @DisplayName("탈퇴 회원의 유효한 액세스 토큰으로는 SSE에 재연결할 수 없다")
+    void subscribe_rejectsDeletedMemberAtConnectionStart() throws Exception {
+        when(tokens.validateToken("deleted-member-token")).thenReturn(true);
+        when(tokens.isAccessToken("deleted-member-token")).thenReturn(true);
+        when(tokens.getMemberId("deleted-member-token")).thenReturn("1");
+        when(members.existsById(1L)).thenReturn(false);
+
+        mvc.perform(get("/api/v1/notifications/subscribe")
+                        .header("Authorization", "Bearer deleted-member-token"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(sse);
     }
 
     @Test

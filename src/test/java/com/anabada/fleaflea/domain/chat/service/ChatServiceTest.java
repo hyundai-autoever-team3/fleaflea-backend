@@ -97,6 +97,7 @@ class ChatServiceTest {
     @ValueSource(booleans = {true, false})
     @DisplayName("친구인 참여자의 입력 시작과 종료는 저장 없이 이벤트로 전달한다")
     void updateTypingStatus_publishesEventWithoutSaving(boolean typing) {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
         when(friendshipRepository.existsByRequester_MemberIdAndAddressee_MemberIdAndStatus(
                 MEMBER_ID, FRIEND_ID, FriendshipStatus.ACCEPTED
@@ -108,12 +109,14 @@ class ChatServiceTest {
                 MEMBER_ID, FRIEND_ID, ChatTypingResponse.from(chatRoom, MEMBER_ID, typing)
         ));
         verify(chatRoomRepository, never()).save(any(ChatRoom.class));
-        verifyNoInteractions(chatMessageRepository, memberRepository, imageService);
+        verify(memberRepository).existsById(MEMBER_ID);
+        verifyNoInteractions(chatMessageRepository, imageService);
     }
 
     @Test
     @DisplayName("친구가 아닌 참여자는 입력 상태를 전송할 수 없다")
     void updateTypingStatus_rejectsFormerFriend() {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
         assertThatThrownBy(() -> chatService.updateTypingStatus(MEMBER_ID, ROOM_ID, true))
@@ -125,6 +128,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("제삼자는 입력 상태를 전송할 수 없다")
     void updateTypingStatus_rejectsNonParticipant() {
+        when(memberRepository.existsById(3L)).thenReturn(true);
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
         assertThatThrownBy(() -> chatService.updateTypingStatus(3L, ROOM_ID, true))
@@ -172,6 +176,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("채팅방 참여자가 아닌 회원은 상세 정보를 조회할 수 없다")
     void getChatRoom_rejectsNonParticipant() {
+        when(memberRepository.existsById(3L)).thenReturn(true);
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
         assertThatThrownBy(() -> chatService.getChatRoom(3L, ROOM_ID))
@@ -183,6 +188,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("수락된 친구 관계가 없으면 메시지를 저장하지 않는다")
     void sendMessage_rejectsNonFriend() {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(memberRepository.findLockedById(MEMBER_ID)).thenReturn(Optional.of(sender));
         when(chatRoomRepository.findLockedById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
@@ -276,6 +282,7 @@ class ChatServiceTest {
             Long afterId,
             int size
     ) {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
 
         assertThatThrownBy(() -> chatService.getMessages(MEMBER_ID, ROOM_ID, beforeId, afterId, size))
@@ -288,6 +295,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("방에서 메시지를 찾을 수 없으면 메시지 전용 예외로 처리한다")
     void markMessagesAsRead_rejectsMissingMessage() {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(chatRoomRepository.findLockedById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
         when(chatMessageRepository.findByIdAndRoomId(20L, ROOM_ID)).thenReturn(Optional.empty());
 
@@ -300,6 +308,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("이미 읽은 메시지를 다시 읽음 처리하면 이벤트를 발행하지 않는다")
     void markMessagesAsRead_doesNotPublishUnchangedWatermark() {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         chatRoom.markMessagesAsRead(MEMBER_ID, 20L);
         ChatMessage message = ChatFixture.createChatMessage(ROOM_ID, FRIEND_ID, "읽은 메시지");
         when(chatRoomRepository.findLockedById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
@@ -324,6 +333,7 @@ class ChatServiceTest {
     }
 
     private void prepareMessageSender() {
+        when(memberRepository.existsById(MEMBER_ID)).thenReturn(true);
         when(memberRepository.findLockedById(MEMBER_ID)).thenReturn(Optional.of(sender));
         when(chatRoomRepository.findLockedById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
         when(friendshipRepository.lockRelationship(MEMBER_ID, FRIEND_ID, FriendshipStatus.ACCEPTED))

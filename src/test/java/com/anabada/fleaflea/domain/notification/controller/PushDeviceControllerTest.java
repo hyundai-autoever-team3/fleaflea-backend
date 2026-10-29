@@ -1,5 +1,6 @@
 package com.anabada.fleaflea.domain.notification.controller;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
 import com.anabada.fleaflea.domain.notification.domain.PushPlatform;
 import com.anabada.fleaflea.domain.notification.exception.PushDeviceNotOwnerException;
@@ -62,6 +63,9 @@ class PushDeviceControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private MemberRepository members;
 
     @Test
     @DisplayName("요청 제한 저장소에 장애가 있으면 503과 도메인 오류 코드를 반환한다")

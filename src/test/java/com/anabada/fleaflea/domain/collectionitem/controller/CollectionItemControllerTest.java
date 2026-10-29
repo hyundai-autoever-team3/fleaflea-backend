@@ -1,5 +1,7 @@
 package com.anabada.fleaflea.domain.collectionitem.controller;
 
+import com.anabada.fleaflea.domain.member.repository.MemberRepository;
+
 import com.anabada.fleaflea.domain.collectionitem.dto.CollectionItemUpdateRequest;
 import com.anabada.fleaflea.domain.collectionitem.service.CollectionItemService;
 import com.anabada.fleaflea.domain.member.service.CustomMemberDetailsService;
@@ -46,6 +48,9 @@ class CollectionItemControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private CollectionItemService collectionItemService;
