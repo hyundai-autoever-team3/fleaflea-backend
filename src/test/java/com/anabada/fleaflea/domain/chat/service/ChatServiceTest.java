@@ -6,6 +6,7 @@ import com.anabada.fleaflea.domain.chat.dto.ChatMessageResponse;
 import com.anabada.fleaflea.domain.chat.dto.ChatMessageSendRequest;
 import com.anabada.fleaflea.domain.chat.dto.ChatTypingResponse;
 import com.anabada.fleaflea.domain.chat.event.ChatTypingChangedEvent;
+import com.anabada.fleaflea.domain.chat.event.ChatMessageSentEvent;
 import com.anabada.fleaflea.domain.chat.exception.ChatDuplicateMessageConflictException;
 import com.anabada.fleaflea.domain.chat.exception.ChatFriendRequiredException;
 import com.anabada.fleaflea.domain.chat.exception.ChatMessageNotFoundException;
@@ -34,6 +35,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -194,6 +196,28 @@ class ChatServiceTest {
                 .isInstanceOf(ChatFriendRequiredException.class);
 
         verifyNoInteractions(chatMessageRepository, eventPublisher);
+    }
+
+    @Test
+    @DisplayName("새 메시지 이벤트에는 전송 시점의 발신자 닉네임을 담는다")
+    void sendMessage_capturesSenderNickname() {
+        sender.updateProfile("민지", null);
+        ChatMessageSendRequest request = ChatFixture.createChatMessageSendRequest("안녕하세요");
+        ChatMessage saved = ChatFixture.createChatMessageWithId(
+                20L, ROOM_ID, MEMBER_ID, request, LocalDateTime.of(2026, 1, 1, 12, 0)
+        );
+        prepareMessageSender();
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(saved);
+
+        ChatMessageResponse response = chatService.sendMessage(MEMBER_ID, ROOM_ID, request);
+
+        ArgumentCaptor<ChatMessageSentEvent> event = ArgumentCaptor.forClass(ChatMessageSentEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        sender.updateProfile("변경된 닉네임", null);
+        assertThat(event.getValue().senderNickname()).isEqualTo("민지");
+        assertThat(event.getValue().memberId()).isEqualTo(MEMBER_ID);
+        assertThat(event.getValue().friendId()).isEqualTo(FRIEND_ID);
+        assertThat(event.getValue().chatMessageResponse()).isEqualTo(response);
     }
 
     @Test

@@ -102,15 +102,19 @@ public class MemberAuthController {
     }
 
     @DeleteMapping("/logout")
-    @Operation(summary = "로그아웃", description = "현재 로그인한 사용자의 Refresh Token을 삭제하여 로그아웃합니다.")
+    @Operation(summary = "로그아웃", description = "현재 로그인한 사용자의 Refresh Token을 삭제하여 로그아웃합니다. 요청 본문의 deviceId를 지정하면 본인 기기의 푸시 등록만 해제하며, 본문 또는 deviceId를 생략하면 푸시 등록을 유지합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "로그아웃 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요")
+            @ApiResponse(responseCode = "400", description = "잘못된 기기 ID"),
+            @ApiResponse(responseCode = "401", description = "인증 필요"),
+            @ApiResponse(responseCode = "403", description = "다른 회원의 기기"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원")
     })
     public ResponseEntity<Void> logout(
-            @AuthenticationPrincipal Long memberId
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody(required = false) LogoutRequest request
     ) {
-        memberAuthService.logout(memberId);
+        memberAuthService.logout(memberId, request);
         return ResponseEntity.noContent()
                 .header(
                         HttpHeaders.SET_COOKIE,

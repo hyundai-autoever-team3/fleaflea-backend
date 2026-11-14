@@ -14,6 +14,8 @@ services:
       REDIS_HEALTH_ENABLED: "true"
       CHAT_REDIS_ENABLED: "true"
       IMAGE_STORAGE: gcs
+      # Ignore legacy key-file settings in env_file; ADC uses the VM identity.
+      GOOGLE_APPLICATION_CREDENTIALS: ""
       SERVER_SHUTDOWN: graceful
       SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 30s
     ports:

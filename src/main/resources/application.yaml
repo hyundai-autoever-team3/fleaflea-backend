@@ -188,4 +188,8 @@ jwt:
   access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
   refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
 
-
+fcm:
+  enabled: ${FCM_ENABLED:false}
+  project-id: ${FCM_PROJECT_ID:}
+  web-app-url: ${FCM_WEB_APP_URL:}
+  web-click-link-enabled: ${FCM_WEB_CLICK_LINK_ENABLED:true}

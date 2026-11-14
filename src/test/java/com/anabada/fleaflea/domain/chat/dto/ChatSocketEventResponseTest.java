@@ -50,7 +50,7 @@ class ChatSocketEventResponseTest {
         ChatTypingResponse chatTypingResponse = ChatTypingResponse.from(chatRoom, 1L, true);
 
         return Stream.of(
-                Arguments.of(ChatSocketEventResponse.from(ChatMessageSentEvent.of(1L, 2L, chatMessageResponse)),
+                Arguments.of(ChatSocketEventResponse.from(ChatMessageSentEvent.of(1L, 2L, "민지", chatMessageResponse)),
                         "chat-message", "content"),
                 Arguments.of(ChatSocketEventResponse.from(ChatMessagesReadEvent.of(1L, 2L, chatReadResponse)),
                         "chat-read", "lastReadMessageId"),

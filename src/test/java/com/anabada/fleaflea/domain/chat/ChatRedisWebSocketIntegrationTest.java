@@ -123,7 +123,7 @@ class ChatRedisWebSocketIntegrationTest {
         ));
 
         firstServer.getBean(ChatEventPublisher.class).publishMessageSent(
-                ChatMessageSentEvent.of(1L, 2L, chatMessageResponse)
+                ChatMessageSentEvent.of(1L, 2L, "민지", chatMessageResponse)
         );
 
         for (BlockingQueue<String> participantMessages : List.of(

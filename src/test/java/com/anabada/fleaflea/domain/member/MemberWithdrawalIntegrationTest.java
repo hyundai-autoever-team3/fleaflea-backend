@@ -19,6 +19,7 @@ import com.anabada.fleaflea.domain.member.service.MemberWithdrawalService;
 import com.anabada.fleaflea.domain.notification.domain.Notification;
 import com.anabada.fleaflea.domain.notification.domain.NotificationReferenceType;
 import com.anabada.fleaflea.domain.notification.domain.NotificationType;
+import com.anabada.fleaflea.domain.notification.repository.PushDeviceRepository;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import com.anabada.fleaflea.domain.refreshtoken.repository.RedisRefreshTokenRepository;
 import com.anabada.fleaflea.domain.trade.domain.CollectionTradeRequest;
@@ -63,6 +64,7 @@ class MemberWithdrawalIntegrationTest {
     @Autowired private MemberWithdrawalService withdrawalService;
     @Autowired private ItemService itemService;
     @Autowired private CollectionItemService collectionItemService;
+    @Autowired private PushDeviceRepository pushDevices;
     @MockitoBean private ImageService imageService;
     @MockitoBean private RedisRefreshTokenRepository refreshTokens;
     @MockitoBean private ChatWebSocketSessionDecorator sessions;
@@ -150,6 +152,24 @@ class MemberWithdrawalIntegrationTest {
         assertThat(entityManager.find(ChatRoom.class, room.getId())).isNotNull();
         assertThat(entityManager.find(ChatMessage.class, message.getId())).isNotNull();
         verify(imageService).deleteAfterCommit(imageKey);
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 시 푸시 기기를 삭제하고 다른 회원의 기기는 보존한다")
+    void withdrawalDeletesOnlyWithdrawingMemberPushDevices() {
+        Member withdrawing = persistMember("withdrawing-push");
+        Member other = persistMember("other-push");
+        pushDevices.upsert(withdrawing.getMemberId(), UUID.randomUUID().toString(), "WEB", UUID.randomUUID());
+        pushDevices.upsert(other.getMemberId(), UUID.randomUUID().toString(), "WEB", UUID.randomUUID());
+        assertThat(pushDevices.countByMember_MemberId(withdrawing.getMemberId())).isEqualTo(1);
+
+        withdrawalService.withdraw(withdrawing.getMemberId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(entityManager.find(Member.class, withdrawing.getMemberId())).isNull();
+        assertThat(pushDevices.countByMember_MemberId(withdrawing.getMemberId())).isZero();
+        assertThat(pushDevices.countByMember_MemberId(other.getMemberId())).isEqualTo(1);
     }
 
     @Test

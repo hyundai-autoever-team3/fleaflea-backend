@@ -229,7 +229,7 @@ class ChatWebSocketIntegrationTest {
         BlockingQueue<String> outsiderEvents = subscribe(connect(3L), 3L, "/user/queue/chat");
         ChatMessageResponse response = createMessageResponse(ChatFixture.createChatMessageSendRequest("안녕하세요"));
 
-        chatEventListener.onChatMessageSentEvent(ChatMessageSentEvent.of(1L, 2L, response));
+        chatEventListener.onChatMessageSentEvent(ChatMessageSentEvent.of(1L, 2L, "민지", response));
 
         assertThat(senderEvents.poll(5, TimeUnit.SECONDS)).isNotNull().contains("chat-message", "안녕하세요");
         assertThat(receiverEvents.poll(5, TimeUnit.SECONDS)).isNotNull().contains("chat-message", "안녕하세요");

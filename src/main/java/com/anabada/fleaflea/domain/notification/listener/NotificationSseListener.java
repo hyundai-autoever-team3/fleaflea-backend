@@ -1,6 +1,7 @@
 package com.anabada.fleaflea.domain.notification.listener;
 
 import com.anabada.fleaflea.domain.notification.event.NotificationCreatedEvent;
+import com.anabada.fleaflea.domain.member.event.MemberLoggedOutEvent;
 import com.anabada.fleaflea.domain.notification.sse.NotificationSseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -13,6 +14,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class NotificationSseListener {
 
     private final NotificationSseService notificationSseService;
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onMemberLoggedOut(MemberLoggedOutEvent event) {
+        notificationSseService.disconnectMember(event.memberId());
+    }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async("notificationSseExecutor")
